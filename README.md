@@ -5,7 +5,7 @@ A reduction package of Igor Pro to convert 2D elastic scattering patterns to 1D 
 
 ## Description
 
-Red2D is a data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software Igor Pro by WaveMetrics.
+Red2D is a data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software Igor Pro.
 
 This package can
 - Load 2D scattering patterns (32bit signed integer tiff)
