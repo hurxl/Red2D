@@ -49,7 +49,7 @@ AnythingAnythingAnything
 
 ## Author
 
-[@b4b4r07](https://twitter.com/b4b4r07)
+[hurxl](https://www.shibayamalab.issp.u-tokyo.ac.jp/li-xiang)
 
 ## License
 
