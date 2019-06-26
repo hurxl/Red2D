@@ -8,12 +8,12 @@ A reduction package of Igor Pro to convert 2D elastic scattering patterns to 1D 
 Red2D is a data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software Igor Pro by WaveMetrics.
 
 This package can
-1) load 2D scattering patterns (32bit signed integer tiff)
-2) display 2D tiff images and 1D I-q profiles
-3) get beam center and SDD by fitting standard sample (AgBh)
-4) make and apply mask on images
-5) perform circular average or sector average with proper mask
-6) normalize 1D I-q profiles with exposure time, transmittance, sample thickness, absolute intensity correction, and also support cell and solvent subtraction.
+- Load 2D scattering patterns (32bit signed integer tiff)
+- Display 2D tiff images and 1D I-q profiles
+- Get beam center and SDD by fitting standard sample (AgBh)
+- Make and apply mask on images
+- Perform circular average or sector average with proper mask
+- Normalize 1D I-q profiles with exposure time, transmittance, sample thickness, absolute intensity correction, and also support cell and solvent subtraction.
 
 
 ## Other features
