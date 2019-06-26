@@ -1,11 +1,11 @@
 # Red2D
-A reduction package of Igor Pro to convert 2D elastic scattering patterns to 1D I-q profile.
+A small reduction package of Igor Pro to convert 2D elastic scattering patterns to 1D I-q profile.
 ![Red2D_image](https://user-images.githubusercontent.com/52224108/60145474-1d91e280-9801-11e9-891f-739cd63bf8f3.png)
 
 
 ## Description
 
-Red2D is a data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software Igor Pro.
+Red2D is a small data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software Igor Pro.
 
 This package can
 - Load 2D scattering patterns (32bit signed integer tiff)
@@ -19,7 +19,8 @@ This package can
 ## Other features
 
 - Batch reduction of multiple images
-- Support tilted detector
+- Support tilted detector using Euler angles
+- Fit AgBh even when beam center is outside the image
 - ROI mask and sector mask avilable
 - Azimuthal profile
 - Combining multiple images into one image
