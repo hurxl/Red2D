@@ -39,8 +39,8 @@ This package can
 
 ## Installation
 
-1. Download all ipf files and put them in a folder with any name.
-2. Place the folder to /Documents/WaveMetrics/Igor Pro User Files/Igor Procedures
+1. Download Red2D_igor.zip and unzip the file.
+2. Put the Red2D_igor folder in /Documents/WaveMetrics/Igor Pro User Files/Igor Procedures
 3. Restart Igor Pro
 
 
