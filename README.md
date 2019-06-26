@@ -2,35 +2,34 @@
 A reduction package of Igor Pro to convert 2D elastic scattering patterns to 1D I-q profile.
 ![Red2D_image](https://user-images.githubusercontent.com/52224108/60145474-1d91e280-9801-11e9-891f-739cd63bf8f3.png)
 
-# Awesome-name
-
-![Badge Status](https://ci-as-a-service)
-
-OverviewOverviewOverview
 
 ## Description
 
-DescriptionDescriptionDescription
-DescriptionDescriptionDescription
-DescriptionDescriptionDescription
+Red2D is a data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software Igor Pro by WaveMetrics.
 
-***DEMO:***
+This package can
+1) load 2D scattering patterns (32bit signed integer tiff)
+2) display 2D tiff images and 1D I-q profiles
+3) get beam center and SDD by fitting standard sample (AgBh)
+4) make and apply mask on images
+5) perform circular average or sector average with proper mask
+6) normalize 1D I-q profiles with exposure time, transmittance, sample thickness, absolute intensity correction, and also support cell and solvent subtraction.
 
-![Demo](https://image-url.gif)
 
-## Features
+## Other features
 
-- Awesome function
-- Awesome UI
-- ...
+- Batch reduction of multiple images
+- Support tilted detector
+- ROI mask and sector mask avilable
+- Azimuthal profile
+- Combining multiple images into one image
 
-For more information, see `awesome-tool --help`.
 
 ## Requirement
 
-- Requirement
-- Requirement
-- Requirement
+- Igor Pro by Wavemetrics
+- MacOS or Windows
+This pacakge is only tested with Igor Pro 8 but it should work on Igor Pro 6 and 7.
 
 ## Usage
 
@@ -40,13 +39,10 @@ For more information, see `awesome-tool --help`.
 
 ## Installation
 
-    $ git clone https://github.com/b4b4r07/awesome-tool
+1. Download all ipf files and put them in a folder with any name.
+2. Place the folder to /Documents/WaveMetrics/Igor Pro User Files/Igor Procedures
+3. Restart Igor Pro
 
-## Anything Else
-
-AnythingAnythingAnything
-AnythingAnythingAnything
-AnythingAnythingAnything
 
 ## Author
 
