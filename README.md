@@ -9,7 +9,7 @@ Red2D is a data reduction package to convert 2D elastic scattering patterns to 1
 
 This package can
 - Load 2D scattering patterns (32bit signed integer tiff)
-- Display 2D tiff images and 1D I-q profiles
+- Display 2D images and 1D I-q profiles
 - Get beam center and SDD by fitting standard sample (AgBh)
 - Make and apply mask on images
 - Perform circular average or sector average with proper mask
@@ -31,11 +31,11 @@ This package can
 - MacOS or Windows
 This pacakge is only tested with Igor Pro 8 but it should work on Igor Pro 6 and 7.
 
+
 ## Usage
 
-1. Usage
-2. Usage
-3. Usage
+- Please refer the manual for step by step introcution.
+
 
 ## Installation
 
@@ -47,6 +47,7 @@ This pacakge is only tested with Igor Pro 8 but it should work on Igor Pro 6 and
 ## Author
 
 [hurxl](https://www.shibayamalab.issp.u-tokyo.ac.jp/li-xiang)
+
 
 ## License
 
