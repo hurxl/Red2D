@@ -1,6 +1,6 @@
 # Red2D
 A reduction package of Igor Pro to convert 2D elastic scattering patterns to 1D I-q profile.
-![Layout0.pdf](https://github.com/hurxl/Red2D/files/3327856/Layout0.pdf)
+![Red2D_image](https://user-images.githubusercontent.com/52224108/60145419-e7546300-9800-11e9-962e-17efd5b11bad.png)
 
 # Awesome-name
 
