@@ -48,6 +48,9 @@ This package can
 
 [hurxl](https://www.shibayamalab.issp.u-tokyo.ac.jp/li-xiang)
 
+## Acknowledgement
+
+Thank you Dr. S. Nakagawa to help me add the tilted detector correction and check the validity of reduced 1D profiles.
 
 ## License
 
