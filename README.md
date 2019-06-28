@@ -39,9 +39,9 @@ This package can
 
 ## Installation
 
-1. Download Red2D_igor.zip and unzip the file.
-2. Put the Red2D_igor folder in /Documents/WaveMetrics/Igor Pro User Files/Igor Procedures
-3. Restart Igor Pro
+1. Download [zip file](https://github.com/hurxl/Red2D/releases) and unzip the file.
+2. Put the Red2D folder in /Documents/WaveMetrics/Igor Pro User Files/Igor Procedures.
+3. Restart Igor Pro.
 
 
 ## Author
