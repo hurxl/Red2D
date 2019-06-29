@@ -14,7 +14,7 @@
 
 ## Description
 
-Red2D is a small data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software Igor Pro. This package targets for data from small/wide angle X-ray scattering (SAXS/WAXS), small angle neutron scattering (SANS) and static light scattering (SLS).
+Red2D is a small data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software [Igor Pro](https://www.wavemetrics.com/). This package targets for data from small/wide angle X-ray scattering (SAXS/WAXS), small angle neutron scattering (SANS) and static light scattering (SLS).
 
 This package can
 - Load 2D scattering patterns (32bit signed integer tiff)
