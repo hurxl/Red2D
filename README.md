@@ -2,10 +2,14 @@
 ![GitHub release](https://img.shields.io/github/release/hurxl/Red2D.svg)
 ![GitHub platform](https://img.shields.io/badge/platform-Igor%20Pro-brightgreen.svg)
 [![Github All Releases](https://img.shields.io/github/downloads/hurxl/Red2D/total.svg)]()
-
-[download link](https://github.com/hurxl/Red2D/releases/latest)
-
 ![Red2D_image](https://user-images.githubusercontent.com/52224108/60145474-1d91e280-9801-11e9-891f-739cd63bf8f3.png)
+
+
+## Installation
+
+1. Download [Red2D.zip](https://github.com/hurxl/Red2D/releases/latest) and unzip the file.
+2. Put the Red2D folder in /Documents/WaveMetrics/Igor Pro User Files/Igor Procedures.
+3. Restart Igor Pro.
 
 
 ## Description
@@ -41,13 +45,6 @@ This package can
 ## Usage
 
 - Please refer the manual for step by step introcution.
-
-
-## Installation
-
-1. Download [Red2D.zip](https://github.com/hurxl/Red2D/releases/latest) and unzip the file.
-2. Put the Red2D folder in /Documents/WaveMetrics/Igor Pro User Files/Igor Procedures.
-3. Restart Igor Pro.
 
 
 ## Author
