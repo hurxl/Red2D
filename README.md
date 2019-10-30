@@ -44,7 +44,7 @@ This package can
 
 ## Usage
 
-- Please refer a manual, included in the Red2D.zip, for step by step introcution.
+- Please refer to the manual, included in the Red2D.zip, for step by step introcution.
 
 
 ## Author
