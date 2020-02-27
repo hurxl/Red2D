@@ -38,8 +38,8 @@ This package can
 ## Requirement
 
 - Igor Pro by Wavemetrics
-- This pacakge is only tested with Igor Pro 8 and does not support Igor 6 and 7.
-- This package is only tested on MacOS but should work on Windows as well.
+- This pacakge has been tested with Igor Pro 8 and does not support Igor 6 and 7.
+- This package has been tested on MacOS and Windows.
 
 
 ## Usage
