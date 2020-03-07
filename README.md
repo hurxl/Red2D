@@ -14,32 +14,32 @@
 
 ## Description
 
-Red2D is a small data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software [Igor Pro](https://www.wavemetrics.com/). This package targets for data from small/wide angle X-ray scattering (SAXS/WAXS), small angle neutron scattering (SANS) and static light scattering (SLS). This package is easy to install (See [Installation](#Installation)) and contains only basic reduction features, suitable for light users. For more comprehensive data reduction and analysis, I recommend to use [Irena/Nika/Indra](https://github.com/jilavsky/SAXS_IgorCode) developded by Dr. Jan Ilavsky.
+Red2D is a small data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software [Igor Pro](https://www.wavemetrics.com/). This package targets for data from small/wide angle X-ray scattering (SAXS/WAXS), small angle neutron scattering (SANS) and static light scattering (SLS). This package is easy to install (See [Installation](#Installation)) and contains basic reduction features, suitable for light users. For more comprehensive data reduction and analysis, I recommend to use [Irena/Nika/Indra](https://github.com/jilavsky/SAXS_IgorCode) developded by Dr. Jan Ilavsky.
 
 This package can
 - Load 2D scattering patterns (32bit signed integer tiff)
-- Display 2D images and 1D I-q profiles
-- Get beam center and SDD by fitting standard sample (AgBh)
-- Make and apply mask on images
-- Perform circular average or sector average with proper mask
+- Display 2D images and 1D I-q or I-2θ profiles
+- Get beam center and SDD by fitting a standard sample (AgBh)
+- Make and apply masks on images
+- Perform circular average or sector average
 - Normalize 1D I-q profiles with exposure time, transmittance, sample thickness, absolute intensity correction, and also support cell and solvent subtraction.
 
 
 ## Other features
 
 - Batch reduction of multiple images
-- Support tilted detector using Euler angles
+- Support tilted detector
 - Fit AgBh even when beam center is outside the image
 - ROI mask and sector mask avilable
-- Azimuthal profile
+- Azimuthal angle vs q profiles
 - Combining multiple images into one image
 
 
 ## Requirement
 
-- Igor Pro by Wavemetrics
-- This pacakge has been tested with Igor Pro 8 and does not support Igor 6 and 7.
+- Igor Pro 8.0 or later by Wavemetrics
 - This package has been tested on MacOS and Windows.
+- This package does not support Igor 7 or older.
 
 
 ## Usage
