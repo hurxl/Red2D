@@ -57,4 +57,4 @@ Thank you Dr. S. Nakagawa to help me add the tilted detector correction and chec
 
 ## License
 
-[MIT](http://b4b4r07.mit-license.org)
+[MIT](https://github.com/hurxl/Red2D/blob/master/LICENSE)
