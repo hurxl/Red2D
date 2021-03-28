@@ -19,7 +19,7 @@ Red2D is a small data reduction package to convert 2D elastic scattering pattern
 This package can
 - Load 2D scattering patterns (32bit signed integer tiff)
 - Display 2D images and 1D I-q or I-2θ profiles
-- Get beam center and SDD by fitting a standard sample (AgBh)
+- Get beam center and SDD by fitting standard samples (AgBh, Si, CeO2)
 - Make and apply masks on images
 - Perform circular average or sector average
 - Normalize 1D I-q profiles with exposure time, transmittance, sample thickness, absolute intensity correction, and also support cell and solvent subtraction.
@@ -29,7 +29,7 @@ This package can
 
 - Batch reduction of multiple images
 - Support tilted detector
-- Fit AgBh even when beam center is outside the image
+- Fit standard samples even when beam center is outside the image
 - ROI mask and sector mask avilable
 - Azimuthal angle vs q profiles
 - Combining multiple images into one image
