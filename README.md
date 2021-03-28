@@ -21,7 +21,7 @@ This package can
 - Display 2D images and 1D I-q or I-2θ profiles
 - Get beam center and SDD by fitting standard samples (AgBh, Si, CeO2)
 - Make and apply masks on images
-- Perform circular average or sector average
+- Perform circular average or sector average with solid angle correction.
 - Normalize 1D I-q profiles with exposure time, transmittance, sample thickness, absolute intensity correction, and also support cell and solvent subtraction.
 
 
