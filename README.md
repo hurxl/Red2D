@@ -37,9 +37,9 @@ This package can
 
 ## Requirement
 
-- Igor Pro 8.0 or later by Wavemetrics
+- Igor Pro 9.0 or later (Nighly builds is recommended to prevent a few errors of Igor Pro itself.)
 - This package has been tested on MacOS and Windows.
-- This package does not support Igor 7 or older.
+- This package does not support Igor 8 or older.
 
 
 ## Usage
@@ -49,7 +49,7 @@ This package can
 
 ## Author
 
-[hurxl](https://www.shibayamalab.issp.u-tokyo.ac.jp/li-xiang)
+[hurxl](https://www.xiangli-lab.com/)
 
 ## Acknowledgement
 
