@@ -14,7 +14,7 @@
 
 ## Description
 
-Red2D is a small data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software [Igor Pro](https://www.wavemetrics.com/). This package handles data reduction for small/wide angle X-ray scattering (SAXS/WAXS), small angle neutron scattering (SANS) and static light scattering (SLS). This package is easy to install (See [Installation](#Installation)) and contains basic reduction features, suitable for light users. For more comprehensive data reduction and analysis, I recommend to use [Irena/Nika/Indra](https://github.com/jilavsky/SAXS_IgorCode) developded by Dr. Jan Ilavsky.
+Red2D is a small data reduction package to convert 2D elastic scattering patterns to 1D I-q profile, working on a scientific data analysis software [Igor Pro](https://www.wavemetrics.com/). This package handles data reduction for small/wide-angle X-ray scattering (SAXS/WAXS), small-angle neutron scattering (SANS), and static light scattering (SLS). This package is easy to install (See [Installation](#Installation)) and contains basic reduction features, suitable for light users. For more comprehensive data reduction and analysis, I recommend using [Irena/Nika/Indra](https://github.com/jilavsky/SAXS_IgorCode) developed by Dr. Jan Ilavsky.
 
 This package can
 - Load 2D scattering patterns (32bit signed integer tiff)
@@ -22,29 +22,29 @@ This package can
 - Get beam center and SDD by fitting standard samples (AgBh, Si, CeO2)
 - Make and apply masks on images
 - Perform circular average or sector average with solid angle correction.
-- Normalize 1D I-q profiles with exposure time, transmittance, sample thickness, absolute intensity correction, and also support cell and solvent subtraction.
+- Normalize 1D I-q profiles with exposure time, transmittance, sample thickness, absolute intensity correction, and support cell and solvent subtraction.
 
 
 ## Other features
 
 - Batch reduction of multiple images
 - Support tilted detector
-- Fit standard samples even when beam center is outside the image
-- ROI mask and sector mask avilable
+- Fit standard samples even when the beam center is outside the image
+- ROI mask and sector mask are available
 - Azimuthal angle vs q profiles
 - Combining multiple images into one image
 
 
 ## Requirement
 
-- Igor Pro 9.0 or later (Nighly builds is recommended to prevent a few errors of Igor Pro itself.)
-- This package has been tested on MacOS and Windows.
+- Igor Pro 9.1 or later (Igor Pro 9.0 contains a bug that prevents this package from working correctly.)
+- This package has been tested on macOS and Windows.
 - This package does not support Igor 8 or older.
 
 
 ## Usage
 
-- Please refer to the manual, included in the Red2D.zip, for step by step introcution.
+- Please refer to the manual, included in the Red2D.zip, for a step-by-step introduction.
 
 
 ## Author
@@ -53,7 +53,7 @@ This package can
 
 ## Acknowledgement
 
-Thank you Dr. S. Nakagawa to help me add the tilted detector correction and check the validity of reduced 1D profiles.
+Thank Dr. S. Nakagawa for helping me add the tilted detector correction and check the validity of reduced 1D profiles.
 
 ## License
 
