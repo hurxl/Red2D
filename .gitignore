@@ -3,6 +3,3 @@
 *.pxt
 *.uxp
 *.uxt
-.DS_Store
-**/.DS_Store
-*.DS_Store
