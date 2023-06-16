@@ -6,3 +6,6 @@
 
 # Avoid including Mac specific file
 .DS_Store
+main codes/.DS_Store
+others/.DS_Store
+sansu/.DS_Store
