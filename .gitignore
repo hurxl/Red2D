@@ -3,4 +3,6 @@
 *.pxt
 *.uxp
 *.uxt
-*.DS_Store
+
+# Avoid including Mac specific file
+.DS_Store
