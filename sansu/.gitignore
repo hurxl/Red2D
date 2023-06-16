@@ -1,0 +1,10 @@
+# Avoid including Experiment files: they can be created and edited locally to test the ipf files
+*.pxp
+*.pxt
+*.uxp
+*.uxt
+
+# Avoid including Mac specific file
+.DS_Store
+**/.DS_Store
+*.DS_Store
