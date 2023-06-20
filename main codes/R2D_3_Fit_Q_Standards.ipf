@@ -232,20 +232,22 @@ End
 Static Function/WAVE Create_AgBh_ref()
 	Make/FREE/O/N=11 AgBh_q
 	AgBh_q[0,10] = 0.1076*(p+1) //a good approximation
+	// Huang, T. C., Toraya, H., Blanton, T. N. & Wu, Y. X-ray powder diffraction analysis of silver behenate, a possible low-angle diffraction standard. Journal of Applied Crystallography 26, 180–184 (1993).
+  
 	return AgBh_q
 End
 
 Static Function/WAVE Create_Si_ref()
 	Make/FREE/O/N=11 Si_q
 	Si_q[0,10] = {2.004, 3.272, 3.837, 4.628, 5.043, 5.668, 6.012, 6.545, 6.845, 7.317, 7.587}
+	// Silicon_640f_Standard_certification_NIST.pdf
 	return Si_q
 End
 
 Static Function/WAVE Create_CeO2_ref()
 	Make/FREE/O/N=6 CeO2_q
-//	CeO2_q[0,5] = {2.015464356, 2.326270904, 3.287816681, 3.853976194, 4.025376915, 4.647132202}
-	CeO2_q[0,5] = {2.00376238, 2.326270904, 3.27217002, 3.83694455, 4.025376915, 4.62753269} // partially modified, not perfect.
-
+	CeO2_q[0,5] = {2.015464356, 2.326270904, 3.287816681, 3.853976194, 4.025376915, 4.647132202}
+	// NIST_SRM_676b_%5BZnO,TiO2,Cr2O3,CeO2%5D.pdf 
 
 	return CeO2_q
 End
