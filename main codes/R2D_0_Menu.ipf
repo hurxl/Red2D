@@ -12,8 +12,8 @@ Menu "Red2D"
 		"Load All EDF Images in Folder", R2D_LoadImages(".edf", "folder", 1)	// folder: load all files in selected, 1: overwrite enabled
 		"-"
 		"Load All Text Images (txt) in Folder", R2D_LoadImages(".txt", "folder", 1)
-		"Load All Text Images (asc) in Folder", R2D_LoadImages(".dat", "folder", 1)
-		"Load All Text Images (dat) in Folder", R2D_LoadImages(".asc", "folder", 1)
+		"Load All Text Images (asc) in Folder", R2D_LoadImages(".asc", "folder", 1)
+		"Load All Text Images (dat) in Folder", R2D_LoadImages(".dat", "folder", 1)
 	End
 	
 	"2. Display Images", R2D_Display2D()

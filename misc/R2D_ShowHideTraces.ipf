@@ -202,7 +202,7 @@ Function SetAnnotationFontSize(LegendName, relFontSize)
 	// make the new font size code
 	string newRelFontSizeCode
 	if(relFontSize<=0)
-		newRelFontSizeCode = ""
+		newRelFontSizeCode = "\\Zr100"
 	elseif(relFontSize<10)
 		newRelFontSizeCode = "\\Zr00"+num2str(relFontSize)
 	elseif(relFontSize<100)
@@ -210,8 +210,9 @@ Function SetAnnotationFontSize(LegendName, relFontSize)
 	elseif(relFontSize<1000)
 		newRelFontSizeCode = "\\Zr"+num2str(relFontSize)
 	else
-		newRelFontSizeCode = "" // if unexpected size is provided
+		newRelFontSizeCode = "\\Zr100" // if unexpected size is provided
 	endif
+	newRelFontSizeCode += "\r"
 
 	// get current legend text
 	string allinfo = AnnotationInfo("", LegendName)
@@ -236,7 +237,7 @@ Function SetAnnotationFontSize(LegendName, relFontSize)
 		Do
 			ZrText = StringFromList(i, ZrTextList, "\\") // get a Zr item
 			NumericPart = str2Num(ZrText[2,4]) // get the numeric part of Zr item
-			if(strlen(ZrText) == 5 && numtype(NumericPart) == 0) // if the code is Font Size Code
+			if(strlen(ZrText) == 6 && numtype(NumericPart) == 0) // if the code is Font Size Code
 				break // found the code. stop loop.
 			else
 				ZrText = "" // Latter codes need true ZrText.
@@ -247,13 +248,13 @@ Function SetAnnotationFontSize(LegendName, relFontSize)
 
 	string newLegendText
 	if(strlen(ZrText) == 0) // if the font size code does not exist in current annotation
-		newLegendText = newRelFontSizeCode + "\r" + legendText
+		newLegendText = newRelFontSizeCode + legendText
 	else // if the font size code exists
 		FontSizeCode = "\\" + ZrText
 		newLegendText = ReplaceString(FontSizeCode, legendText, newRelFontSizeCode)
 	endif
 
-	Legend/C/N=text0/J newLegendText
+	Legend/C/N=text0/J/F=0 newLegendText
 
 End
 

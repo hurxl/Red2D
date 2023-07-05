@@ -1,3 +1,8 @@
+Change log 2.5.1
+# Bug fix
+- Loading asc and dat now work again.
+- ShowHideTraces now change annotation size correctly.
+
 Change log 2.5.0
 # New features
 - Loading images can handle .edf files.
