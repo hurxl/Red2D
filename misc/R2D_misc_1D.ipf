@@ -26,13 +26,13 @@ Function R2D_SDDCombineranel() // Create a panel to combine waves of different S
 	NVAR U_prefactor_l = root:Red2Dpackage:U_prefactor_l
 	NVAR U_prefactor_m = root:Red2Dpackage:U_prefactor_m
 	NVAR U_prefactor_s = root:Red2Dpackage:U_prefactor_s
-	If(numtype(U_prefactor_l) != 0)
+	If(numtype(U_prefactor_l) != 0 || U_prefactor_l == 0)
 		U_prefactor_l = 1
 	Endif
-	If(numtype(U_prefactor_m) != 0)
+	If(numtype(U_prefactor_m) != 0 || U_prefactor_m == 0)
 		U_prefactor_m = 1
 	Endif
-	If(numtype(U_prefactor_s) != 0)
+	If(numtype(U_prefactor_s) != 0 || U_prefactor_s == 0)
 		U_prefactor_s = 1
 	Endif
 	Variable/G root:Red2Dpackage:U_Cursorlong

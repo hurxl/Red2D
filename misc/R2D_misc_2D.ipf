@@ -848,11 +848,12 @@ Function R2D_2DImageConverterPanel()
 	SetdataFolder saveDFR
 	
 	/// Check if panel exist
-	DoWindow Azimuthal2D
+//	DoWindow Azimuthal2D
+	DoWindow Convert_2D_coordinates
 	If(V_flag == 0)
-		NewPanel/K=1/N=Azimuthal2D/W=(800,100,1380,380)
+		NewPanel/K=1/N=Convert_2D_coordinates/W=(800,100,1450,420)
 	Else
-		DoWindow/F Azimuthal2D
+		DoWindow/F Convert_2D_coordinates
 	Endif
 
 //	//Create a new panel to collect parameter to perform circular average
@@ -869,18 +870,18 @@ Function R2D_2DImageConverterPanel()
 //		NewPanel/K=1/N=Azimuthal2D/W=(V_left,V_top,V_right,V_bottom)
 //	Endif
 	
-	SetVariable setvar0 title="X0 [pt]",pos={10,5},size={200,25},limits={-inf,inf,1},fSize=13, value=U_X0
-	SetVariable setvar1 title="Y0 [pt]",pos={10,30},size={200,25},limits={-inf,inf,1},fSize=13, value=U_Y0
-	SetVariable setvar2 title="SDD [m]",pos={10,55},size={200,25},limits={0,inf,0.1},fSize=13, value=U_SDD
-	SetVariable setvar3 title="Tilt_X [º]",pos={10,80},size={200,25},limits={-90,90,1},fSize=13, value=U_tiltX, help={"-90 to 90º"}
-	SetVariable setvar4 title="Tilt_Y [º]",pos={10,105},size={200,25},limits={-90,90,1},fSize=13, value=U_tiltY, help={"-90 to 90º"}
-	SetVariable setvar5 title="Lambda [A]",pos={10,130},size={200,25},limits={0,inf,0.1},fSize=13, value=U_Lambda, help={"Cu = 1.5418A, Mo = 0.7107A"}
-	SetVariable setvar6 title="Pixel Size [um]",pos={10,155},size={200,25},limits={0,inf,1},fSize=13, value=U_PixelSize, help={"Pilatus = 172um, Eiger = 75um, Rigaku = 100 um"}
-	SetVariable setvar7 title="phi offset [º]",pos={10,180},size={200,25},limits={0,inf,1},fSize=13, value=U_phiOffset, help={"start angle offset"}
-	ListBox lb listWave=:Red2DPackage:ImageList, frame=0, mode=0, pos={220,5}, size={350,260}, fSize=13
-	Button button0 title="Convert to Azimuthal Images",size={200,23},pos={10,210},proc=ButtonProcAz2D
-	Button button1 title="Convert to qx-qy Images",size={200,23},pos={10,240},proc=ButtonProcqxqy2D
-	Button button2 title="Refresh",size={120,23},pos={50,260},proc=ButtonProcRefreshListAz2D
+	SetVariable setvar0 title="X0 [pt]",pos={20,5},size={200,25},limits={-inf,inf,1},fSize=13, value=U_X0
+	SetVariable setvar1 title="Y0 [pt]",pos={20,30},size={200,25},limits={-inf,inf,1},fSize=13, value=U_Y0
+	SetVariable setvar2 title="SDD [m]",pos={20,55},size={200,25},limits={0,inf,0.1},fSize=13, value=U_SDD
+	SetVariable setvar3 title="Tilt_X [º]",pos={20,80},size={200,25},limits={-90,90,1},fSize=13, value=U_tiltX, help={"-90 to 90º"}
+	SetVariable setvar4 title="Tilt_Y [º]",pos={20,105},size={200,25},limits={-90,90,1},fSize=13, value=U_tiltY, help={"-90 to 90º"}
+	SetVariable setvar5 title="Lambda [A]",pos={20,130},size={200,25},limits={0,inf,0.1},fSize=13, value=U_Lambda, help={"Cu = 1.5418A, Mo = 0.7107A"}
+	SetVariable setvar6 title="Pixel Size [um]",pos={20,155},size={200,25},limits={0,inf,1},fSize=13, value=U_PixelSize, help={"Pilatus = 172um, Eiger = 75um, Rigaku = 100 um"}
+	SetVariable setvar7 title="phi offset [º]",pos={20,180},size={200,25},limits={0,inf,1},fSize=13, value=U_phiOffset, help={"start angle offset"}
+	ListBox lb listWave=:Red2DPackage:ImageList, frame=0, mode=0, pos={240,5}, size={400,300}, fSize=13
+	Button button0 title="Convert to Azimuthal Images",size={200,23},pos={20,210},proc=ButtonProcAz2D
+	Button button1 title="Convert to qx-qy Images",size={200,23},pos={20,240},proc=ButtonProcqxqy2D
+	Button button2 title="Refresh",size={120,23},pos={60,280},proc=ButtonProcRefreshListAz2D
 	
 End
 
@@ -1024,7 +1025,7 @@ ThreadSafe Static Function Azimuthal2D(pWave, dfAz2d)
 	NVAR qnum = :Red2DPackage:U_qnum
 	NVAR qmin = :Red2DPackage:U_qmin
 	NVAR qres = :Red2DPackage:U_qres
-	Wave qindexMap = :Red2DPackage:qindexMap
+	Wave qScalarIndexMap = :Red2DPackage:qScalarIndexMap
 	Wave phiMap = :Red2DPackage:phiMap
 	Wave SolidAngleCorrMap = :Red2DPackage:SolidAngleCorrMap
 		
@@ -1043,7 +1044,7 @@ ThreadSafe Static Function Azimuthal2D(pWave, dfAz2d)
     		if(pWave[i][j]<0)
     			//skip add when intensity is negative.
     		else
-    			qindex = qindexMap[i][j] //thetaMap[i][j] contains normalized theta values (Integer) by a minimum theta value deterimined above.
+    			qindex = qScalarIndexMap[i][j] //thetaMap[i][j] contains normalized theta values (Integer) by a minimum theta value deterimined above.
     			phi = phiMap[i][j]
 
     			// ADD INTENSITY.
