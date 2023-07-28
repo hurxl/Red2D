@@ -3,7 +3,7 @@
 
 
 // *************************
-// Mask GUI
+// *** Mask GUI ***
 // *************************
 Function R2D_MaskPanel()
 	/// Check if in images folder by checking if there is an imagelist in the package folder.
@@ -78,7 +78,7 @@ End
 
 
 // *************************
-// Button Actions
+// *** Button Actions ***
 // *************************
 Function ButtonProcMakeThresholdMask(ba) : ButtonControl
 	STRUCT WMButtonAction &ba
@@ -238,7 +238,7 @@ End
 
 
 // *************************
-// Main Codes
+// *** Main Codes ***
 // *************************
 // Create Sector Mask
 Static Function MakeSectorMask()

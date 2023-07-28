@@ -189,11 +189,17 @@ Function SampleNameToAnnotation()
 
 End
 
-Function SetAnnotationFontSize(LegendName, relFontSize)
+Function SetAnnotationFontSize(LegendName, relFontSize, targetWinName)
 	string LegendName
 	variable relFontSize
+	string targetWinName
 	
-	string annolist = AnnotationList("")
+	string annolist
+	if(strlen(targetWinName))
+		annolist = AnnotationList(targetWinName)
+	else
+		annolist = AnnotationList("")
+	endif
 	if(strlen(ListMatch(annolist, "text0")) == 0)
 		Print "No legend exists."
 		return -1
@@ -215,7 +221,12 @@ Function SetAnnotationFontSize(LegendName, relFontSize)
 	newRelFontSizeCode += "\r"
 
 	// get current legend text
-	string allinfo = AnnotationInfo("", LegendName)
+	string allinfo
+	if(strlen(targetWinName))
+		allinfo = AnnotationInfo(targetWinName, LegendName)
+	else
+		allinfo = AnnotationInfo("", LegendName)
+	endif
 	string legendText = StringByKey("TEXT", allinfo) // text part is stored as the value of the key TEXT.
 	legendText = ReplaceString("\\\\", legendText, "\\") // the text stores \ as \\
 	legendText = ReplaceString("\\r", legendText, "\r") // the text stores \r as \\r
@@ -254,7 +265,7 @@ Function SetAnnotationFontSize(LegendName, relFontSize)
 		newLegendText = ReplaceString(FontSizeCode, legendText, newRelFontSizeCode)
 	endif
 
-	Legend/C/N=text0/J/F=0 newLegendText
+	Legend/W=$targetWinName/C/N=text0/J/F=0 newLegendText
 
 End
 
@@ -293,7 +304,7 @@ Function R2D_ReorderTraces(order)
 		SampleNameToAnnotation()  // refresh the annotation  // sort by SampleName in alphabet order
 	endif
 	NVAR relFontSize = root:Packages:ShowHide_Package:U_relFontSize
-	SetAnnotationFontSize("text0", relFontSize)
+	SetAnnotationFontSize("text0", relFontSize, "")
 
 End
 
@@ -414,7 +425,7 @@ Function BP_SampleNameAnnotation(ba) : ButtonControl
 		case 2: // mouse up
 			NVAR relFontSize = root:Packages:ShowHide_Package:U_relFontSize
 			SampleNameToAnnotation()
-			SetAnnotationFontSize("text0", relFontSize)
+			SetAnnotationFontSize("text0", relFontSize, "")
 
 			break
 		case -1: // control being killed
@@ -431,7 +442,7 @@ Function BP_RemoveHidenAnnotations(ba) : ButtonControl
 		case 2: // mouse up
 			NVAR relFontSize = root:Packages:ShowHide_Package:U_relFontSize
 			RemoveHidenAnnotations("text0")
-			SetAnnotationFontSize("text0", relFontSize)
+			SetAnnotationFontSize("text0", relFontSize, "")
 
 			break
 		case -1: // control being killed
@@ -449,7 +460,7 @@ Function BP_NormalAnnotation(ba) : ButtonControl
 		case 2: // mouse up
 			NVAR relFontSize = root:Packages:ShowHide_Package:U_relFontSize
 			Legend/C/N=text0 ""
-			SetAnnotationFontSize("text0", relFontSize)
+			SetAnnotationFontSize("text0", relFontSize, "")
 
 			break
 		case -1: // control being killed
@@ -604,7 +615,7 @@ Function ShowHideLegendFontSizeSliderProc(sa) : SliderControl
 			if( sa.eventCode & 1 ) // value set
 				NVAR relFontSize = root:Packages:ShowHide_Package:U_relFontSize
 				relFontSize = sa.curval
-				SetAnnotationFontSize("text0", relFontSize)
+				SetAnnotationFontSize("text0", relFontSize, "")
 			endif
 			break
 	endswitch
