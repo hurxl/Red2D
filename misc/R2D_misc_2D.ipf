@@ -819,7 +819,7 @@ End
 
 
 // *************************
-// Convert 2D NORMAL scattering images to different 2D profiles.
+// *** Convert 2D NORMAL scattering images to different 2D profiles ***
 // *************************
 
 /////////GUI/////////
@@ -880,7 +880,7 @@ Function R2D_2DImageConverterPanel()
 	SetVariable setvar7 title="phi offset [º]",pos={20,180},size={200,25},limits={0,inf,1},fSize=13, value=U_phiOffset, help={"start angle offset"}
 	ListBox lb listWave=:Red2DPackage:ImageList, frame=0, mode=0, pos={240,5}, size={400,300}, fSize=13
 	Button button0 title="Convert to Azimuthal Images",size={200,23},pos={20,210},proc=ButtonProcAz2D
-	Button button1 title="Convert to qx-qy Images",size={200,23},pos={20,240},proc=ButtonProcqxqy2D
+//	Button button1 title="Convert to qx-qy Images",size={200,23},pos={20,240},proc=ButtonProcqxqy2D
 	Button button2 title="Refresh",size={120,23},pos={60,280},proc=ButtonProcRefreshListAz2D
 	
 End
