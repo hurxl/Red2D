@@ -2,6 +2,7 @@ Change log 2.5.1
 # Bug fix
 - Loading asc and dat now work again.
 - ShowHideTraces now change annotation size correctly.
+- Convert 2D image to azimuthal plot works properly again.
 
 Change log 2.5.0
 # New features

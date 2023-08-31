@@ -27,7 +27,7 @@ Menu "Red2D"
 		"Append I vs q ", R2D_Display1D(1, 0)
 		"Display I vs 2θ ", R2D_Display1D(0, 1)
 		"Append I vs 2θ", R2D_Display1D(1, 1)
-		"\\M0Show/Hide Traces", R2D_ShowHideTraces()
+//		"Show and Hide Traces", ShowHideTracesPanel()
 	End
 	
 	Submenu "7. Datasheet"
