@@ -1162,7 +1162,8 @@ Function R2D_TotalCount()
 	DoWindow IntensityImage
 	string topimage_name
 	if(V_flag == 1) // if the window exist, try to create ROI
-		topimage_name = StringFromList(0, ImageList)
+//		topimage_name = StringFromList(0, ImageList)
+		topimage_name = StringFromList(0, ImageNameList("IntensityImage", ";"))
 		// Create ROI if exists (this function report V_flag == 0 if roi does not exist)
 		ImageGenerateROIMask/W=IntensityImage/E=1/I=0 $topimage_name	// ImageGenerateROIMask does not directly accept wave, it needs instance name
 		// by default ImageGenerateROIMask creates a mask wave, by using /E=1/I0 to make it ROI wave or mask outsie of ROI.
