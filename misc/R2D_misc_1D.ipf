@@ -102,12 +102,12 @@ Function ButtonProc_DisplayWavesToBeCombined(ba) : ButtonControl
 			//Create a graph
 			DoWindow/F CombineTest // Check if there is a window named 2DImageWindow. Exist returns 1 else 0.	
 			If(V_flag == 0) // Create a new image window with name as 2DImageWindow if not exists.
-				Display/N=CombineTest I_long vs q_long
+				Display/k=1/N=CombineTest I_long vs q_long
 				AppendToGraph/W=CombineTest I_mid vs q_mid
 				If(WaveExists(I_short))
 					AppendToGraph/W=CombineTest I_short vs q_short
 				Endif
-			Else // Replace selected images on the window named 2DImageWindow.
+			Else // Replace selected waves on the window
 				
 				String TL = TraceNameList("CombineTest", ";", 1)
 				Variable numInTraceLst = ItemsInList(TL)
