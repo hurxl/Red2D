@@ -203,9 +203,10 @@ Function ButtonProc_CombineWavesOfdifferentSDD(ba) : ButtonControl //Combine wav
 			NVAR prefactor_s = root:Red2Dpackage:U_prefactor_s
 			SVAR OutputName = root:Red2Dpackage:U_OutputName
 			
-			String Output_i_path = "root:SDD_combined:" + OutputName + "_i"
-			String Output_q_path = "root:SDD_combined:" + OutputName + "_q"
-			String Output_s_path = "root:SDD_combined:" + OutputName + "_s"
+			string ModOutputName = CleanupName(OutputName, 0)
+			String Output_i_path = "root:SDD_combined:" + ModOutputName + "_i"
+			String Output_q_path = "root:SDD_combined:" + ModOutputName + "_q"
+			String Output_s_path = "root:SDD_combined:" + ModOutputName + "_s"
 			
 			//Trim and concatenate waves 
 			//Int
