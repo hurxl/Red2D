@@ -25,6 +25,7 @@ Function R2D_Display1D(new, xx, [winNam, IntList])
 	If(ParamIsDefault(IntList))  // if IntList is not specified
 		IntList = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
 		IntList = R2D_skip_fit(IntList)
+		IntList = SortList(IntList, ";", 16)
 	Else
 	// if IntLsit is specified, then use the Intlist
 	Endif
@@ -43,10 +44,10 @@ Function R2D_Display1D(new, xx, [winNam, IntList])
 		
 		/// display the first trace
 		If(ParamIsDefault(winNam))  // if window name is not specified
-			Display $targetPath_i vs $targetPath_x
+			Display/K=1 $targetPath_i vs $targetPath_x
 		Else  // if the window name is specified
 			KillWindow/Z $winNam  // if the window name is used, kill the window of the specified name
-			Display/N=$winNam $targetPath_i vs $targetPath_x
+			Display/K=1/N=$winNam $targetPath_i vs $targetPath_x
 		Endif
 		
 		/// append the others
