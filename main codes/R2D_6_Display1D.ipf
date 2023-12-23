@@ -74,6 +74,10 @@ Function R2D_Display1D(new, xx, [winNam, IntList])
 			ModifyGraph log=1, tick=2, mirror=1, axThick=1, lsize=1
 		Endif
 		
+		if(Exists("Publication_Style") == 6)
+			Publication_Style()
+		endif
+		
 	Else // append 1d
 			
 		For(i = 0; i < numOfInt; i++)		
