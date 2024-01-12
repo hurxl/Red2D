@@ -76,7 +76,7 @@ Function R2D_Display1D(new, xx, [winNam, IntList])
 		Endif
 		
 		if(Exists("Publication_Style") == 6)
-			Publication_Style()
+			Execute/Z "Publication_Style()"
 		endif
 		
 	Else // append 1d
