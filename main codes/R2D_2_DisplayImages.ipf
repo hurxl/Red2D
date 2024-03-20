@@ -12,7 +12,7 @@ Function R2D_Display2D()
 	/// Check if panel exist
 	DoWindow Display2D
 	If(V_flag == 0)
-		NewPanel/K=1/N=Display2D/W=(800,100,1557,500)
+		NewPanel/K=1/N=Display2D/W=(800,100,1557,580)
 		SetWindow Display2D, hook(Display2D) = R2D_DisplayImagesWindowHook	
 	Else
 		DoWindow/F Display2D
@@ -37,10 +37,12 @@ Function R2D_Display2D()
 	
 	//Create listbox named ImageList and make it follows ListBoxProc
 	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,300}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
-	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,370}, pos={355,25}, fSize=13
+	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,450}, pos={355,25}, fSize=13
 	TitleBox title0 title="Images",  fSize=14, pos={145,5}, frame=0
 	TitleBox title1 title="Note",  fSize=14, pos={515,5}, frame=0
-	Button button0 title="Bring Image to Front", fSize=13, size={160,23},pos={100,360},proc=ButtonProcR2D_BringImageToFront
+	Button button0 title="Bring Image to Front", fSize=13, size={160,23},pos={100,365},proc=ButtonProcR2D_BringImageToFront
+	Button button1 title="Save Image as JPEG", fSize=13, size={160,23},pos={100,410},proc=ButtonProcR2D_SaveImageAsJPEG
+	Checkbox cbox0 title="Save with Sample Name", fSize=13, pos={100, 440}
 	
 	SetDataFolder $savedDF
 End
@@ -53,6 +55,32 @@ Function ButtonProcR2D_BringImageToFront(ba) : ButtonControl
 		case 2: // mouse up
 			
 			DoWindow/F IntensityImage
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+Function ButtonProcR2D_SaveImageAsJPEG(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+
+	switch( ba.eventCode )
+		case 2: // mouse up
+			
+			String WinNameStr = "IntensityImage"
+			Variable WhichName
+			
+			ControlInfo/W=Display2D cbox0
+			If(V_Value == 0)
+				WhichName = 0
+			else
+				WhichName = 1
+			endif
+
+			R2D_SavePic(WinNameStr, WhichName)
 			
 			break
 		case -1: // control being killed
@@ -211,4 +239,51 @@ Function/S R2D_GetImageFolderPath()
 End
 
 
+Function R2D_SavePic(WinNameStr, WhichName)
+	String WinNameStr
+	Variable WhichName
+	
+	// get image name
+//	String WinNameStr = "IntensityImage"
+	String TopImageName = StringFromList(0, ImageNameList(WinNameStr, ";"))
+	
+	// get sample name
+	String PackagePath
+	if(stringmatch(GetDataFolder(1), "root:"))
+		PackagePath = "root:Red2Dpackage:"
+	else
+		PackagePath = GetDataFolder(1)+":Red2Dpackage:"
+	endif
+	Wave/T datasheet = $(PackagePath + "Datasheet")
+	String SampleName
+	If(WaveExists(datasheet)==1)
+		Make/FREE/T/O/N=(DimSize(Datasheet,0)) ImageName = Datasheet[p][%ImageName]
+		FindValue/TEXT=(TopImageName) ImageName  // get the index of the corresponding ImageName		
+		If(V_value != -1) // if the imagename was found, use datasheet info. Otherwise, use defualt. V_value stores the index from FindValue	
+			If(FindDimLabel(Datasheet, 1, "SampleName") != -2)  // if there is a column, SampleName, then use the datasheet info.  Otherwise, use defualt.
+				SampleName = Datasheet[V_value][%SampleName]
+			Endif
+		Endif
+	Endif
 
+	// Set file name
+	String filename
+	Switch(WhichName)
+		Case 1:
+			If(Strlen(SampleName) == 0)	// if sample name does not exist, use image name
+				filename = TopImageName
+			Else
+				filename = SampleName //	set file name
+			Endif
+			break
+		
+		default:
+			filename = TopImageName //	set file name
+			break
+	Endswitch
+
+	// save as a picture	
+	Variable DPI = 600
+	SavePICT/O/WIN=$WinNameStr/E=-6/RES=(DPI) as filename
+
+End

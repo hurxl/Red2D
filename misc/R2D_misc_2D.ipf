@@ -1223,3 +1223,122 @@ Function R2D_GetBeamCenter()
 	Endfor
 	Edit BeamCenters.ld
 End
+
+// *************************
+// Export 2D scattering profiles
+// *************************
+Function R2D_Export2D(WhichName, type)
+	Variable WhichName	//0 for wave name, 1 for sample name.
+	Variable type  //0 for tiff, 1 for png/jpeg
+
+	// Check if in the image folder. Error_ImgaesExist will create a Red2Dpackage folder.
+	If(R2D_Error_ImagesExist() == -1)
+		Abort
+	Endif
+	
+	// Create an image list
+	R2D_CreateImageList(1)  // 1 for name order, 2 for date created order
+	SVAR ImageList = :Red2DPackage:U_ImageList
+	variable numOfImages = itemsInList(ImageList)
+		
+	// Set a path to the folder to save files
+	NewPath/O FolderPath	// Let user to select a symbolic path (i.e. folder) to save the files.
+	
+	If(V_flag == -1)
+		Print "user cancelled"
+		return -1
+	Endif
+	Pathinfo/S FolderPath	// Set prest path to the selected folder. This is not necessary.
+	
+	// Prepare for saving
+	String WaveNam
+	String SampleName
+	String filename
+	String header0
+	String header1
+	String DatafolderPath = GetDataFolder(1)
+	String pxpName = IgorInfo(1) + ".pxp"
+	Variable refnum = 0
+	String PackagePath = GetDataFolder(1)+":Red2Dpackage:"
+	Wave/T datasheet = $(PackagePath + "Datasheet")
+	NVAR/Z Wavelength = ::Red2Dpackage:U_Lambda
+	NVAR/Z SDD = ::Red2Dpackage:U_SDD
+	String Trans
+	
+	make/T/FREE/O/N=(3,5) tagw
+	tagw[0][] = {"305", "Software", "2", "38", "Red2D (https://github.com/hurxl/Red2D)"}	// software
+	
+	Variable i
+	
+	// Create an image file and append a header
+	For(i=0; i < numOfImages; i++)
+
+		WaveNam = StringFromList(i, ImageList)	// Get wave name
+		SampleName = WaveNam  // default value
+		Trans = "NaN"  // default value
+		
+		// if datasheet exist, get trans and sample name of the corresponding 2D wave.
+		If(WaveExists(datasheet)==1)
+			Make/FREE/T/O/N=(DimSize(Datasheet,0)) ImageName = Datasheet[p][%ImageName]
+			FindValue/TEXT=(WaveNam) ImageName  // get the index of the corresponding ImageName
+			
+			If(V_value != -1) // if the imagename was found, use datasheet info. Otherwise, use defualt. V_value stores the index from FindValue	
+				Trans = Datasheet[V_value][%Trans]  // get trans
+				If(FindDimLabel(Datasheet, 1, "SampleName") != -2)  // if there is a column, SampleName, then use the datasheet info.  Otherwise, use defualt.
+					SampleName = Datasheet[V_value][%SampleName]
+				Endif
+			Endif
+
+		Endif
+		
+		tagw[1][] = {"306", "DateTime", "2", "38", Secs2Date(DateTime,-2) + " " + time()}	// date and time
+		header1 = ""	// Clear the content in header1 from previous loop
+		header1 += "Experiment name: " + pxpName +"\r"
+		header1 += "Datafolder path: " + DatafolderPath + "\r"
+		header1 += "Sample name: " + SampleName + "\r"
+		header1 += "Wave name: " + WaveNam + "\r"
+		header1 += "SDD: " + num2str(SDD) +"m \r"
+		header1 += "Wavelength : " + num2Str(Wavelength) + "A \r"
+		header1 += "Transmittance: " + Trans +"\r"
+		tagw[2][] = {"270", "ImageDescription", "2", num2str(strlen(header1)), header1}
+		
+		// Set file name
+		Switch(WhichName)
+			Case 1:
+				If(Strlen(SampleName) == 0)	// if sample name does not exist, use image name
+					filename = WaveNam
+				Else
+					filename = SampleName //	set file name
+				Endif
+				break
+			
+			default:
+				filename = WaveNam //	set file name
+				break
+		Endswitch
+		
+//		Close/A
+//		Open/P=FolderPath refnum as filename	// Write a header
+//		fprintf refnum, "%s", header0
+//		fprintf refnum, "%s", header1
+//		Close refnum
+		
+//		Duplicate/O/D $(WaveNam + "_q"), q_A
+//		Duplicate/O/D $(WaveNam + "_2t"), TwoTheta
+//		Duplicate/O/D $(WaveNam + "_i"), I_cm
+//		Duplicate/O/D $(WaveNam + "_s"), s_cm
+		
+		If(type == 0)
+//			Save/A/G/W/P=FolderPath q_A, I_cm, s_cm as filename	// save seletected waves in a txt file as filename in folderpath.
+//			ImageSave/O/T="tiff"/U/DS=32/WT=tagw/P=FolderPath $WaveNam as filename
+			ImageSave/O/T="tiff"/U/DS=32/P=FolderPath $WaveNam as filename + ".tif"
+		Else
+			ImageSave/O/T="jpeg"/P=FolderPath/U $WaveNam as filename + ".jpeg"
+//			Save/A/G/W/P=FolderPath TwoTheta, I_cm, s_cm as filename	// save seletected waves in a txt file as filename in folderpath.			
+		Endif
+		
+	Endfor
+
+//	KillWaves/Z q_A, TwoTheta, I_cm, s_cm
+
+End
