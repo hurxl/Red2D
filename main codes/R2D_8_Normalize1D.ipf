@@ -4,7 +4,7 @@
 #include <PopupWaveSelector>
 
 /// Unique datafolder name
-Static Function/S UniqueDataFolderName(type)
+Function/S R2D_UniqueDataFolderName(type)
 	string type
 
 /// Duplicate datafolder to backup data before nomalization.
@@ -45,7 +45,7 @@ Function TimeAndTrans1D()
 	
 	
 	/////////////////////PREPARE TO NORMALIZE/////////////////////
-	UniqueDataFolderName("TT")
+	R2D_UniqueDataFolderName("TT")
 
 	
 	/////////////////////////////Get datasheet/////////////////////////////
@@ -171,7 +171,7 @@ Function CellSubtractButtonProc(ba) : ButtonControl
 			Endif
 			
 			/// Duplicate datafolder to backup data before nomalization.
-			UniqueDataFolderName("c")
+			R2D_UniqueDataFolderName("c")
 
 			///////////////////////////SUBTRACT CELL////////////////////////////////
 			variable i
@@ -220,7 +220,7 @@ Function ThickCorr1D()
 	//////////////////////////
 	
 	/////////////////////PREPARE TO NORMALIZE/////////////////////
-	UniqueDataFolderName("t")
+	R2D_UniqueDataFolderName("t")
 	
 	
 	/////////////////////////////NORMALIZATION/////////////////////////////
@@ -404,7 +404,7 @@ Function AbsoluteNorm()
 	endif
 			
 	////////////DUPLICATE DATAFOLDER////////////////////	
-	UniqueDataFolderName("a")
+	R2D_UniqueDataFolderName("a")
 
 	/////////////////////NORMALIZATION//////////////////////
 	string IntList = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
@@ -492,7 +492,7 @@ Function SolventSubtractButtonProc(ba) : ButtonControl
 			Endif
 			
 			/// Duplicate datafolder to backup data before nomalization.
-			UniqueDataFolderName("s")
+			R2D_UniqueDataFolderName("s")
 			
 			///////////////////////////SUBTRACT CELL////////////////////////////////
 			String targetName
@@ -556,7 +556,7 @@ Function R2D_simple_math_operation_1D(type)
 	////////////////////////////////////////////////////
 	
 	////////////DUPLICATE DATAFOLDER////////////////////
-	UniqueDataFolderName(type)
+	R2D_UniqueDataFolderName(type)
 	String/G readme
 	readme = "Waves in this datafolder were mathmatically manipulated."
 	readme += "\rOperation type: " + type
