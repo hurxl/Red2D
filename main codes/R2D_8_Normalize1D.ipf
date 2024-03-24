@@ -488,7 +488,7 @@ Function SolventSubtractButtonProc(ba) : ButtonControl
 			If(Dimsize(refSolvent,0)!=Dimsize(testwave,0))
 				Print "False"
 				Killwaves refSolvent, refSolvent_s
-				Abort "The number of points in the selected cell wave does not match that of 1D waves in current datafolder."
+				Abort "The number of points in the selected buffer wave does not match that of 1D waves in current datafolder."
 			Endif
 			
 			/// Duplicate datafolder to backup data before nomalization.
@@ -514,13 +514,12 @@ Function SolventSubtractButtonProc(ba) : ButtonControl
 			Print SolventPath + "*"+ num2str(SolvFrac)
 			Print "is subtracted from"
 			Print IntList
+			Print "Solvent subtraction completes..."
 					
 			break
 		case -1: // control being killed
 			break
 	endswitch
-	
-	Print "Solvent subtraction completes..."
 
 	return 0
 End

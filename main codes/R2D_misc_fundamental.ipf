@@ -2,6 +2,21 @@
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
 // *************************
+// Get 1D wave list with a filter
+// *************************
+
+Function/S R2D_WaveList_nofits(matchStr)
+	string matchStr
+
+	String List = WaveList(matchStr, ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
+	List = R2D_skip_fit(List)
+	List = SortList(List, ";", 16)
+
+	return List
+
+End
+
+// *************************
 // Skip the fit waves, mostly used in display and normalize waves.
 // *************************
 
