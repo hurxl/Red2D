@@ -887,8 +887,8 @@ Function R2D_Add1D(filtername, interval)
 
 	// prepare _i, _q, _s, _2t waves
 	string intwname0 = StringFromList(0,IntList)
-	wave qwave = $R2D_Assign_Xwaves(intwname0, 0)
-	wave t2wave = $R2D_Assign_Xwaves(intwname0, 1)
+	wave qwave = $R2D_Assign_Xwaves(intwname0, "_q")
+	wave t2wave = $R2D_Assign_Xwaves(intwname0, "_2t")
 	string newqwavepath
 	string new2twavepath
 	string newIntwavepath 

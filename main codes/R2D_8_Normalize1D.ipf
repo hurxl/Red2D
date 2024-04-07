@@ -290,12 +290,12 @@ Function LoadGC_NIST(type)
 	DoAlert 1, "Do you want to append the loaded GC profiles on the top graph?"
 	If(V_flag == 1)
 		wave xwave = XWaveRefFromTrace("",StringFromList(0,TraceNameList("",";",5)))
-		variable qOR2t = StringMatch(NameOfWave(xwave), "*_2t")  // q for 0, s for 1
-		qOR2t = 0 // 2021-05-04 currently, I did not have the procedure to create 2t wave for GC, which depends on wavelength.
+//		variable qOR2t = StringMatch(NameOfWave(xwave), "*_2t")  // q for 0, s for 1
+//		qOR2t = 0 // 2021-05-04 currently, I did not have the procedure to create 2t wave for GC, which depends on wavelength.
 		
 		DFREF savDF = GetDataFolderDFR()
 		SetDataFolder root:GC_NIST
-		R2D_Display1D(1, qOR2t)  //1 indicates append
+		R2D_Display1D(1, "_q")  //1 indicates append
 		SetDataFolder savDF
 	Endif
 	
@@ -332,12 +332,12 @@ Function LoadGC_AlfaAesar(type)
 	DoAlert 1, "Do you want to append the loaded GC profiles on the top graph?"
 	If(V_flag == 1)
 		wave xwave = XWaveRefFromTrace("",StringFromList(0,TraceNameList("",";",5)))
-		variable qOR2t = StringMatch(NameOfWave(xwave), "*_2t")  // q for 0, s for 1
-		qOR2t = 0 // 2021-05-04 currently, I did not have the procedure to create 2t wave for GC, which depends on wavelength.
+//		variable qOR2t = StringMatch(NameOfWave(xwave), "*_2t")  // q for 0, s for 1
+//		qOR2t = 0 // 2021-05-04 currently, I did not have the procedure to create 2t wave for GC, which depends on wavelength.
 		
 		DFREF savDF = GetDataFolderDFR()
 		SetDataFolder root:GC_AlfaAesar
-		R2D_Display1D(1, qOR2t)  //1 indicates append
+		R2D_Display1D(1, "_q")  //1 indicates append
 		SetDataFolder savDF
 	Endif
 	

@@ -23,10 +23,10 @@ Menu "Red2D"
 	"5. Circular Average", R2D_CircularAveragePanel()
 	
 	Submenu "6. Display 1D"
-		"Display I vs q", R2D_Display1D(0, 0)
-		"Append I vs q ", R2D_Display1D(1, 0)
-		"Display I vs 2θ ", R2D_Display1D(0, 1)
-		"Append I vs 2θ", R2D_Display1D(1, 1)
+		"Display I vs q", R2D_Display1D(0, "_q")
+		"Append I vs q ", R2D_Display1D(1, "_q")
+		"Display I vs 2θ ", R2D_Display1D(0, "_2t")
+		"Append I vs 2θ", R2D_Display1D(1, "_2t")
 //		"Show and Hide Traces", ShowHideTracesPanel()
 	End
 	
@@ -82,6 +82,9 @@ Menu "Red2D"
 		Submenu "Analysis"
 			R2D_RulandStreakAnalysis_Exist(), R2D_RulandStreakAnalysis()
 			R2D_CylinderSimulator_Exist(), Red2D_Rotate_Rod_panel()
+			"-"
+			R2D_make_qq_Exist(), R2D_make_qq()
+			R2D_Guinier_plot_Exist(), R2D_Guinier_plot()
 		End
 		
 		"-"
@@ -101,21 +104,33 @@ End
 
 
 Function/S R2D_RulandStreakAnalysis_Exist()
-
 	if(Exists("R2D_RulandStreakAnalysis"))
 		return "Ruland Streak Analysis (needs phi vs q image)"
 	else
 		return ""
 	endif
-
 End
 
 Function/S R2D_CylinderSimulator_Exist()
-
 	if(Exists("Red2D_Rotate_Rod_panel"))
 		return "Simulate 2D cylinder profile"
 	else
 		return ""
 	endif
+End
 
+Function/S R2D_make_qq_Exist()
+	if(Exists("R2D_make_qq"))
+		return "Make qq waves"
+	else
+		return ""
+	endif
+End
+
+Function/S R2D_Guinier_plot_Exist()
+	if(Exists("R2D_Guinier_plot"))
+		return "Display Guinier plot"
+	else
+		return ""
+	endif
 End

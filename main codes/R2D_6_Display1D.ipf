@@ -2,8 +2,9 @@
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
 /////////DISPLAY 1D GRAPH///////////
-Function R2D_Display1D(new, xx, [winNam, IntList])
-	variable new, xx  // new = 0, new graph; new = 1, append to existing graph; xx = 0, q; xx = 1, 2theta; xx = 2, p
+Function R2D_Display1D(new, suffix, [winNam, IntList])
+	variable new		// new = 0, new graph; new = 1, append to existing graph
+	string suffix	//  q, 2t, p, qq
 	string winNam, IntList
 	
 	//////ERROR CHECKER////
@@ -40,7 +41,7 @@ Function R2D_Display1D(new, xx, [winNam, IntList])
 		
 		/// set y and x waves
 		targetPath_i = CDF + StringFromList(0, IntList) // Get full path of targt Name
-		targetPath_x = R2D_Assign_Xwaves(targetPath_i, xx) //2021-05-19(i, targetPath_i, xx) -> (targetPath_i, xx)
+		targetPath_x = R2D_Assign_Xwaves(targetPath_i, suffix) //2021-05-19(i, targetPath_i, suffix) -> (targetPath_i, suffix)
 		
 		/// display the first trace
 		If(ParamIsDefault(winNam))  // if window name is not specified
@@ -53,26 +54,31 @@ Function R2D_Display1D(new, xx, [winNam, IntList])
 		/// append the others
 		For(i = 1; i < numOfInt; i++)
 			targetPath_i = CDF + StringFromList(i, IntList)
-			targetPath_x = R2D_Assign_Xwaves(targetPath_i, xx)
+			targetPath_x = R2D_Assign_Xwaves(targetPath_i, suffix)
 			AppendToGraph $targetPath_i vs $targetPath_x
 		Endfor			
 		
 		/// add axis labels and legend
-		If(xx == 0) //Display int vs qq
+		If(stringmatch(suffix, "_q")) //Display int vs qq
 			Legend/C/F=0/B=1/N=text0 ""
 			Label left "\\f02I\\f00 (-)"
 			Label bottom "\\f02q\\f00 (Å\\S−1\\M)"	
 			ModifyGraph log=1, tick=2, mirror=1, axThick=1, lsize=1
-		Elseif(xx == 1)
+		Elseif(stringmatch(suffix, "_2t"))
 			Legend/C/F=0/B=1/N=text0 ""
 			Label left "\\f02I\\f00 (-)"
 			Label bottom "2\\f02θ\\f00 (deg)"
 			ModifyGraph log(left)=1, tick=2, mirror=1, axThick=1, lsize=1
-		Elseif(xx == 2)
+		Elseif(stringmatch(suffix, "_p"))
 			Legend/C/F=0/B=1/N=text0 ""
 			Label left "\\f02I\\f00 (-)"
 			Label bottom "\\f02p\\f00"
 			ModifyGraph log=1, tick=2, mirror=1, axThick=1, lsize=1
+		Elseif(stringmatch(suffix, "_qq")) // for Guinier plot
+			Legend/C/F=0/B=1/N=text0 ""
+			Label left "\\f02I\\f00 (-)"
+			Label bottom "\\f02q\\f00\S2\M (Å\\S−2\\M)"	
+			ModifyGraph log(left)=1, tick=2, mirror=1, axThick=1, lsize=1
 		Endif
 		
 		if(Exists("Publication_Style") == 6)
@@ -84,7 +90,7 @@ Function R2D_Display1D(new, xx, [winNam, IntList])
 		For(i = 0; i < numOfInt; i++)		
 			/// set y and x waves
 			targetPath_i = CDF + StringFromList(i, IntList)
-			targetPath_x = R2D_Assign_Xwaves(targetPath_i, xx)
+			targetPath_x = R2D_Assign_Xwaves(targetPath_i, suffix)
 			
 			/// append traces to graph
 			If(ParamIsDefault(winNam))  // if window name is not specified
@@ -114,18 +120,27 @@ Function R2D_Display1D(new, xx, [winNam, IntList])
 	
 End
 
-Function/S R2D_Assign_Xwaves(targetPath_i, xx)
+Function/S R2D_Assign_Xwaves(targetPath_i, suffix)
 	string targetPath_i
-	variable xx  // q or 2theta, corresponding to 0 and 1
+	string suffix  // q, 2t, p, qq @2024-04-06
 	
 	string targetPath_x
-	If(xx == 0) //set x wave to q
-		targetPath_x = RemoveEnding(targetPath_i, "_i") + "_q"
-	Elseif(xx == 1) //set x wave to 2t
-		targetPath_x = RemoveEnding(targetPath_i, "_i") + "_2t"
-	Elseif(xx == 2) //set x wave to p
-		targetPath_x = RemoveEnding(targetPath_i, "_i") + "_p"
-	Endif
+//	strswitch(suffix)
+//		case "_q":
+//			targetPath_x = RemoveEnding(targetPath_i, "_i") + suffix
+//			break
+//		default:
+//			break
+//	endswitch
+//	If(suffix == 0) //set x wave to q
+//		targetPath_x = RemoveEnding(targetPath_i, "_i") + "_q"
+//	Elseif(suffix == 1) //set x wave to 2t
+//		targetPath_x = RemoveEnding(targetPath_i, "_i") + "_2t"
+//	Elseif(suffix == 2) //set x wave to p
+//		targetPath_x = RemoveEnding(targetPath_i, "_i") + "_p"
+//	Endif
+
+	targetPath_x = RemoveEnding(targetPath_i, "_i") + suffix
 
 	return targetPath_x
 End

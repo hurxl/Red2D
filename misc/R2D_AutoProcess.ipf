@@ -224,10 +224,10 @@ Function R2D_AutoProcess()
 	DoWindow/F $windowName
 	If(strlen(NewIq_list) != 0)
 		If(V_flag == 0)  // if speficied window does not exist
-			R2D_Display1D(0, 0, winNam=windowName)  // (0, 0, winNam) = (new graph, x scale = q, windowName)
+			R2D_Display1D(0, "_q", winNam=windowName)  // (0, 0, winNam) = (new graph, x scale = q, windowName)
 		Else // if the specified window exists
 			/// Append the newly reduced data
-			R2D_Display1D(1, 0, winNam=windowName, IntList=NewIq_list)  // (1, 0, winNam) = (append, x scale = q, windowName, tracelist)
+			R2D_Display1D(1, "_q", winNam=windowName, IntList=NewIq_list)  // (1, 0, winNam) = (append, x scale = q, windowName, tracelist)
 		Endif
 	Endif
 	Print "New 1D profiles were appended to Auto1D_TT graph."
