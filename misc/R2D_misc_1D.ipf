@@ -686,7 +686,8 @@ Function R2D_Export1D(WhichName, xaxis)
 		Abort
 	Endif
 	
-	String Intlst = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
+//	String Intlst = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
+	String Intlst = R2D_waveList_nofits("*_i")
 	Variable numInLst = itemsinlist(Intlst)
 		
 	// Set a path to the folder to save files
