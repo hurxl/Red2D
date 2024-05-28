@@ -772,8 +772,11 @@ Function R2D_Export1D(WhichName, xaxis)
 		fprintf refnum, "%s", header1
 		Close refnum
 		
-		Duplicate/O/D $(WaveNam + "_q"), q_A
-		Duplicate/O/D $(WaveNam + "_2t"), TwoTheta
+		if(xaxis == 0)
+			Duplicate/O/D $(WaveNam + "_q"), q_A
+		elseif(xaxis == 1)
+			Duplicate/O/D $(WaveNam + "_2t"), TwoTheta
+		endif
 		Duplicate/O/D $(WaveNam + "_i"), I_cm
 		Duplicate/O/D $(WaveNam + "_s"), s_cm
 		
