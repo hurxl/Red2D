@@ -529,63 +529,67 @@ End
 // Simple reduction procedures, such as addition, subtraction, multiplication, division of a constant
 // This proceddure is inactive now because you can do the same operation on the graph menu.
 
-Function R2D_simple_math_operation_1D(type)
+Function R2D_simple_math_operation_1D(type, matchStr, OperationValue)
 	string type // type of the math operation: add, subtract, multiply and divide
+	string matchStr
+	variable OperationValue
 
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)
 		Abort
-	Elseif(R2D_Error_DatasheetExist() == -1)
-		Abort
-	Elseif(R2D_Error_DatasheetMatch1D() == -1)
-		Abort
+//	Elseif(R2D_Error_DatasheetExist() == -1)
+//		Abort
+//	Elseif(R2D_Error_DatasheetMatch1D() == -1)
+//		Abort
 	Endif
 	//////////////////////////
 	
 	///////////////TYPE A CORRECTION FACTOR///////////////
-	Variable OperationValue
-	Prompt OperationValue, "Reference x ? = This Time"		// Set prompt for x param
-	DoPrompt "Enter correction factor", OperationValue
-	if (V_Flag)
-		Print "User canceled"
-		return -1								// User canceled
-	Elseif(OperationValue == 0)
-		Print "Operation value must be a non-zero value."
-		return -1
-	endif
-	////////////////////////////////////////////////////
+//	Variable OperationValue
+//	Prompt OperationValue, "Type the parameter you want to add, subtract, multiply, or divide."		// Set prompt for x param
+//	DoPrompt "Enter correction factor", OperationValue
+//	if (V_Flag)
+//		Print "User canceled"
+//		return -1								// User canceled
+//	Elseif(OperationValue == 0)
+//		Print "Operation value must be a non-zero value."
+//		return -1
+//	endif
+//	////////////////////////////////////////////////////
 	
-	////////////DUPLICATE DATAFOLDER////////////////////
-	R2D_UniqueDataFolderName(type)
-	String/G readme
-	readme = "Waves in this datafolder were mathmatically manipulated."
-	readme += "\rOperation type: " + type
-	readme += "\rOperation value: " + num2str(OperationValue)
+//	////////////DUPLICATE DATAFOLDER////////////////////
+//	R2D_UniqueDataFolderName(type)
+//	String/G readme
+//	readme = "Waves in this datafolder were mathmatically manipulated."
+//	readme += "\rOperation type: " + type
+//	readme += "\rOperation value: " + num2str(OperationValue)
 	
 	///////////Start Manipulation////////////////
 	strswitch(type)
 		case "add":
-			Add_constant_1D(OperationValue)
+			Add_constant_1D(matchStr, OperationValue)
 			break
 		case "subtract":
-			Subtract_constant_1D(OperationValue)
+			Subtract_constant_1D(matchStr, OperationValue)
 			break
 		case "multiply":
-			Multiply_constant_1D(OperationValue)
+			Multiply_constant_1D(matchStr, OperationValue)
 			break
 		case "divide":
-			Divide_constant_1D(OperationValue)
+			Divide_constant_1D(matchStr, OperationValue)
 			break
 	endswitch
 	
-	Print "Absolute intensity correction completes..."
+//	Print "Absolute intensity correction completes..."
 	
 End
 
-Static Function Add_constant_1D(OperationValue)
+Static Function Add_constant_1D(matchStr, OperationValue)
+	String matchStr
 	Variable OperationValue
 
-	string IntList = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
+	matchStr += "_i"
+	string IntList = WaveList(matchStr, ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
 	variable numOf1D = ItemsInList(IntList)
 	variable i
 	String targetName
@@ -601,10 +605,12 @@ Static Function Add_constant_1D(OperationValue)
 
 End
 
-Static Function Subtract_constant_1D(OperationValue)
+Static Function Subtract_constant_1D(matchStr, OperationValue)
+	String matchStr
 	Variable OperationValue
 
-	string IntList = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
+	matchStr += "_i"
+	string IntList = WaveList(matchStr, ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
 	variable numOf1D = ItemsInList(IntList)
 	variable i
 	String targetName
@@ -619,10 +625,12 @@ Static Function Subtract_constant_1D(OperationValue)
 	Endfor
 End
 
-Static Function Multiply_constant_1D(OperationValue)
+Static Function Multiply_constant_1D(matchStr, OperationValue)
+	String matchStr
 	Variable OperationValue
 
-	string IntList = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
+	matchStr += "_i"
+	string IntList = WaveList(matchStr, ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
 	variable numOf1D = ItemsInList(IntList)
 	variable i
 	String targetName
@@ -637,10 +645,12 @@ Static Function Multiply_constant_1D(OperationValue)
 	Endfor
 End
 
-Static Function Divide_constant_1D(OperationValue)
+Static Function Divide_constant_1D(matchStr, OperationValue)
+	String matchStr
 	Variable OperationValue
 
-	string IntList = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
+	matchStr += "_i"
+	string IntList = WaveList(matchStr, ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
 	variable numOf1D = ItemsInList(IntList)
 	variable i
 	String targetName
