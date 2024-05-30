@@ -97,8 +97,8 @@ Function R2D_CreStdFitPanel()
 	SetVariable setvar8 title="Last ring to fit",pos={15,235},size={200,25},limits={1,11,1},fSize=13, value=U_endR, proc=UpdateStdRings
 	SetVariable setvar9 title="Ring width",pos={15,260},size={200,25},limits={0.001,1,0.1},fSize=13, value=U_margin, proc=UpdateStdRings
 	SetVariable setvar10 title="Background int",pos={15,285},size={200,25},limits={0,inf,100},fSize=13, value=U_BKnoise, proc=UpdateStdRings
-	CheckBox check0 title="Vscan", fSize=12, pos={50, 350}, variable=:Red2DPackage:U_Vscan, proc=CheckProcVscan
-	CheckBox check1 title="Hscan", fSize=12, pos={130, 350}, variable=:Red2DPackage:U_Hscan, proc=CheckProcHscan
+	CheckBox check0 title="Vscan", fSize=12, pos={50, 345}, variable=:Red2DPackage:U_Vscan, proc=CheckProcVscan
+	CheckBox check1 title="Hscan", fSize=12, pos={130, 345}, variable=:Red2DPackage:U_Hscan, proc=CheckProcHscan
 	Button button0 title="Get Points on Rings",size={150,23},pos={40,380},proc=ButtonProcGetPtOnRings
 	Button button1 title="Fit Rings",size={150,23},pos={40,420},proc=ButtonProcRingFit
 	Button button2 title="Refresh",size={150,23},pos={40,460},proc=ButtonProcRefreshRingFit
