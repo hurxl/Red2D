@@ -77,7 +77,7 @@ Function R2D_CreStdFitPanel()
 	/// Check if panel exist
 	DoWindow Fit_Q_Standards
 	If(V_flag == 0)
-		NewPanel/K=1/N=Fit_Q_Standards/W=(400, 300, 630, 780)
+		NewPanel/K=1/N=Fit_Q_Standards/W=(400, 300, 630, 810)
 	Else
 		DoWindow/F Fit_Q_Standards
 	Endif
@@ -97,11 +97,17 @@ Function R2D_CreStdFitPanel()
 	SetVariable setvar8 title="Last ring to fit",pos={15,235},size={200,25},limits={1,11,1},fSize=13, value=U_endR, proc=UpdateStdRings
 	SetVariable setvar9 title="Ring width",pos={15,260},size={200,25},limits={0.001,1,0.1},fSize=13, value=U_margin, proc=UpdateStdRings
 	SetVariable setvar10 title="Background int",pos={15,285},size={200,25},limits={0,inf,100},fSize=13, value=U_BKnoise, proc=UpdateStdRings
-	CheckBox check0 title="Vscan", fSize=12, pos={50, 320}, variable=:Red2DPackage:U_Vscan, proc=CheckProcVscan
-	CheckBox check1 title="Hscan", fSize=12, pos={130, 320}, variable=:Red2DPackage:U_Hscan, proc=CheckProcHscan
-	Button button0 title="Get Points on Rings",size={150,23},pos={40,350},proc=ButtonProcGetPtOnRings
-	Button button1 title="Fit Rings",size={150,23},pos={40,390},proc=ButtonProcRingFit
-	Button button2 title="Refresh",size={150,23},pos={40,430},proc=ButtonProcRefreshRingFit
+	CheckBox check0 title="Vscan", fSize=12, pos={50, 350}, variable=:Red2DPackage:U_Vscan, proc=CheckProcVscan
+	CheckBox check1 title="Hscan", fSize=12, pos={130, 350}, variable=:Red2DPackage:U_Hscan, proc=CheckProcHscan
+	Button button0 title="Get Points on Rings",size={150,23},pos={40,380},proc=ButtonProcGetPtOnRings
+	Button button1 title="Fit Rings",size={150,23},pos={40,420},proc=ButtonProcRingFit
+	Button button2 title="Refresh",size={150,23},pos={40,460},proc=ButtonProcRefreshRingFit
+	
+	PopupMenu popup1 title="Mask", pos={15,310}, fSize=13, bodyWidth=165, value=R2D_GetMaskList_simple(), proc=Update_Mask_FitStd
+	// R2D_GetMaskList_simple is located in the Circular Average Proc.
+	// when refresh above popup, the selection number will remain in old one. Therefore, when it exceeds current list, no selection appears.
+	Execute/P/Q "PopupMenu popup1 pos={15,310}"  // a workaround about Igor's know bug for bodywidth option.
+	
 	// !!! make sure to check if the control name is refered at somewhere before change their names.
 	
 End
@@ -220,6 +226,55 @@ Function ButtonProcRingFit(ba) : ButtonControl
 		case -1: // control being killed
 			break
 	endswitch
+	return 0
+End
+
+Function Update_Mask_FitStd(pa) : PopupMenuControl
+	STRUCT WMPopupAction &pa
+
+
+	switch( pa.eventCode )
+		case 2: // mouse up
+			Variable popNum = pa.popNum
+			String popStr = pa.popStr
+			
+			String ImageFolderPath = R2D_GetImageFolderPath()	// Get image datafolder even 1D folder is activated.
+			If(strlen(ImageFolderPath) == 0)
+				Abort "You may be in a wrong datafolder."
+			Endif
+			DFREF saveDFR = GetDataFolderDFR()	// get current datafolder. It could be image folder or 1D folder.
+			SetDataFolder $ImageFolderPath		// move to image folder
+			
+			String/G :Red2DPackage:U_AllMaskName
+			SVAR AllMaskName = :Red2DPackage:U_AllMaskName
+			AllMaskName = popStr // remeber current selection
+			
+			// remove old mask. the ring image should not be removed.
+			String oldimage_List = ImageNameList("IntensityImage",";") // Get existing ImageName in the window ImageGraph
+			variable oldimage_num = itemsInList(oldimage_List)
+			string oldimage_name
+			variable i
+			for(i=oldimage_num-1; i>0; i--)	// remove images after appending new one to prevent weird behavior of igor pro image graph.
+				oldimage_name = StringFromList(i,oldimage_List)	// remove from oldest images
+				if(stringmatch(oldimage_name, "refStd") || stringmatch(oldimage_name, "PeakImgae"))
+					// do nothing
+				else
+					RemoveImage/Z/W=IntensityImage $oldimage_name
+				endif
+			endfor
+			
+			if(!stringmatch("no mask", AllMaskName))	// if any mask is selected.
+				wave mask_wave = $(":Red2DPackage:Mask:"+AllMaskName)
+				R2D_AppendMaskToImage(mask_wave)
+			endif
+
+			SetDataFolder saveDFR
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
 	return 0
 End
 
@@ -397,6 +452,14 @@ Static Function GetPointsOnRings()
 	TopImageName = ReplaceString("'", TopImageName, "") // delete 'name' from the name. Otherwise igor does not function.
 	Wave TopImage = $TopImageName
 	
+	// Get mask wave
+	SVAR AllMaskName = :Red2DPackage:U_AllMaskName
+	wave mask_wave = $(":Red2DPackage:Mask:"+ AllMaskName)
+	if(!WaveExists(mask_wave))
+		Duplicate/O/FREE $TopImageName, mask_wave
+		MultiThread mask_wave = 0	// if mask wave does not exist, make a dummy mask wave. This simplify the latter codes.
+	endif
+	
 	/// Get global variables I need, then create waves in Red2Dpackage
 	DFREF saveDFR = GetDataFolderDFR()
 	SetDataFolder Red2DPackage
@@ -479,7 +542,7 @@ Static Function GetPointsOnRings()
 	For(i=0;i<colsize;i++)
 		For(j=0;j<rowsize;j++)
 			
-			If(refStd[i][j] == 1 && PeakImgae[i][j] == 1) // If target pixel in refStd and target pixel on peakImage
+			If(refStd[i][j] == 1 && PeakImgae[i][j] == 1 && mask_wave[i][j] == 0) // If target pixel in refStd and target pixel on peakImage and the pixel is not masked (i.e. mask_Wave = 0)
 				ringID = refStdID[i][j] -1 // get ID of the ring e.g. 0, 1, 2 ... 2020-08-06 refStdID[i][j] --> refStdID[i][j] - 1, ring id now starts from 1.
 				count = count_all[ringID] // the count_th points on the ring
 				ringX_all[count][ringID] = i // store the X position
@@ -617,6 +680,7 @@ Function FitStdRings()
 	
 	DoWindow/H
 End
+
 
 
 

@@ -87,7 +87,7 @@ Function R2D_CircularAveragePanel()
 	ListBox lb listWave=:Red2DPackage:Z_ImageList_CA
 	ListBox lb mode=2, frame=0, pos={240,5}, size={450,330}, fSize=13, widths={150,100}, userColumnResize=1, proc=ListControl_SelectMask_CA
 	
-	PopupMenu popup1 title="Set all mask", pos={15,200}, fSize=13, value=R2D_GetMaskList_simple(), proc=Update_AllMaskName
+	PopupMenu popup1 title="Set all mask", pos={15,200}, fSize=13, value=R2D_GetMaskList_simple(), proc=Update_AllMaskName_CA
 	// when refresh above popup, the selection number will remain in old one. Therefore, when it exceeds current list, no selection appears.
 	Execute/P/Q "PopupMenu popup1 pos={15,200}"  // a workaround about Igor's know bug for bodywidth option.
 	
@@ -100,7 +100,7 @@ End
 //////////////////Button Actions////////////////////////
 ////////////////////////////////////////////////////////
 
-Function Update_AllMaskName(pa) : PopupMenuControl
+Function Update_AllMaskName_CA(pa) : PopupMenuControl
 	STRUCT WMPopupAction &pa
 
 
@@ -119,10 +119,12 @@ Function Update_AllMaskName(pa) : PopupMenuControl
 			SVAR AllMaskName = :Red2DPackage:U_AllMaskName
 			AllMaskName = popStr // remeber current selection
 			NVAR U_row_CA = :Red2DPackage:U_row_CA
-			
-			wave/T Z_ImageList_CA = :Red2DPackage:Z_ImageList_CA
-			Z_ImageList_CA[][1] = AllMaskName		// change mask name in Z_ImageList_CA. 1st col image, 2nd col mask.
-			Show2D(U_row_CA, Z_ImageList_CA)
+
+//			If(WaveExists(:Red2DPackage:Z_ImageList_CA))
+				wave/T Z_ImageList_CA = :Red2DPackage:Z_ImageList_CA
+				Z_ImageList_CA[][1] = AllMaskName		// change mask name in Z_ImageList_CA. 1st col image, 2nd col mask.
+				Show2D(U_row_CA, Z_ImageList_CA)
+//			Endif
 			SetDataFolder saveDFR
 			
 			break
