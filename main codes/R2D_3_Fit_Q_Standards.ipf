@@ -23,7 +23,7 @@ Function R2D_CreStdFitPanel()
 	DFREF saveDFR = GetDataFolderDFR()
 	NewDataFolder/O/S Red2DPackage  // create Red2D package datafolder and set current datafolder to the package folder.
 		Variable/G U_Xmax, U_Ymax, U_X0, U_Y0, U_SDD, U_Lambda, U_PixelSize, U_tiltX, U_tiltY, U_tiltZ, U_startR, U_endR, U_Vscan, U_Hscan, U_BKnoise, U_margin, U_current_STD
-		
+		String/G U_AllMaskName
 		U_Xmax=Dimsize(TopImage,0)-1 //Get image size. Minus 1 because Dimsize is size while Xmax means the coordinates.
 		U_Ymax=Dimsize(TopImage,1)-1 //Get image size
 
@@ -453,8 +453,9 @@ Static Function GetPointsOnRings()
 	Wave TopImage = $TopImageName
 	
 	// Get mask wave
+	String/G :Red2DPackage:U_AllMaskName
 	SVAR AllMaskName = :Red2DPackage:U_AllMaskName
-	wave mask_wave = $(":Red2DPackage:Mask:"+ AllMaskName)
+	wave/Z mask_wave = $(":Red2DPackage:Mask:"+ AllMaskName)
 	if(!WaveExists(mask_wave))
 		Duplicate/O/FREE $TopImageName, mask_wave
 		MultiThread mask_wave = 0	// if mask wave does not exist, make a dummy mask wave. This simplify the latter codes.

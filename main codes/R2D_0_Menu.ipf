@@ -79,12 +79,14 @@ Menu "Red2D"
 		"Append I vs p", R2D_Display1D(1,2)
 		"-"
 		
-		Submenu "Analysis"
+		Submenu "R2D Analysis"
 			R2D_RulandStreakAnalysis_Exist(), R2D_RulandStreakAnalysis()
 			R2D_CylinderSimulator_Exist(), Red2D_Rotate_Rod_panel()
 			"-"
 			R2D_make_qq_Exist(), R2D_make_qq()
 			R2D_Guinier_plot_Exist(), R2D_Guinier_plot()
+			"-"
+			R2D_Rebuild2D_Exist(), R2D_rebuild2D_panel()
 		End
 		
 		"-"
@@ -130,6 +132,14 @@ End
 Function/S R2D_Guinier_plot_Exist()
 	if(Exists("R2D_Guinier_plot"))
 		return "Display Guinier plot"
+	else
+		return ""
+	endif
+End
+
+Function/S R2D_Rebuild2D_Exist()
+	if(Exists("R2D_Rebuild2D_panel"))
+		return "Rebuild 2D"
 	else
 		return ""
 	endif
