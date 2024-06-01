@@ -38,14 +38,23 @@ Menu "Red2D"
 	End
 	
 	Submenu "8. Normalize 1D"	
-		"1. Time and Transmittance", TimeAndTrans1D()
+		"1. Time and Transmission", TimeAndTrans1D()
 		"2. Subtract Cell or Air", Cellsubtraction1D()
 		"3. Thickness Correction", ThickCorr1D()
-		"4. Absolute Intensity", AbsoluteNorm()
+		"4. Absolute Intensity", AbsoluteNorm1D()
 		"5. Subtract Solvent", SolventSubtraction()
 		"-"
 		"Load SAXS GC calibration curve (NIST SRM3600)", LoadGC_NIST("SAXS")
 		"Load SAXS GC calibration curve (AlfaAesar)", LoadGC_AlfaAesar("SAXS")
+	End
+	
+	Submenu "\\M09. Export/Import 1D"
+		"Export 1D (q, ImageName)", R2D_Export1D(0, 0)
+		"Export 1D (2t, ImageName)", R2D_Export1D(0, 1)
+		"Export 1D (q, SampleName)", R2D_Export1D(1, 0)
+		"Export 1D (2t, SampleName)", R2D_Export1D(1, 1)
+		"-"
+		"Import 1D profiles (q, i, s)", R2D_LoadSelectedQIS()
 	End
 	
 	Submenu "Misc"
@@ -54,22 +63,22 @@ Menu "Red2D"
 		"Convert to azimuthal-q coordinates", R2D_2DImageConverterPanel()
 		"Convert 32bit integer images to single float (-1 to NaN)", R2D_negative2NaN()
 		"-"
-		"Sensitivity correction 2D", R2D_Sensitivity2D()
-		"Time and trans correction 2D", R2D_TimeAndTrans2D()
-		"Subtract a 2D image", R2D_Cellsubtraction2D()
-		"Add 2D Images", R2D_Add2DImages(0)
-		"Make Masked 2D Images", R2D_MakeMaskedImages()
+		Submenu "2D Operation"
+			"1. Time and Transmission (2D)", R2D_TimeAndTrans2D()
+			"2. Subtract Cell or Air (2D)", R2D_Cellsubtraction2D()
+			"3. Thicknes Correction (2D)", R2D_ThickCorr2D()
+			"4. Absolute Intensity (2D)", AbsoluteNorm2D()
+			"5. Subtract Solvent (2D)", R2D_SolventSubtraction2D()
+			"-"
+			"Add 2D Images", R2D_Add2DImages(0)
+			"Sensitivity correction 2D", R2D_Sensitivity2D()
+			"Make Masked 2D Images", R2D_MakeMaskedImages()
+		End
 		"-"
 		"\\M0Logarithmic 1D resampling/binning", R2D_LogResample1D()
 		"\\M0Shorten 1D (irreversible!)", R2D_Shorten1D()
 		"-"
 		"SDD Combiner", R2D_SDDCombineranel()
-		"-"
-		"Import 1D profiles", R2D_LoadSelectedQIS()
-		"Export 1D with ImageName and q", R2D_Export1D(0, 0)
-		"Export 1D with ImageName and 2theta", R2D_Export1D(0, 1)
-		"Export 1D with SampleName and q", R2D_Export1D(1, 0)
-		"Export 1D with SampleName and 2theta", R2D_Export1D(1, 1)
 		"-"
 		"Total count (Accept ROI)", R2d_TotalCount()
 		"Get beam center", R2D_GetBeamCenter()

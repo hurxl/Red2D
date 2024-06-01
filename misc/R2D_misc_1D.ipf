@@ -936,7 +936,55 @@ Function R2D_Add1D(filtername, interval)
 		k++ // count the number of large while loop
 		
 	While(i < numInlist)
+
+End
+
+// *** Simple Match Operation (1D)
+// 2024-06-01 GUI only. Tested.
+Function R2D_simple_math_operation_1D(operation, matchStr, OperationValue)
+	string operation // type of the math operation: add, subtract, multiply and divide
+	string matchStr
+	variable OperationValue
+
+	//////ERROR CHECKER///////
+	If(R2D_Error_1Dexist() == -1)
+		Abort
+//	Elseif(R2D_Error_DatasheetExist1D() == -1)
+//		Abort
+//	Elseif(R2D_Error_DatasheetMatch1D() == -1)
+//		Abort
+	Endif
+
+	matchStr += "_i"
+	string IntList = WaveList(matchStr, ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
+	variable numOf1D = ItemsInList(IntList)
+	String targetName
+	variable i
+	For(i=0;i<numOf1D; i+=1)
+		//Get target name from targetlist and remove the unncessary symbols
+		targetName = RemoveEnding(StringFromList(i, IntList), "_i")
+		Wave Wave1D = $(targetName + "_i")
+		Wave Wave1D_s = $(targetName + "_s")
+
+		//Do the operation
+		strswitch(operation)
+			case "add":
+				Wave1D += OperationValue
+				Wave1D_s += OperationValue
+				break
+			case "subtract":
+				Wave1D -= OperationValue
+				Wave1D_s -= OperationValue
+				break
+			case "multiply":
+				Wave1D *= OperationValue
+				Wave1D_s *= OperationValue
+				break
+			case "divide":
+				Wave1D /= OperationValue
+				Wave1D_s /= OperationValue
+				break
+		endswitch
+	Endfor
 	
-
-
 End

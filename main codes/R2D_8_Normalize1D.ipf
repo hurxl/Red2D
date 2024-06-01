@@ -4,8 +4,8 @@
 #include <PopupWaveSelector>
 
 /// Unique datafolder name
-Function/S R2D_UniqueDataFolderName(type)
-	string type
+Function/S R2D_Unique1DDataFolder(suffix)
+	string suffix
 
 /// Duplicate datafolder to backup data before nomalization.
 /// Because the traces on the graph are linked to the unique waves in the dfp0
@@ -14,7 +14,7 @@ Function/S R2D_UniqueDataFolderName(type)
 /// The duplicated datafolder is for the backup. 
 	
 	String dfname0 = GetDataFolder(0)  // current df name
-	String dfname1 = dfname0 + type	// new inital df name
+	String dfname1 = dfname0 + suffix	// new inital df name
 	DFREF svdfr = GetDataFolderDFR()  // remember current folder
 	SetdataFolder ::  // go to the parent folder
 	If(DataFolderExists(dfname1))  // datafolder exist
@@ -36,7 +36,7 @@ Function TimeAndTrans1D()
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)
 		Abort
-	Elseif(R2D_Error_DatasheetExist() == -1)
+	Elseif(R2D_Error_DatasheetExist1D() == -1)
 		Abort
 	Elseif(R2D_Error_DatasheetMatch1D() == -1)
 		Abort
@@ -45,7 +45,7 @@ Function TimeAndTrans1D()
 	
 	
 	/////////////////////PREPARE TO NORMALIZE/////////////////////
-	R2D_UniqueDataFolderName("TT")
+	R2D_Unique1DDataFolder("TT")
 
 	
 	/////////////////////////////Get datasheet/////////////////////////////
@@ -122,22 +122,22 @@ Function Cellsubtraction1D()
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)
 		Abort
-//	Elseif(R2D_Error_DatasheetExist() == -1)
+//	Elseif(R2D_Error_DatasheetExist1D() == -1)
 //		Abort
 //	Elseif(R2D_Error_DatasheetMatch1D() == -1)
 //		Abort
 	Endif
 	//////////////////////////
 
-	Killwindow/Z CellsubtractionPanel
+	Killwindow/Z Cellsubtraction1DPanel
 	NewPanel/K=1/W=(100,100,500,250) as "Cell subtraction"
-	RenameWindow $S_name, CellsubtractionPanel
+	RenameWindow $S_name, Cellsubtraction1DPanel
 	
 	TitleBox WSPopupTitle1,pos={80,23}, frame=0, fSize=14, title="Select a wave of cell or air to subtract"
 	Button CellSelector,pos={30,50},size={340,23}, fSize=14
-	MakeButtonIntoWSPopupButton("CellsubtractionPanel", "CellSelector", "CellPopupWaveSelectorNotify", popupWidth = 400, popupHeight = 600, options=PopupWS_OptionFloat)
-	PopupWS_MatchOptions("CellsubtractionPanel", "CellSelector", matchStr = "*i", listoptions = "DIMS:1,TEXT:0")
-	PopupWS_SetPopupFont("CellsubtractionPanel", "CellSelector", fontsize = 13)
+	MakeButtonIntoWSPopupButton("Cellsubtraction1DPanel", "CellSelector", "CellPopupWaveSelectorNotify", popupWidth = 400, popupHeight = 600, options=PopupWS_OptionFloat)
+	PopupWS_MatchOptions("Cellsubtraction1DPanel", "CellSelector", matchStr = "*i", listoptions = "DIMS:1,TEXT:0")
+	PopupWS_SetPopupFont("Cellsubtraction1DPanel", "CellSelector", fontsize = 13)
 	///MakeButtonIntoWSPopupButton is a builtin function in Igor Pro.
 	Button bt0,pos={150,100},size={110,23}, fSize=14, proc=CellSubtractButtonProc,title="Subtract Cell"
 	
@@ -155,7 +155,7 @@ Function CellSubtractButtonProc(ba) : ButtonControl
 			Variable numOf1D = itemsinlist(IntList)
 			
 			//////////////////////////////GET CELL WAVE////////////////////////////////
-			String CellPath = PopupWS_GetSelectionFullPath("CellsubtractionPanel", "CellSelector")
+			String CellPath = PopupWS_GetSelectionFullPath("Cellsubtraction1DPanel", "CellSelector")
 			If(cmpstr(CellPath, "(no selection)", 0) == 0)
 				Print "False"
 				Abort "No selection."
@@ -171,7 +171,7 @@ Function CellSubtractButtonProc(ba) : ButtonControl
 			Endif
 			
 			/// Duplicate datafolder to backup data before nomalization.
-			R2D_UniqueDataFolderName("c")
+			R2D_Unique1DDataFolder("c")
 
 			///////////////////////////SUBTRACT CELL////////////////////////////////
 			variable i
@@ -188,7 +188,7 @@ Function CellSubtractButtonProc(ba) : ButtonControl
 				
 			Endfor
 	
-			Killwindow CellsubtractionPanel
+			Killwindow Cellsubtraction1DPanel
 			Print CellPath
 			Print "was subtracted from"
 			Print IntList
@@ -200,8 +200,6 @@ Function CellSubtractButtonProc(ba) : ButtonControl
 			break
 	endswitch
 	
-
-
 	return 0
 End
 
@@ -212,7 +210,7 @@ Function ThickCorr1D()
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)
 		Abort
-	Elseif(R2D_Error_DatasheetExist() == -1)
+	Elseif(R2D_Error_DatasheetExist1D() == -1)
 		Abort
 	Elseif(R2D_Error_DatasheetMatch1D() == -1)
 		Abort
@@ -220,7 +218,7 @@ Function ThickCorr1D()
 	//////////////////////////
 	
 	/////////////////////PREPARE TO NORMALIZE/////////////////////
-	R2D_UniqueDataFolderName("t")
+	R2D_Unique1DDataFolder("t")
 	
 	
 	/////////////////////////////NORMALIZATION/////////////////////////////
@@ -378,13 +376,12 @@ Static Function/S FindAfile(target, ext)
 End
 
 
-
-Function AbsoluteNorm()
+Function AbsoluteNorm1D()
 
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)
 		Abort
-	Elseif(R2D_Error_DatasheetExist() == -1)
+	Elseif(R2D_Error_DatasheetExist1D() == -1)
 		Abort
 	Elseif(R2D_Error_DatasheetMatch1D() == -1)
 		Abort
@@ -404,7 +401,7 @@ Function AbsoluteNorm()
 	endif
 			
 	////////////DUPLICATE DATAFOLDER////////////////////	
-	R2D_UniqueDataFolderName("a")
+	R2D_Unique1DDataFolder("a")
 
 	/////////////////////NORMALIZATION//////////////////////
 	string IntList = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
@@ -434,13 +431,13 @@ Function AbsoluteNorm()
 End
 
 
-///////////////Solvent subtraction////////////////
+// *** Solvent subtraction
 Function SolventSubtraction()
 
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)
 		Abort
-	Elseif(R2D_Error_DatasheetExist() == -1)
+	Elseif(R2D_Error_DatasheetExist1D() == -1)
 		Abort
 	Elseif(R2D_Error_DatasheetMatch1D() == -1)
 		Abort
@@ -492,7 +489,7 @@ Function SolventSubtractButtonProc(ba) : ButtonControl
 			Endif
 			
 			/// Duplicate datafolder to backup data before nomalization.
-			R2D_UniqueDataFolderName("s")
+			R2D_Unique1DDataFolder("s")
 			
 			///////////////////////////SUBTRACT CELL////////////////////////////////
 			String targetName
@@ -524,143 +521,3 @@ Function SolventSubtractButtonProc(ba) : ButtonControl
 	return 0
 End
 
-
-// 2022-03-10
-// Simple reduction procedures, such as addition, subtraction, multiplication, division of a constant
-// This proceddure is inactive now because you can do the same operation on the graph menu.
-
-Function R2D_simple_math_operation_1D(type, matchStr, OperationValue)
-	string type // type of the math operation: add, subtract, multiply and divide
-	string matchStr
-	variable OperationValue
-
-	//////ERROR CHECKER///////
-	If(R2D_Error_1Dexist() == -1)
-		Abort
-//	Elseif(R2D_Error_DatasheetExist() == -1)
-//		Abort
-//	Elseif(R2D_Error_DatasheetMatch1D() == -1)
-//		Abort
-	Endif
-	//////////////////////////
-	
-	///////////////TYPE A CORRECTION FACTOR///////////////
-//	Variable OperationValue
-//	Prompt OperationValue, "Type the parameter you want to add, subtract, multiply, or divide."		// Set prompt for x param
-//	DoPrompt "Enter correction factor", OperationValue
-//	if (V_Flag)
-//		Print "User canceled"
-//		return -1								// User canceled
-//	Elseif(OperationValue == 0)
-//		Print "Operation value must be a non-zero value."
-//		return -1
-//	endif
-//	////////////////////////////////////////////////////
-	
-//	////////////DUPLICATE DATAFOLDER////////////////////
-//	R2D_UniqueDataFolderName(type)
-//	String/G readme
-//	readme = "Waves in this datafolder were mathmatically manipulated."
-//	readme += "\rOperation type: " + type
-//	readme += "\rOperation value: " + num2str(OperationValue)
-	
-	///////////Start Manipulation////////////////
-	strswitch(type)
-		case "add":
-			Add_constant_1D(matchStr, OperationValue)
-			break
-		case "subtract":
-			Subtract_constant_1D(matchStr, OperationValue)
-			break
-		case "multiply":
-			Multiply_constant_1D(matchStr, OperationValue)
-			break
-		case "divide":
-			Divide_constant_1D(matchStr, OperationValue)
-			break
-	endswitch
-	
-//	Print "Absolute intensity correction completes..."
-	
-End
-
-Static Function Add_constant_1D(matchStr, OperationValue)
-	String matchStr
-	Variable OperationValue
-
-	matchStr += "_i"
-	string IntList = WaveList(matchStr, ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
-	variable numOf1D = ItemsInList(IntList)
-	variable i
-	String targetName
-	For(i=0;i<numOf1D; i+=1)
-		//Get target name from targetlist and remove the unncessary symbols
-		targetName = RemoveEnding(StringFromList(i, IntList), "_i")
-		Wave Wave1D = $(targetName + "_i")
-		Wave Wave1D_s = $(targetName + "_s")
-		//Do the operation
-		Wave1D += OperationValue
-		Wave1D_s += OperationValue
-	Endfor
-
-End
-
-Static Function Subtract_constant_1D(matchStr, OperationValue)
-	String matchStr
-	Variable OperationValue
-
-	matchStr += "_i"
-	string IntList = WaveList(matchStr, ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
-	variable numOf1D = ItemsInList(IntList)
-	variable i
-	String targetName
-	For(i=0;i<numOf1D; i+=1)
-		//Get target name from targetlist and remove the unncessary symbols
-		targetName = RemoveEnding(StringFromList(i, IntList), "_i")
-		Wave Wave1D = $(targetName + "_i")
-		Wave Wave1D_s = $(targetName + "_s")
-		//Do the operation
-		Wave1D -= OperationValue
-		Wave1D_s -= OperationValue
-	Endfor
-End
-
-Static Function Multiply_constant_1D(matchStr, OperationValue)
-	String matchStr
-	Variable OperationValue
-
-	matchStr += "_i"
-	string IntList = WaveList(matchStr, ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
-	variable numOf1D = ItemsInList(IntList)
-	variable i
-	String targetName
-	For(i=0;i<numOf1D; i+=1)
-		//Get target name from targetlist and remove the unncessary symbols
-		targetName = RemoveEnding(StringFromList(i, IntList), "_i")
-		Wave Wave1D = $(targetName + "_i")
-		Wave Wave1D_s = $(targetName + "_s")
-		//Do the operation
-		Wave1D *= OperationValue
-		Wave1D_s *= OperationValue
-	Endfor
-End
-
-Static Function Divide_constant_1D(matchStr, OperationValue)
-	String matchStr
-	Variable OperationValue
-
-	matchStr += "_i"
-	string IntList = WaveList(matchStr, ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
-	variable numOf1D = ItemsInList(IntList)
-	variable i
-	String targetName
-	For(i=0;i<numOf1D; i+=1)
-		//Get target name from targetlist and remove the unncessary symbols
-		targetName = RemoveEnding(StringFromList(i, IntList), "_i")
-		Wave Wave1D = $(targetName + "_i")
-		Wave Wave1D_s = $(targetName + "_s")
-		//Do the operation
-		Wave1D /= OperationValue
-		Wave1D_s /= OperationValue
-	Endfor
-End

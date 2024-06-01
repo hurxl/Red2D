@@ -109,7 +109,7 @@ Function R2D_Error_1Dexist([NoMessage])
 End
 
 // Check if datasheet exist for 1D folder only
-Function R2D_Error_DatasheetExist()
+Function R2D_Error_DatasheetExist1D()
 	
 	wave/Z/T Datasheet = ::Red2DPackage:Datasheet
 	variable numOfImages = DimSize(Datasheet,0)
@@ -138,26 +138,19 @@ Function R2D_Error_DatasheetMatch1D()
 	String IntList = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
 	IntList = R2D_skip_fit(IntList)  // skip fit results
 	Variable numOf1D = itemsinlist(IntList)
-	wave/Z/T Datasheet = ::Red2DPackage:Datasheet
-	variable numOfImages = DimSize(Datasheet,0)
 	
-	/// 2021-05-04 disabled beucae I could not find the benefits of this code.
-//	If(numOfImages != numOf1D)
-//		DoAlert 0, "The number of entries in the datasheet does not match that of 1D waves. Please remove unnecessary entries from the datasheet or add necessary entries."
-//		Print "Error message:"
-//		Print "The number of entries in the datasheet does not match that of 1D waves. Please remove unnecessary entries from the datasheet or add necessary entries."
-//		Return -1
-//	Endif
+	wave/Z/T Datasheet = ::Red2DPackage:Datasheet
+	variable numOfRows = DimSize(Datasheet,0)
 	
 	Variable i
-	String targetName, NameNotFound
-	NameNotFound = ""
-	Make/FREE/T/O/N=(numOfImages) ImageName = Datasheet[p][%ImageName]
+	String target
+	String NameNotFound = ""
+	Make/FREE/T/O/N=(numOfRows) DatasheetName = Datasheet[p][%ImageName]
 	For(i=0; i<numOf1D; i++)
-		targetName = RemoveEnding(StringFromList(i, IntList), "_i")
-		FindValue/TEXT=(targetName) ImageName		
+		target = RemoveEnding(StringFromList(i, IntList), "_i")
+		FindValue/TEXT=(target) DatasheetName		
 		If(V_value == -1) // V_value stores the index from FindValue
-			NameNotFound = AddListItem(targetName, NameNotFound, ";", Inf)
+			NameNotFound = AddListItem(target, NameNotFound, ";", Inf)
 		Endif
 	Endfor 
 	
@@ -166,7 +159,63 @@ Function R2D_Error_DatasheetMatch1D()
 		Print NameNotFound + " was not found in the datasheet."
 		Print "Please Check your 1D waves and datasheet."
 		Print "Re-import the datasheet may resolve the problem."
-		DoAlert 0, "One or more 1D intensity waves were not found in the datasheet. Please check the commond line for help."
+		DoAlert 0, "One or more 1D intensity waves were not found in the datasheet. Please check the command line for help."
+		Return -1
+	Endif
+		
+	Return 0
+
+End
+
+Function R2D_Error_DatasheetExist2D()
+	
+	wave/Z/T Datasheet = :Red2DPackage:Datasheet
+	variable numOfImages = DimSize(Datasheet,0)
+	If(WaveExists(Datasheet) == 0)
+		DoAlert 0, "No datasheet exists in the Red2DPackage folder."
+		Print "Error message:"
+		Print "No datasheet exists in the Red2DPackage folder."
+		Return -1	
+	Endif
+	
+	If(numOfImages == 0)
+		DoAlert 0, "The datasheet is empty. Please fill it before normalizing data."
+		Print "Error message:"
+		Print "The datasheet is empty. Please fill it before normalizing data."
+		Return -1
+	Endif
+
+	Return 0
+
+End
+
+Function R2D_Error_DatasheetMatch2D()
+	
+	Wave/T ImageList = :Red2DPackage:ImageList
+	Variable numOfImages = DimSize(ImageList,0)
+	
+	wave/Z/T Datasheet = :Red2DPackage:Datasheet
+	variable numOfRows = DimSize(Datasheet,0)
+	
+	String target
+	String NameNotFound = ""
+	Make/FREE/T/O/N=(numOfRows) DatasheetName = Datasheet[p][%ImageName]
+	
+	Variable i
+	For(i=0; i<numOfImages; i++)
+		target = ImageList[i]
+		FindValue/TEXT=(target) DatasheetName		
+		If(V_value == -1) // V_value stores the index from FindValue
+			NameNotFound = AddListItem(target, NameNotFound, ";", Inf)
+		Endif
+	Endfor 
+	
+	If(strlen(NameNotFound) > 0)
+		Print "Error message:"
+		Print NameNotFound + " was not found in the datasheet."
+		Print "Please Check your 1D waves and datasheet."
+		Print "Re-import the datasheet may resolve the problem."
+		DoAlert 0, "One or more images were not found in the datasheet. Please check the command line for help."
 		Return -1
 	Endif
 		
@@ -193,7 +242,7 @@ Function R2D_CreateImageList(order)  // Create an image list based on the select
 		Make/T/O/N=0 :Red2DPackage:ImageList  // imagelist wave
 		String/G :Red2DPackage:U_ImageList = ""  // imagelist string
 		Print "No image exists in current datafolder."
-		Return 0
+		Return -1
 	Else
 		If(order == 1)
 			Wave/Z/T reftw = ListToTextWave(ListByName,";")  // ListToTextWave returns a FREE wave
@@ -229,4 +278,21 @@ Function/S R2D_CleanupName(str)
 	/// Users should avoid use the same name for the images.
 	
 	return str
+End
+
+// *** simple timer
+Function R2D_SimpleTimer(trigger)
+	variable trigger
+	
+	variable t1
+	variable seconds
+	if(trigger == 1)
+		seconds = StopMSTimer(t1)
+		t1 = StartMSTimer
+//		print t1
+	else
+		seconds = StopMSTimer(t1)/1E6
+		print "Simple Timer", seconds, "s"
+	endif
+
 End

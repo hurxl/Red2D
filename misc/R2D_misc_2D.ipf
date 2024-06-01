@@ -285,7 +285,7 @@ ThreadSafe Static Function CircularAverage_simple(pWave, df1d, mask_wave)
 End
 
 // *************************
-// Normalize 2D images
+// *** Normalize 2D images
 // *************************
 
 Function R2D_negative2NaN()
@@ -435,7 +435,9 @@ Function R2D_MakeSensitivityButtonProc2D(ba) : ButtonControl
 	return 0
 End
 
-Function R2D_TimeAndTrans2D()
+// *** Time and Transmission correction
+
+Static Function setup2D()
 
 	/// Check if in the image folder.
 	If(R2D_Error_ImagesExist() == -1)
@@ -443,90 +445,99 @@ Function R2D_TimeAndTrans2D()
 	Endif
 	
 	/// create a image list by the name order.
-	/// Current R2D_CreateImageList will create a list of all 2D waves. But I need to remove the _s waves for this update.
-	R2D_CreateImageList(1)
-	Wave/T ImageList = :Red2DPackage:ImageList
-	Variable numOfImages = DimSize(ImageList,0)
-	
-	If(numOfImages == 0)
-		Print "No image exist."
-		return -1
+	If(R2D_CreateImageList(1) == -1)
+		Abort
 	Endif
-	
-	/// Save new images into another folder
-	String ImageFolderName = "Images_TT"
-	variable i
-	For(i = 0; i < 100; i++)
-		If(DataFolderExists(ImageFolderName) == 0)
-			break
-		Else
-			ImageFolderName = "Images_TT_" + num2str(i+1)
-		Endif
-	Endfor
-	NewDataFolder $ImageFolderName
-	
-	// Duplicate the images to the new folder and set the new folder as the active folder
-	variable j
-	For(j = 0; j < numOfImages; j++)
-//		Print ImageList[j]
-		wave refwave = $ImageList[j]
-		string newname = ":" + ImageFolderName + ":" + NameOfWave(refwave)
-		Duplicate/O refwave $newname
-	Endfor
-	String PackageFolderPath = ":" + ImageFolderName + ":Red2DPackage"
-	DuplicateDataFolder/O=1 Red2DPackage $PackageFolderPath
-	SetDataFolder $ImageFolderName
-	
-	/// Normalization
-	wave/T Datasheet = :Red2DPackage:Datasheet
-	Make/FREE/T/O/N=(numOfImages) Datasheet_ImageName = Datasheet[p][%ImageName]  // the number of rows of datasheet will not exceed numOfImages.
-	Variable Time_s, Trans
-	For(i=0; i<numOfImages; i+=1)
-		
-		/// Get target name from Imagelist and create an errorbar wave
-		wave image_i = $ImageList[i]
-		Redimension/D image_i
-//		Duplicate/O/D image_i, $(ImageList[i] + "_s")
-//		wave image_s = $(ImageList[i] + "_s")
-//		Multithread image_s = sqrt(image_i)
-
-		
-		// Get time and trans
-		FindValue/TEXT=(ImageList[i]) Datasheet_ImageName		// One wave must be found here because we have checked the consistence bwteen the datasheet and 1D waves in the beginning.//		Time_s = str2num(Datasheet[V_value][%Time_s])
-		Time_s = str2num(Datasheet[V_value][%Time_s])
-		Trans = str2num(Datasheet[V_value][%Trans])
-				
-		/// Do the correction.
-		image_i = image_i/Time_s/Trans
-//		image_s = image_s/Time_s/Trans
-		
-		Print NameofWave(image_i) +"/"+ num2str(Time_s) +"/"+ num2str(Trans)
-//		Print NameofWave(image_s) +"/"+ num2str(Time_s) +"/"+ num2str(Trans)
-		
-	Endfor
 
 End
 
+Static Function Datasheet2D()
+	//////ERROR CHECKER///////
+
+	If(R2D_Error_DatasheetExist2D() == -1)
+		Abort
+	Elseif(R2D_Error_DatasheetMatch2D() == -1)
+		Abort
+	Endif
+
+End
+
+
+Static Function Duplicate2D(suffix)
+	string suffix
+
+	String curDF = GetDataFolder(0)	// get current folder
+	String CurFolderPath = GetDataFolder(1)	// get full path of current folder
+	if(stringmatch(CurFolderPath, "root:"))	// root is a special folder
+		// stay in root
+	else
+		SetDataFolder ::	// go to the parent folder
+	endif
+	
+	String newDF = curDF + suffix	// prepare a new datafolder
+	If(DataFolderExists(newDF) == 1)
+		newDF = UniqueName(newDF, 11, 1)  // make the new df name unique; add sequential number.
+	Endif
+	NewDataFolder $newDF	// create new datafolder under either root or parent folder
+	String NewFolderPath = GetDataFolder(1, $newDF)
+	
+	// Duplicate the images to the new folder and set the new folder as the active folder
+	String curImagePath, newImagePath
+	String curPackagePath, newPackagePath
+	
+	Wave/T ImageList = $(CurFolderPath + "Red2DPackage:ImageList")
+	Variable numOfImages = DimSize(ImageList,0)
+	variable i
+	For(i = 0; i < numOfImages; i++)
+		curImagePath = CurFolderPath + ImageList[i]
+		newImagePath = NewFolderPath + ImageList[i]
+		Duplicate/O $curImagePath $newImagePath
+	Endfor
+	curPackagePath = CurFolderPath + "Red2DPackage"
+	newPackagePath = NewFolderPath + "Red2DPackage"
+	DuplicateDataFolder $curPackagePath $newPackagePath
+	
+	SetDataFolder $newDF	// move to new data folder
+
+End
+
+
+
+Function R2D_TimeAndTrans2D()
+
+	R2D_SimpleTimer(1)
+	print "processing..."
+	Doupdate
+	setup2D()	// check folder, create image list
+	Datasheet2D()	// check if datasheet is ok
+	Duplicate2D("TT")	// back up original images and make a new duplicated folder to save modified images
+	
+	/// Normalization
+	Wave/T ImageList = :Red2DPackage:ImageList
+	Variable numOfImages = DimSize(ImageList,0)
+	wave/T Datasheet = :Red2DPackage:Datasheet
+	Make/FREE/T/O/N=(numOfImages) Datasheet_ImageName = Datasheet[p][%ImageName]  // the number of rows of datasheet will not exceed numOfImages.
+	Variable Time_s, Trans
+	Variable i
+	For(i=0; i<numOfImages; i+=1)
+		wave image_i = $ImageList[i]	// Get target name from Imagelist
+		Redimension/D image_i		// single float is not enough to store the normalized images
+		FindValue/TEXT=(ImageList[i]) Datasheet_ImageName	// find corresponding row
+		Time_s = str2num(Datasheet[V_value][%Time_s])	// Get time
+		Trans = str2num(Datasheet[V_value][%Trans])	// Get trans
+		MatrixOP/O image_i = image_i/Time_s/Trans		// normalize image
+		Print NameofWave(image_i) +"/"+ num2str(Time_s) +"/"+ num2str(Trans)
+	Endfor
+	R2D_SimpleTimer(0)
+
+End
+
+// *** Subtract Cells
 // Subtract a 2D image from all images in current datafolder
 Function R2D_Cellsubtraction2D()
 
-	/// Check if in the image folder.
-	If(R2D_Error_ImagesExist() == -1)
-		Abort
-	Endif
+	setup2D()	// check folder, create image list
 	
-	/// create a image list by the name order.
-	/// Current R2D_CreateImageList will create a list of all 2D waves. But I need to remove the _s waves for this update.
-	R2D_CreateImageList(1)
-	Wave/T ImageList = :Red2DPackage:ImageList
-	Variable numOfImages = DimSize(ImageList,0)
-	
-	If(numOfImages == 0)
-		Print "No image exist."
-		return -1
-	Endif
-	
-
 	Killwindow/Z CellsubtractionPanel2D
 	NewPanel/K=1/W=(100,100,500,250) as "Cell subtraction"
 	RenameWindow $S_name, CellsubtractionPanel2D
@@ -547,86 +558,155 @@ Function CellSubtractButtonProc2D(ba) : ButtonControl
 	switch( ba.eventCode )
 		case 2: // mouse up
 			
-
-			Wave/T ImageList = :Red2DPackage:ImageList
-			Variable numOfImages = DimSize(ImageList,0)
-			
 			//////////////////////////////GET CELL WAVE////////////////////////////////
 			String CellPath = PopupWS_GetSelectionFullPath("CellsubtractionPanel2D", "CellSelector")
-			If(cmpstr(CellPath, "(no selection)", 0) == 0)
-				Print "False"
-				Abort "No selection."
+			If(cmpstr(CellPath, "(no selection)", 0) == 0)	// if user canceled,
+				Print "no selection"
+				Killwindow CellsubtractionPanel2D
+				return -1
+			Else
+				R2D_SimpleTimer(1)
+				print "processing..."
+				Doupdate
+				Duplicate2D("c")	// create new datafolder to processed 2D images	
+				Wave/T ImageList = :Red2DPackage:ImageList
+				Variable numOfImages = DimSize(ImageList,0)
+				wave refcell = $CellPath
+				variable i
+				For(i=0;i<numOfImages; i+=1)
+					Wave target = $ImageList[i]
+					MatrixOP/O target = target - refcell	// subtract cell
+				Endfor
+				Print CellPath, "is subtracted from", ImageList
+				Killwindow CellsubtractionPanel2D
+				R2D_SimpleTimer(0)
 			Endif
-			
-			/// Crate a new folder to save new images
-			String ImageFolderName = "Images_c"
-			variable i
-			For(i = 0; i < 100; i++)
-				If(DataFolderExists(ImageFolderName) == 0)
-					break
-				Else
-					ImageFolderName = "Images_c_" + num2str(i+1)
-				Endif
-			Endfor
-			NewDataFolder $ImageFolderName
-	
-			// Duplicate the images to the new folder and set the new folder as the active folder
-			variable j
-			For(j = 0; j < numOfImages; j++)
-				wave refwave = $ImageList[j]
-				string newname = ":" + ImageFolderName + ":" + NameOfWave(refwave)
-				Duplicate/O refwave $newname
-			Endfor
-			String PackageFolderPath = ":" + ImageFolderName + ":Red2DPackage"
-			DuplicateDataFolder/O=1 Red2DPackage $PackageFolderPath
-			SetDataFolder $ImageFolderName
-			
-			// Create a refcell in the new folder with the selected cell path
-			Duplicate/O/FREE $(CellPath), refcell
-			
-//			Duplicate/O/FREE $(RemoveEnding(CellPath,"_i") + "_s"), refcell_s
-			
-//			wave testwave = $(StringFromList(0, IntList))
-//			If(Dimsize(refcell,0) != Dimsize(testwave,0))	
-//				Print "False"
-//				Killwaves refcell, refcell_s
-//				Abort "1D waves in current datafolder do not match ImageName in datasheet. ImageName must have the same order as 1D waves shown in data browser."
-//			Endif
-			
-			/// Duplicate datafolder to backup data before nomalization.	
-//			String dfp0 = RemoveEnding(GetDataFolder(1), ":")
-//			String dfp1 = RemoveEnding(GetDataFolder(1), ":") + "c"	// initial path
-//			String DFname1 = GetDataFolder(0) + "c"	// initial name
-//			variable i
-//			For(i = 0; i < 100; i++)
-//				If(DataFolderExists(dfp1) == 0)
-//					break
-//				Endif
-//				dfp1 = RemoveEnding(GetDataFolder(1), ":") + "c_" + num2str(i)
-//				DFname1 = GetDataFolder(0) + "c_" + num2str(i)
-//			Endfor
-//	
-//			RenameDataFolder $dfp0, $DFname1
-//			DuplicateDataFolder $dfp1, $dfp0
+					
+			break
+		case -1: // control being killed
+			break
+	endswitch
 
-			///////////////////////////SUBTRACT CELL////////////////////////////////
-//			String targetName
-			For(i=0;i<numOfImages; i+=1)
-				//Set reference of target wave in current folder. Only deal with waves having name in refname(Datasheet).
-//				targetName = RemoveEnding(StringFromList(i, IntList), "_i")
-				Wave target = $ImageList[i]
-//				Wave Wave1D_s = $(targetName + "_s")
+	return 0
+End
 
-				// Subtract cell
-				target -= refcell
-//				Wave1D_s = (Wave1D_s^2 + refcell_s^2)^0.5
-				
-			Endfor
+// *** Thickness correction
+Function R2D_ThickCorr2D()
+
+	print "processing..."
+	Doupdate
+	setup2D()	// check folder, create image list
+	Datasheet2D()	// check if datasheet is ok
+	Duplicate2D("t")	// back up original images and make a new duplicated folder to save modified images
 	
-			Killwindow CellsubtractionPanel2D
-			Print CellPath
-			Print "is subtracted from"
-			Print ImageList
+	/// Normalization
+	R2D_SimpleTimer(1)
+	Wave/T ImageList = :Red2DPackage:ImageList
+	Variable numOfImages = DimSize(ImageList,0)
+	wave/T Datasheet = :Red2DPackage:Datasheet
+	Make/FREE/T/O/N=(numOfImages) Datasheet_ImageName = Datasheet[p][%ImageName]  // the number of rows of datasheet will not exceed numOfImages.
+	Variable Thick_cm
+	Variable i
+	For(i=0; i<numOfImages; i+=1)
+		wave image_i = $ImageList[i]	// Get target name from Imagelist
+		Redimension/D image_i		// single float is not enough to store the normalized images
+		FindValue/TEXT=(ImageList[i]) Datasheet_ImageName	// find corresponding row
+		Thick_cm = str2num(Datasheet[V_value][%Thick_cm])	// Get thickness
+		MatrixOP/O image_i = image_i/Thick_cm		// normalize image
+		Print NameofWave(image_i) +"/"+ num2str(Thick_cm)
+	Endfor
+	R2D_SimpleTimer(0)
+
+End
+
+Function AbsoluteNorm2D()
+
+	print "processing..."
+	Doupdate
+	setup2D()	// check folder, create image list
+
+	// popup
+	Variable AbsFactor
+	Prompt AbsFactor, "Reference x ? = This Time"		// Set prompt for x param
+	DoPrompt "Enter correction factor", AbsFactor
+	if (V_Flag)
+		Print "User canceled"
+		return -1								// User canceled
+	Elseif(AbsFactor <= 0)
+		Print "AbsFactor must be a positive value."
+		return -1
+	endif
+	
+	R2D_SimpleTimer(1)	
+	Duplicate2D("a")	// back up original images and make a new duplicated folder to save modified images
+
+	Wave/T ImageList = :Red2DPackage:ImageList
+	Variable numOfImages = DimSize(ImageList,0)
+	variable i
+
+	For(i=0;i<numOfImages; i+=1)		
+		wave image_i = $ImageList[i]	// Get target name from Imagelist
+		Redimension/D image_i		// single float is not enough to store the normalized images
+		MatrixOP/O image_i = image_i/AbsFactor		// normalize image
+		Print NameOfWave(image_i) +"/"+ num2str(AbsFactor)
+	Endfor
+
+	R2D_SimpleTimer(0)
+	
+End
+
+// *** Subtract Solvent
+Function R2D_SolventSubtraction2D()
+
+	setup2D()	// check folder, create image list
+	
+	Killwindow/Z SolventSubtractionPanel2D
+	NewPanel/K=1/W=(100,100,500,250) as "Solvent subtraction"
+	RenameWindow $S_name, SolventSubtractionPanel2D
+	
+	TitleBox WSPopupTitle1,pos={80,23}, frame=0, fSize=14, title="Select the solvent wave"
+	Button SolventSelector,pos={30,50},size={340,23}, fSize=14
+	MakeButtonIntoWSPopupButton("SolventSubtractionPanel2D", "SolventSelector", "SolventPopupWaveSelectorNotify", popupWidth = 400, popupHeight = 600, options=PopupWS_OptionFloat)
+	PopupWS_MatchOptions("SolventSubtractionPanel2D", "SolventSelector", matchStr = "*", listoptions = "DIMS:2,TEXT:0")
+	PopupWS_SetPopupFont("SolventSubtractionPanel2D", "SolventSelector", fontsize = 13)
+	///MakeButtonIntoWSPopupButton is a builtin function in Igor Pro.
+
+	Variable/G :Red2DPackage:U_SolvFrac
+	SetVariable setvar0 value=:Red2DPackage:U_SolvFrac, fSize=14, limits={0,1,0.01}, pos={30,102}, size={200,23}, title="Solvent fraction"
+	Button bt0,pos={250,100},size={110,23}, fSize=14, proc=SolventSubtractButtonProc2D,title="Subtract"
+	
+End
+
+Function SolventSubtractButtonProc2D(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+
+	switch( ba.eventCode )
+		case 2: // mouse up
+			
+			//////////////////////////////GET CELL WAVE////////////////////////////////
+			String SolventPath = PopupWS_GetSelectionFullPath("SolventSubtractionPanel2D", "SolventSelector")
+			If(cmpstr(SolventPath, "(no selection)", 0) == 0)	// if user canceled,
+				Print "no selection"
+				Killwindow SolventSubtractionPanel2D
+				return -1
+			Else
+				R2D_SimpleTimer(1)
+				print "processing..."
+				Doupdate
+				Duplicate2D("s")	// create new datafolder to processed 2D images	
+				Wave/T ImageList = :Red2DPackage:ImageList
+				Variable numOfImages = DimSize(ImageList,0)
+				wave refSolvent = $SolventPath
+				NVAR SolvFrac = :Red2DPackage:U_SolvFrac
+				variable i
+				For(i=0;i<numOfImages; i+=1)
+					Wave target = $ImageList[i]
+					MatrixOP/O target = target-refSolvent*SolvFrac	// subtract cell
+				Endfor
+				Print NameOfWave(refSolvent), "is subtracted from", ImageList
+				Killwindow SolventSubtractionPanel2D
+				R2D_simpleTimer(0)
+			Endif
 					
 			break
 		case -1: // control being killed
@@ -637,7 +717,7 @@ Function CellSubtractButtonProc2D(ba) : ButtonControl
 End
 
 
-// Add multiple 2D images together.
+// *** Add multiple 2D images together.
 Function R2D_Add2DImages(refresh)
 	variable refresh
 	
@@ -817,6 +897,126 @@ Function ButtonProcCombineWaves(ba) : ButtonControl
 	return 0
 End
 
+// *** Simple Math Operations (2D)
+Function R2D_simple_math_operation_2D(operation, matchStr, OperationValue)
+	string operation // type of the math operation: add, subtract, multiply and divide
+	string matchStr
+	variable OperationValue
+
+	//////ERROR CHECKER///////
+	If(R2D_Error_ImagesExist() == -1)
+		Abort
+	Endif
+	
+	string List2D = WaveList(matchStr, ";","DIMS:2,TEXT:0") //return a list of int in current datafolder
+	variable numOf2D = ItemsInList(List2D)
+	String target
+	
+	variable t1 = StartMSTimer
+	variable i
+	For(i=0;i<numOf2D; i+=1)
+		target = StringFromList(i, List2D)
+		Wave Wave2D = $target
+
+		//Do the operation
+		strswitch(operation)
+			case "add":
+				MatrixOP/O Wave2D = Wave2D + OperationValue
+				break
+			case "subtract":
+				MatrixOP/O Wave2D = Wave2D - OperationValue
+				break
+			case "multiply":
+				MatrixOP/O Wave2D = Wave2D * OperationValue
+				break
+			case "divide":
+				MatrixOP/O Wave2D = Wave2D / OperationValue
+				break
+		endswitch
+	Endfor
+	Variable Secondes = StopMSTimer(t1)/1E6
+	Print Secondes, "s"
+	
+End
+
+// *** Simple Math Operations (2D2D)
+Function R2D_simple_math_operation_2D2D(operation, matchStr, ScaleValue, w)
+	string operation // type of the math operation: add, subtract, multiply and divide
+	string matchStr
+	variable ScaleValue
+	wave w		// operation wave
+
+	//////ERROR CHECKER///////
+	If(R2D_Error_ImagesExist() == -1)
+		Abort
+	Endif
+	
+	string List2D = WaveList(matchStr, ";","DIMS:2,TEXT:0") //return a list of int in current datafolder
+	variable numOf2D = ItemsInList(List2D)
+	String target
+	
+	variable t1 = StartMSTimer
+	variable i
+	For(i=0;i<numOf2D; i+=1)
+		target = StringFromList(i, List2D)
+		Wave Wave2D = $target
+
+		//Do the operation
+		strswitch(operation)
+			case "add":
+				MatrixOP/O Wave2D = Wave2D + ScaleValue*w
+				break
+			case "subtract":
+				MatrixOP/O Wave2D = Wave2D - ScaleValue*w
+				break
+			case "multiply":
+				MatrixOP/O Wave2D = Wave2D * ScaleValue*w
+				break
+			case "divide":
+				MatrixOP/O Wave2D = Wave2D / (ScaleValue*w)
+				break
+		endswitch
+	Endfor
+	Variable Secondes = StopMSTimer(t1)/1E6
+	Print Secondes, "s"
+	
+End
+
+// 2D to 2D
+Function R2D_Arithmetic2D2D(ww, ww2, operation, newname)
+	wave ww
+	wave ww2
+	string operation
+	string newname
+	
+	/// Save new images into another folder
+	NewDataFolder root:Arithmetic2D
+	string new_ww_path = "root:Arithmetic2D:" + newname
+	Duplicate/O ww, $new_ww_path
+	wave nww = $new_ww_path
+	
+	/// Normalization
+	Redimension/D nww
+
+	/// Do the correction.
+	strswitch(operation)
+		case "add":
+			nww = nww+ww2
+			break
+		case "subtract":
+			nww = nww-ww2
+			break
+		case "multiply":
+			nww = nww*ww2
+			break
+		case "divide":
+			nww = nww/ww2
+			break
+		default:
+			break
+	endswitch
+	
+End
 
 // *************************
 // *** Convert 2D NORMAL scattering images to different 2D profiles ***
