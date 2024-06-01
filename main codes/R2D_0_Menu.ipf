@@ -61,6 +61,8 @@ Menu "Red2D"
 		"Auto Process", R2D_AutoProcess_panel()
 		"-"
 		"Convert to azimuthal-q coordinates", R2D_2DImageConverterPanel()
+		"Make Masked 2D Images", R2D_MakeMaskedImages()
+		"Sensitivity correction 2D", R2D_Sensitivity2D()
 		"Convert 32bit integer images to single float (-1 to NaN)", R2D_negative2NaN()
 		"-"
 		Submenu "2D Operation"
@@ -70,9 +72,8 @@ Menu "Red2D"
 			"4. Absolute Intensity (2D)", AbsoluteNorm2D()
 			"5. Subtract Solvent (2D)", R2D_SolventSubtraction2D()
 			"-"
+			"Rebuild 2D from 1D", R2D_rebuild2D_panel()
 			"Add 2D Images", R2D_Add2DImages(0)
-			"Sensitivity correction 2D", R2D_Sensitivity2D()
-			"Make Masked 2D Images", R2D_MakeMaskedImages()
 		End
 		"-"
 		"\\M0Logarithmic 1D resampling/binning", R2D_LogResample1D()
@@ -88,14 +89,12 @@ Menu "Red2D"
 		"Append I vs p", R2D_Display1D(1,2)
 		"-"
 		
-		Submenu "R2D Analysis"
-			R2D_RulandStreakAnalysis_Exist(), R2D_RulandStreakAnalysis()
-			R2D_CylinderSimulator_Exist(), Red2D_Rotate_Rod_panel()
+		Submenu "Analysis"
+			"Runland Streak Analysis", R2D_RulandStreakAnalysis()
+			"Cylinder Simulator", Red2D_Rotate_Rod_panel()
 			"-"
-			R2D_make_qq_Exist(), R2D_make_qq()
-			R2D_Guinier_plot_Exist(), R2D_Guinier_plot()
-			"-"
-			R2D_Rebuild2D_Exist(), R2D_rebuild2D_panel()
+			"Make q2 waves", R2D_make_qq()
+			"Guinier Plot", R2D_Guinier_plot()
 		End
 		
 		"-"
@@ -111,45 +110,4 @@ Menu "Red2D"
 		
 	End
 
-End
-
-
-Function/S R2D_RulandStreakAnalysis_Exist()
-	if(Exists("R2D_RulandStreakAnalysis"))
-		return "Ruland Streak Analysis (needs phi vs q image)"
-	else
-		return ""
-	endif
-End
-
-Function/S R2D_CylinderSimulator_Exist()
-	if(Exists("Red2D_Rotate_Rod_panel"))
-		return "Simulate 2D cylinder profile"
-	else
-		return ""
-	endif
-End
-
-Function/S R2D_make_qq_Exist()
-	if(Exists("R2D_make_qq"))
-		return "Make qq waves"
-	else
-		return ""
-	endif
-End
-
-Function/S R2D_Guinier_plot_Exist()
-	if(Exists("R2D_Guinier_plot"))
-		return "Display Guinier plot"
-	else
-		return ""
-	endif
-End
-
-Function/S R2D_Rebuild2D_Exist()
-	if(Exists("R2D_Rebuild2D_panel"))
-		return "Rebuild 2D"
-	else
-		return ""
-	endif
 End
