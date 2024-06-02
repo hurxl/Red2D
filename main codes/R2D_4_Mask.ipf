@@ -633,8 +633,9 @@ End
 
 
 /// Listbox
-Function R2D_GetMaskList(matchStr)
-	string matchStr
+// Get Mast List in current datafolder and update 
+Function/S R2D_GetMaskList(matchStr)
+	string matchStr		// not in use 2024-06-03
 	
 	If(R2D_Error_ImagesExist() == -1)
 		Abort
@@ -684,6 +685,8 @@ Function R2D_GetMaskList(matchStr)
 			Z_MaskStatus[i][0] = 2^5	 //"bit" to control and check checkbox in listbox. bit5 means checkbox effective, 4 means checked.
 		endif
 	endfor
+	
+	return masklist
 
 End
 
