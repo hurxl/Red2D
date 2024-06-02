@@ -1,0 +1,18 @@
+2024-06-03
+
+R2D_GetImageFolderPath
+これを使うと、いまいるのが2Dだろうと、1Dだろうと、2D folderのpathを返してくれる。
+主に、1D folderにいるのに、2D folderの操作をするときに使っている。
+この関数のあとに、SetDataFolderをしてあげることで、確実に2D folderに移る仕組みになっている。
+
+作ったのはだいぶ前で、現時点で対応している関数を調べてみた。
+
+R2D_2_DisplayImages.ipf
+R2D_5_ CircularAverage.ipf
+は完全対応している。
+
+R2D_3_Fit_Q_Standards.ipdfは、R2D_GetImageFolderPathが一カ所紛れ混んでいるが、対応はしていない。
+
+R2D_AutoProccess.ipfは、Image Folderを手打ちするので、関係ない。
+
+将来的に対応できると思われるのは、R2D_Fit_Q_Standards.ipfとR2D_Mask.ipf、あたりだろう。
