@@ -25,7 +25,7 @@ Function R2D_CircularAveragePanel()
 	NewDataFolder/O/S Red2DPackage
 		Variable/G U_Xmax, U_Ymax, U_X0, U_Y0, U_SDD, U_Lambda, U_PixelSize
 		Variable/G U_tiltX, U_tiltY, U_tiltZ, U_SortOrder// U_tiltZ is not in use. It is actuall X2. I use X-Y-X type rotation.
-		String/G U_AllMaskName, U_automask_name
+		String/G U_MaskName_All_CA, U_MaskName_Auto
 		Variable/G U_row_CA
 		U_Xmax=Dimsize(TopImage,0)-1 //Get image size. Minus 1 because Dimsize is size while Xmax means the coordinates.
 		U_Ymax=Dimsize(TopImage,1)-1 //Get image size
@@ -87,7 +87,7 @@ Function R2D_CircularAveragePanel()
 	ListBox lb listWave=:Red2DPackage:Z_ImageList_CA
 	ListBox lb mode=2, frame=0, pos={240,5}, size={450,330}, fSize=13, widths={150,100}, userColumnResize=1, proc=ListControl_SelectMask_CA
 	
-	PopupMenu popup1 title="Set all mask", pos={15,200}, fSize=13, value=R2D_GetMaskList_simple(), proc=Update_AllMaskName_CA
+	PopupMenu popup1 title="Set all mask", pos={15,200}, fSize=13, value=R2D_GetMaskList_simple(), proc=Update_MaskName_All_CA
 	// when refresh above popup, the selection number will remain in old one. Therefore, when it exceeds current list, no selection appears.
 	Execute/P/Q "PopupMenu popup1 pos={15,200}"  // a workaround about Igor's know bug for bodywidth option.
 	
@@ -100,7 +100,7 @@ End
 //////////////////Button Actions////////////////////////
 ////////////////////////////////////////////////////////
 
-Function Update_AllMaskName_CA(pa) : PopupMenuControl
+Function Update_MaskName_All_CA(pa) : PopupMenuControl
 	STRUCT WMPopupAction &pa
 
 
@@ -116,13 +116,13 @@ Function Update_AllMaskName_CA(pa) : PopupMenuControl
 			DFREF saveDFR = GetDataFolderDFR()	// get current datafolder. It could be image folder or 1D folder.
 			SetDataFolder $ImageFolderPath		// move to image folder
 			
-			SVAR AllMaskName = :Red2DPackage:U_AllMaskName
-			AllMaskName = popStr // remeber current selection
+			SVAR MaskName_All_CA = :Red2DPackage:U_MaskName_All_CA
+			MaskName_All_CA = popStr // remeber current selection
 			NVAR U_row_CA = :Red2DPackage:U_row_CA
 
 //			If(WaveExists(:Red2DPackage:Z_ImageList_CA))
 				wave/T Z_ImageList_CA = :Red2DPackage:Z_ImageList_CA
-				Z_ImageList_CA[][1] = AllMaskName		// change mask name in Z_ImageList_CA. 1st col image, 2nd col mask.
+				Z_ImageList_CA[][1] = MaskName_All_CA		// change mask name in Z_ImageList_CA. 1st col image, 2nd col mask.
 				Show2D(U_row_CA, Z_ImageList_CA)
 //			Endif
 			SetDataFolder saveDFR

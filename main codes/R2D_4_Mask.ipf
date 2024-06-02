@@ -633,7 +633,7 @@ End
 
 
 /// Listbox
-// Get Mast List in current datafolder and update 
+// Get Mast List in current datafolder and update maskList wave and its status wave.
 Function/S R2D_GetMaskList(matchStr)
 	string matchStr		// not in use 2024-06-03
 	

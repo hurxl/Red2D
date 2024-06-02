@@ -37,8 +37,8 @@ Function R2D_AutoProcess_panel()
 	SVAR pc_datasheet_path = root:Red2DPackage:pc_datasheet_path
 	String/G root:Red2DPackage:image_df_path
 	SVAR image_df_path = root:Red2DPackage:image_df_path
-	String/G root:Red2DPackage:U_automask_name
-	SVAR U_automask_name = root:Red2DPackage:U_automask_name
+	String/G root:Red2DPackage:U_MaskName_Auto
+	SVAR U_MaskName_Auto = root:Red2DPackage:U_MaskName_Auto
 	String/G root:Red2DPackage:U_ImageExtension
 	SVAR ImageExtension = root:Red2DPackage:U_ImageExtension
 	
@@ -64,9 +64,9 @@ Function R2D_AutoProcess_panel()
 	PopupMenu popup1 title="Mask for Images            ", pos={20, 140}, fSize=13, value=R2D_GetMaskList_autoprocess(), proc=PopMenuProc_R2D_setautomask
 	ControlInfo/W=AutoProcess popup1
 //	if(strlen(R2D_GetMaskList_autoprocess())<9)	// if only 'no mask' is in the selection
-	if(cmpstr(S_Value, U_automask_name) != 0)	// if selected mask does not match U_automask_name
+	if(cmpstr(S_Value, U_MaskName_Auto) != 0)	// if selected mask does not match U_MaskName_Auto
 		PopupMenu popup1 mode=1	// mode = 1 selects first item
-		U_automask_name = "no mask"	// forcely input "no mask" to U_automask_name
+		U_MaskName_Auto = "no mask"	// forcely input "no mask" to U_MaskName_Auto
 //	else	// if mask wave exists
 //		PopupMenu popup1
 	endif
@@ -174,8 +174,8 @@ Function R2D_AutoProcess()
 	R2D_CreateImageList(2)  // create/refresh ImageList, which is a list of full images in current datafolder. necessary for DoCircular...	
 	
 	/// Get selected mask path
-	SVAR U_automask_name = root:Red2DPackage:U_automask_name	// selected mask_name is stored in this global string
-	string mask_path = RemoveEnding(image_df_path, ":") + ":Red2DPackage:Mask:" +	U_automask_name // Use "RemoveEnding" because user may add or not add ":"
+	SVAR U_MaskName_Auto = root:Red2DPackage:U_MaskName_Auto	// selected mask_name is stored in this global string
+	string mask_path = RemoveEnding(image_df_path, ":") + ":Red2DPackage:Mask:" +	U_MaskName_Auto // Use "RemoveEnding" because user may add or not add ":"
 	if(WaveExists($mask_path))
 		Print mask_path + " will be applied to all images."
 	else
@@ -365,9 +365,9 @@ Function SetVarProc_ImageFolderPath(sva) : SetVariableControl
 		case 3: // Live update
 			Variable dval = sva.dval
 			String sval = sva.sval
-			SVAR U_automask_name = root:Red2DPackage:U_automask_name
+			SVAR U_MaskName_Auto = root:Red2DPackage:U_MaskName_Auto
 			PopupMenu popup1, win=AutoProcess, mode=1, value=R2D_GetMaskList_autoprocess()
-			U_automask_name = "no mask"
+			U_MaskName_Auto = "no mask"
 				
 			break
 		case -1: // control being killed
@@ -401,8 +401,8 @@ Function PopMenuProc_R2D_setautomask(pa) : PopupMenuControl
 		case 2: // mouse up
 			Variable popNum = pa.popNum
 			String popStr = pa.popStr
-			SVAR U_automask_name = root:Red2DPackage:U_automask_name
-			U_automask_name = popStr
+			SVAR U_MaskName_Auto = root:Red2DPackage:U_MaskName_Auto
+			U_MaskName_Auto = popStr
 			break
 		case -1: // control being killed
 			break

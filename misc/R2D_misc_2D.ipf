@@ -173,7 +173,7 @@ Function R2D_CircularAveragePanel_simple()
 	DFREF saveDFR = GetDataFolderDFR()
 	SetDataFolder Red2DPackage
 		Variable/G U_Xmax, U_Ymax, U_X0, U_Y0, U_PixelSize, U_SortOrder// U_tiltZ is not in use. It is actuall X2. I use X-Y-X type rotation.
-		String/G U_AllMaskName, U_automask_name
+		String/G U_MaskName_All_CA, U_MaskName_Auto
 		Variable/G U_row_CA
 		U_Xmax=Dimsize(TopImage,0)-1 //Get image size. Minus 1 because Dimsize is size while Xmax means the coordinates.
 		U_Ymax=Dimsize(TopImage,1)-1 //Get image size
@@ -223,7 +223,7 @@ Function R2D_CircularAveragePanel_simple()
 	ListBox lb listWave=:Red2DPackage:Z_ImageList_CA
 	ListBox lb mode=2, frame=0, pos={240,5}, size={450,330}, fSize=13, widths={150,100}, userColumnResize=1, proc=ListControl_SelectMask_CA
 
-	PopupMenu popup1 title="Set all mask", pos={15,120}, fSize=13, value=R2D_GetMaskList_simple(), proc=Update_AllMaskName
+	PopupMenu popup1 title="Set all mask", pos={15,120}, fSize=13, value=R2D_GetMaskList_simple(), proc=Update_MaskName_All_CA
 	Execute/P/Q "PopupMenu popup1 pos={15,120}"  // a workaround about Igor's know bug for bodywidth option.
 	
 End
