@@ -171,7 +171,7 @@ Function R2D_AutoProcess()
 		Print " "
 		return 0
 	Else
-		Print "Try to recuding following images:"
+//		Print "Try to recuding following images:"
 		Print NonRedImageList
 //		Print "Prepare to reduce these images..."
 	Endif
