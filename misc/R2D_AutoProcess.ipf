@@ -83,6 +83,10 @@ End
 Function/S R2D_GetMaskList_autoprocess()
 	SVAR image_df_path = root:Red2DPackage:image_df_path
 	
+	If(cmpstr(image_df_path, "root") == 0 || cmpstr(image_df_path, "root:") == 0 )
+		image_df_path = "root:"
+	Endif
+	
 	string masklist = "no mask;"
 	if(DataFolderExists(image_df_path))
 		string maskfolder_path = RemoveEnding(image_df_path, ":") + ":Red2DPackage:Mask"	// user may add or not add ":"
