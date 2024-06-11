@@ -30,7 +30,7 @@ Function/S R2D_Unique1DDataFolder(suffix)
 End
 
 
-///////////Time and Transmittance correction//////////////
+///////////Time and transmission correction//////////////
 Function TimeAndTrans1D()
 		
 	//////ERROR CHECKER///////
@@ -54,8 +54,8 @@ Function TimeAndTrans1D()
 	variable numOf1D = ItemsInList(IntList)
 	wave/T Datasheet = ::Red2DPackage:Datasheet
 	
-	/////////////////Calcualte thickness dependent transmittance///////////////////
-	///Create a corrected Transmittance wave with the same dimension as the intensity wave
+		/////////////////Calcualte thickness dependent transmission///////////////////
+	///Create a corrected transmission wave with the same dimension as the intensity wave
 	///According to Grillo, Soft Matter Characterization
 	///Tr_corr = (mu*thick*f_2t)^-1*exp(-mu*thick)*(1-exp(-mu*thick*f_2t))
 	///Tr_corr = (ee*f_2t)^-1*exp(-ee)*(1-exp(-ee*f_2t))
@@ -77,7 +77,7 @@ Function TimeAndTrans1D()
 	Variable Time_s
 	Variable Trans
 	Variable ee
-	Print "Start time and transmittance correction..."
+	Print "Start time and transmission correction..."
 	Variable i
 	For(i=0;i<numOf1D; i+=1)
 		
@@ -93,7 +93,7 @@ Function TimeAndTrans1D()
 		ee = -ln(trans)
 		If(waveexists(theta2))
 			If(ee == 0) // when trans = 1, ee = 0. The denominator in the trans correction equation becomes 0.
-				Tr_corr = 1  // To avoid the problem, we directly put the transmittance in Tr_thick.
+				Tr_corr = 1  // To avoid the problem, we directly put the transmission in Tr_thick.
 			Else
 				Tr_corr = (ee*f_2t)^-1*exp(-ee)*(1-exp(-ee*f_2t))
 			Endif
@@ -110,7 +110,7 @@ Function TimeAndTrans1D()
 
 	Endfor
 	
-	Print "Time and transmittance correction completes..."
+	Print "Time and transmission correction completes..."
 		
 End
 
