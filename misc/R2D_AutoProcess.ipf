@@ -147,6 +147,22 @@ Function R2D_AutoProcess()
 	NonRedImageList = RemoveFromList(RedImageList, ImageList)	// Create a non reduced imagelist
 //	NonRedTraceList = ReplaceString(";", NonRedImageList, "_i;")  // add the suffix "_i" to each entry in the list
 	
+	// refine the list if the corresponding time or trans is empty
+	wave/T temp_datasheet = :Red2DPackage:Datasheet
+	variable numOfdata = DimSize(temp_datasheet, 0)
+	variable tim, trans
+	string wn
+	variable i
+	For(i=0; i<numOfdata; i++)
+		tim = str2num(temp_datasheet[i][%Time_s])
+		trans = str2num(temp_datasheet[i][%Trans])
+		if(numType(tim) == 2 ||numType(trans) == 2)
+			wn = temp_datasheet[i][%ImageName]
+			NonRedImageList = RemoveFromList(wn, NonRedImageList)
+			Print wn, "does not have time or transmission value in the datasheet. 1D reudction will be skiped for this image."
+		endif
+	Endfor
+
 	/// Abort the procedure if there is no NonRedImage
 	variable num_NonRedImage = itemsInList(NonRedImageList)
 	If(num_NonRedImage == 0)
@@ -159,22 +175,6 @@ Function R2D_AutoProcess()
 		Print NonRedImageList
 		Print "Prepare to reduce these images..."
 	Endif
-
-	// refine the list if the corresponding time or trans is empty
-	wave/T temp_datasheet = ::Red2DPackage:Datasheet
-	variable numOfdata = DimSize(temp_datasheet, 0)
-	variable tim, trans
-	string wn
-	variable i
-	For(i=0; i<numOfdata; i++)
-		tim = str2num(temp_datasheet[i][%Time_s])
-		trans = str2num(temp_datasheet[i][%Trans])
-		if(numType(tim) == 2 ||numType(trans) == 2)
-			wn = temp_datasheet[i][%ImageName]
-			NonRedImageList = RemoveFromList(wn, NonRedImageList)
-			Print wn, "does not have time or transmission value in the datasheet. 1D reudction is skiped for this image."
-		endif
-	Endfor
 	
 	/// Copy non-reduced images to working folder "root:R2D_NonRedImages". This folder will be deleted at the end of this procedure.
 	/// In this precedure, I decided to reduce all the "non-reduced" images instead of reducing only the "newly-loaded" images.
@@ -205,20 +205,21 @@ Function R2D_AutoProcess()
 	InitiateCircularAverage(mask_path=mask_path)  // the output 1D files are stored in a folder named "Iq1D0", parameter 1 means mode 1 (auto mask mode)
 	
 	/// Normalize 1D
-	Variable user
-	R2D_ImportDatasheet(path = pc_datasheet_path, noedit = 1) // re-import datasheet to prevent datasheet not match problem.	
+//	Variable user
+	R2D_ImportDatasheet(path = pc_datasheet_path, noedit = 1) // re-import datasheet to prevent datasheet not match problem.
+	// disabled reimport datasheet because it may import new Trans and time values, while it was not there when filtering the images.
 //	KillWindow/Z $WinName(0,2)  // kill the top-most table to enable delete folder. Top-most table should be the datasheet created above.
 	TimeAndTrans1D()
 	
 	// Remove Iq profiles with empty time and transmittance cells
-//	wave/T temp_datasheet = ::Red2DPackage:Datasheet
+	wave/T temp_datasheet = ::Red2DPackage:Datasheet
 	numOfdata = DimSize(temp_datasheet, 0)
 //	variable tim, trans
 //	string ww
 	For(i=0; i<numOfdata; i++)
 		tim = str2num(temp_datasheet[i][%Time_s])
 		trans = str2num(temp_datasheet[i][%Trans])
-		if(numType(tim) == 2 ||numType(trans) == 2)
+		if(numType(tim) == 2 || numType(trans) == 2)
 			wn = temp_datasheet[i][%ImageName]
 			Killwaves $(wn+"_q"), $(wn+"_i"), $(wn+"_s"), $(wn+"_2t")
 		endif
