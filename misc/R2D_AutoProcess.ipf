@@ -210,27 +210,27 @@ Function R2D_AutoProcess()
 //	KillWindow/Z $WinName(0,2)  // kill the top-most table to enable delete folder. Top-most table should be the datasheet created above.
 	TimeAndTrans1D()
 	
-//	// Remove Iq profiles with empty time and transmittance cells
+	// Remove Iq profiles with empty time and transmittance cells
 //	wave/T temp_datasheet = ::Red2DPackage:Datasheet
-//	variable numOfdata = DimSize(temp_datasheet, 0)
+	numOfdata = DimSize(temp_datasheet, 0)
 //	variable tim, trans
 //	string ww
-//	For(i=0; i<numOfdata; i++)
-//		tim = str2num(temp_datasheet[i][%Time_s])
-//		trans = str2num(temp_datasheet[i][%Trans])
-//		if(numType(tim) == 2 ||numType(trans) == 2)
-//			ww = temp_datasheet[i][%ImageName]
-//			Killwaves $(ww+"_q"), $(ww+"_i"), $(ww+"_s"), $(ww+"_2t")
-//		endif
-//	Endfor
-//	Print "I_q profiles with empty time and transmittance cells were removed."
+	For(i=0; i<numOfdata; i++)
+		tim = str2num(temp_datasheet[i][%Time_s])
+		trans = str2num(temp_datasheet[i][%Trans])
+		if(numType(tim) == 2 ||numType(trans) == 2)
+			wn = temp_datasheet[i][%ImageName]
+			Killwaves $(wn+"_q"), $(wn+"_i"), $(wn+"_s"), $(wn+"_2t")
+		endif
+	Endfor
+	Print "I_q profiles with empty time and transmittance cells were removed."
 	String NewIq_list = WaveList("*_i", ";","DIMS:1,TEXT:0")
-//	If(strlen(NewIq_list) == 0)
-//		Print "No I_q profiles were found."
-//	Else
-//		Print "Newly reduced images are:"
-//		Print NewIq_list
-//	Endif
+	If(strlen(NewIq_list) == 0)
+		Print "No I_q profiles were found."
+	Else
+		Print "Newly reduced images are:"
+		Print NewIq_list
+	Endif
 	
 	/// Duplicate all the new 1D files to the main datafolder
 	SetDataFolder HomeDFR
