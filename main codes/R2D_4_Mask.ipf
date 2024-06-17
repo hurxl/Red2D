@@ -30,10 +30,11 @@ Function R2D_MaskPanel()
 	Endif
 	
 	// threshold mask GUI
-	TitleBox title0, pos={190,10}, frame=0, fSize=13, title="Threshold Mask (use ROI to limit region)"
+	TitleBox title0, pos={50,10}, frame=0, fSize=13, title="Threshold Mask (use ROI to limit region)"
 	SetVariable setvar0 title="Threshold [count]",pos={30,40},size={180,25},limits={-inf,+inf,1},fSize=13, value=:Red2DPackage:U_maskthreshold
 	SetVariable setvar1 title="Extended Edge [px]",pos={235,40},size={170,25},limits={0,+inf,1},fSize=13, value=:Red2DPackage:U_maskEdgeSize
-	Button button0 title="New Threshold Mask",pos={425,37},size={145,23},proc=ButtonProcMakeThresholdMask
+	Button button0 title="New Mask (Below TH)",pos={425,10},size={145,23},proc=ButtonProcMakeThresholdMask_below
+	Button button8 title="New Mask (Above TH)",pos={425,37},size={145,23},proc=ButtonProcMakeThresholdMask_above
 
 	
 	// sector mask GUI
@@ -80,18 +81,40 @@ End
 // *************************
 // *** Button Actions ***
 // *************************
-Function ButtonProcMakeThresholdMask(ba) : ButtonControl
+Function ButtonProcMakeThresholdMask_below(ba) : ButtonControl
 	STRUCT WMButtonAction &ba
 
 	switch( ba.eventCode )
 		case 2: // mouse up
 			NVAR threshold = :Red2DPackage:U_maskthreshold
 			NVAR EdgeSize = :Red2DPackage:U_maskEdgeSize
+			
 			DoWindow IntensityImage
 			if(V_flag == 0)
 				Abort "IntensiytImage window does not exist. Try to use Display Images to make a new image window."
 			endif
-			R2D_MakeThresholdMask(threshold, EdgeSize)
+			R2D_MakeThresholdMask(threshold, EdgeSize, "below")
+		 	R2D_GetMaskList("")
+			break
+		case -1: // control being killed
+			break
+	endswitch
+	return 0
+End
+
+Function ButtonProcMakeThresholdMask_above(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+
+	switch( ba.eventCode )
+		case 2: // mouse up
+			NVAR threshold = :Red2DPackage:U_maskthreshold
+			NVAR EdgeSize = :Red2DPackage:U_maskEdgeSize
+			
+			DoWindow IntensityImage
+			if(V_flag == 0)
+				Abort "IntensiytImage window does not exist. Try to use Display Images to make a new image window."
+			endif
+			R2D_MakeThresholdMask(threshold, EdgeSize, "above")
 		 	R2D_GetMaskList("")
 			break
 		case -1: // control being killed
@@ -368,9 +391,10 @@ End
 
 /// Create threshold mask
 
-Function R2D_MakeThresholdMask(threshold, EdgeSize)
+Function R2D_MakeThresholdMask(threshold, EdgeSize, type)
 	variable threshold
 	variable EdgeSize
+	string type
 
 	If(R2D_Error_ImagesExist() == -1)	// check if in correct datafolder
 		Abort
@@ -406,15 +430,24 @@ Function R2D_MakeThresholdMask(threshold, EdgeSize)
 	
 	// Apply threshold
 	if(V_flag)	// if roi exists
-		ImageThreshold/Q/M=0/I/T=(threshold)/R={M_ROIMask, 0} TopImage
+		if(stringmatch(type, "below"))
+			ImageThreshold/Q/M=0/I/T=(threshold)/R={M_ROIMask, 0} TopImage
+		else
+			ImageThreshold/Q/M=0/T=(threshold)/R={M_ROIMask, 0} TopImage
+		endif
 		// By default ImageThreshold maps pixel above the threshold as 255, below as 0, NaN as 64.
 		// I inserted /I to flip this creteria. So, above threshold becomes 0, and below becomes 255.
 		// 0 for pixel no need to mask, 255 for pixels want to mask.
+		// 2024-06-17 An option added to set threshold above a value, using a string "type". Type could be "below" or "above".
 	else	// if roi does not exist
-		ImageThreshold/Q/M=0/I/T=(threshold) TopImage
+		if(stringmatch(type, "below"))
+			ImageThreshold/Q/M=0/I/T=(threshold) TopImage
+		else
+			ImageThreshold/Q/M=0/T=(threshold) TopImage
+		endif
 	endif
 	wave M_ImageThresh // M_ImageThresh 
-	Multithread M_ImageThresh = M_ImageThresh < 100 ? 0 : 254 // NaN was saved as 63; change them to 0.
+	Multithread M_ImageThresh = M_ImageThresh < 100 ? 0 : 255 // NaN was saved as 63; change them to 0.
 	if(EdgeSize > 0)
 		EdgeSize = EdgeSize*2-1	// convert 1,2,3... to 1,3,5...
 		MatrixFilter/N=(EdgeSize) gauss M_ImageThresh	// slightly enlarge the mask area using gauss convolution (blurring the edge)
