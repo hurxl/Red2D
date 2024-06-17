@@ -521,3 +521,16 @@ Function SolventSubtractButtonProc(ba) : ButtonControl
 	return 0
 End
 
+
+Function R2D_interpolate1D(wx, wy, refx)
+	wave wx, wy, refx
+	
+	NewDataFolder/O root:Interpolated1D
+	string newXname = "root:Interpolated1D:" + NameOfWave(wx)
+	string newYname = "root:Interpolated1D:" + NameOfWave(wy)
+	Duplicate/O refx, $newXname, $newYname
+	wave newX = $newXname
+	wave newY = $newYname
+	interpolate2/X=newX/Y=newY/I=3 wx, wy
+
+End
