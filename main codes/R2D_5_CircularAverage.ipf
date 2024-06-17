@@ -357,7 +357,7 @@ Static Function Show2D(row, listWave)
 	If(V_flag == 0) // Create a new image window with name as 2DImageWindow if not exists.
 		PauseUpdate
 		NewImage/K=1/N=IntensityImage SelImage
-		ModifyImage/W=IntensityImage ''#0 ctab= {1,*,ColdWarm,0},log=1
+		ModifyImage/W=IntensityImage ''#0 ctab= {1,*,Turbo,0},log=1
 		
 		if(WaveExists(SelMask))	// sel mask might be "no mask", which does not exist.
 			AppendImage/T/W=IntensityImage SelMask
@@ -375,7 +375,7 @@ Static Function Show2D(row, listWave)
 			oldimage_name = StringFromList(i,oldimage_List)	// remove from oldest images
 			RemoveImage/Z/W=IntensityImage $oldimage_name
 		endfor
-		ModifyImage/W=IntensityImage ''#0 ctab= {1,*,ColdWarm,0},log=1
+		ModifyImage/W=IntensityImage ''#0 ctab= {1,*,Turbo,0},log=1
 		
 		if(WaveExists(SelMask))	// sel mask might be "no mask", which does not exist.
 			AppendImage/T/W=IntensityImage SelMask
