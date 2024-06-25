@@ -12,7 +12,7 @@ Function R2D_Display2D()
 	/// Check if panel exist
 	DoWindow Display2D
 	If(V_flag == 0)
-		NewPanel/K=1/N=Display2D/W=(800,100,1557,630)
+		NewPanel/K=1/N=Display2D/W=(800,100,1557,650)
 		SetWindow Display2D, hook(Display2D) = R2D_DisplayImagesWindowHook	
 	Else
 		DoWindow/F Display2D
@@ -30,8 +30,12 @@ Function R2D_Display2D()
 	
 	// Color range
 	Variable/G :Red2DPackage:U_ColorLow
+	Variable/G :Red2DPackage:U_ColorLowStep
 	Variable/G :Red2DPackage:U_ColorHigh
+	Variable/G :Red2DPackage:U_ColorHighStep
 	Variable/G :Red2DPackage:U_ColorLog
+	NVAR lowstep = :Red2DPackage:U_ColorLowStep
+	NVAR highstep = :Red2DPackage:U_ColorHighStep
 	
 	// Create an image list
 	R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
@@ -39,26 +43,34 @@ Function R2D_Display2D()
 	Make/O/T/N=0 :Red2DPackage:ImageNote
 	
 	//Create listbox named ImageList and make it follows ListBoxProc
-	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,330}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
-	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,500}, pos={355,25}, fSize=13
+	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,320}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
+	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,520}, pos={355,25}, fSize=13
 
 	TitleBox title0 title="Images",  fSize=14, pos={145,5}, frame=0
 	TitleBox title1 title="Note",  fSize=14, pos={515,5}, frame=0
 
-	// Display
-	PopupMenu popup0 title="Sort list by ",value="Name;Date created",fSize=12, pos={30, 368}
+	// Sort
+	PopupMenu popup0 title="Sort by ",value="Name;Date created",fSize=13, pos={40, 358}
 	PopupMenu popup0 mode=SortOrder, proc=PopMenuProc_Diplay2D_SortOrder	
-	Button button0 title="Bring to Front", fSize=13, size={120,23},pos={190,365},proc=ButtonProcR2D_BringImageToFront
-	
+
+	// Bring to Front
+	Button button0 title="Bring to Front", fSize=13, size={110,23},pos={200,355},proc=ButtonProcR2D_BringImageToFront
+
 	// Color Range
-	SetVariable setvar0 title="Color Low",pos={30,415},size={160,25},limits={-inf,+inf,10},fSize=13, value=:Red2DPackage:U_ColorLow, proc=R2D_ColorRange_SetVarProc
-	SetVariable setvar2 title="High",pos={200,415},size={130,25},limits={-inf,+inf,10},fSize=13, value=:Red2DPackage:U_ColorHigh, proc=R2D_ColorRange_SetVarProc
-	CheckBox cb1 title="Log Color", pos={30, 445}, fSize=13, variable=:Red2DPackage:U_ColorLog, proc=R2D_LogColor_CheckProc
+	TitleBox title2 title="Color Adjust",  fSize=13, pos={40,415}, frame=0
+	CheckBox cb1 title="log Color", pos={200, 415}, fSize=13, variable=:Red2DPackage:U_ColorLog, proc=R2D_LogColor_CheckProc
+	SetVariable setvar0 title="Low",pos={40,445},size={120,25},limits={-inf,+inf, lowstep},fSize=13, value=:Red2DPackage:U_ColorLow, proc=R2D_ColorRange_SetVarProc
+	SetVariable setvar2 title="High",pos={200,445},size={120,25},limits={-inf,+inf, highstep},fSize=13, value=:Red2DPackage:U_ColorHigh, proc=R2D_ColorRange_SetVarProc
 
 	// Save Image
-	Checkbox cbox0 title="Use Sample Name", fSize=13, pos={30, 488}
-	Button button1 title="Save as JPEG", fSize=13, size={120,23},pos={190,485},proc=ButtonProcR2D_SaveImageAsJPEG
-
+	Button button1 title="Export JPEG", fSize=13, size={110,23},pos={50,500},proc=ButtonProcR2D_SaveImageAsJPEG
+	Checkbox cbox0 title="Use Sample Name", fSize=13, pos={180, 503}
+	
+	// Misc
+	GroupBox group0 pos={30,395},size={300,2}
+	GroupBox group1 pos={30,480},size={300,2}
+//	GroupBox group2 pos={30,505},size={300,2}
+	
 	SetDataFolder $savedDF
 End
 
@@ -206,13 +218,33 @@ Function R2D_ColorRange_SetVarProc(sva) : SetVariableControl
 	switch( sva.eventCode )
 		case 1: // mouse up
 		case 2: // Enter key
+			
+			
+			NVAR low = :Red2DPackage:U_ColorLow
+			NVAR high = :Red2DPackage:U_ColorHigh
+			NVAR lowstep = :Red2DPackage:U_ColorLowStep
+			NVAR highstep = :Red2DPackage:U_ColorHighStep
+			
+			lowstep = 10^floor( (log(low)-1) )
+			highstep = 10^floor( (log(high)-1) )
+			
+			if(numtype(lowstep)==2 || lowstep <= 0)
+				lowstep = 1
+			endif
+			if(numtype(highstep)==2 || highstep <= 0)
+				highstep = 1
+			endif
+			
+			SetVariable setvar0 limits={-inf,+inf,lowstep}
+			SetVariable setvar2 limits={-inf,+inf,highstep}
+
 		case 3: // Live update
 			Variable dval = sva.dval
 			String sval = sva.sval
 			
 			NVAR low = :Red2DPackage:U_ColorLow
 			NVAR high = :Red2DPackage:U_ColorHigh
-			
+
 			R2D_ColorRangeAdjust_worker(low, high)
 			
 			break
