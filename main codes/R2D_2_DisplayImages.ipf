@@ -283,6 +283,10 @@ Static Function Show2D(row)
 	wave/T ImageList = :Red2DPackage:ImageList // create a wave referece to a text wave "Z_ImageList"
 	Variable NumInList = DimSize(ImageList,0) // Get items number in Imagelist
 
+	NVAR low = :Red2DPackage:U_ColorLow
+	NVAR high = :Red2DPackage:U_ColorHigh
+	NVAR ColorLog = :Red2DPackage:U_ColorLog
+
 	If(row>NumInList-1) // Check if selected row in range. If out of range do nothing.
 		// Do nothing.
 	Else
@@ -292,7 +296,11 @@ Static Function Show2D(row)
 		If(V_flag == 0) // Create a new image window with name as 2DImageWindow if not exists.
 			NewImage/K=1/N=IntensityImage $SelImageName
 //			ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,ColdWarm,0},log=1
-			ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,Turbo,0},log=1
+			if(numtype(low) == 2 || numtype(high) == 2 || numtype(ColorLog) == 2)
+				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,Turbo,0},log=1
+			else
+				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {low,high,Turbo,0},log=ColorLog
+			endif
 		Else // Replace selected images on the window named 2DImageWindow.
 			String OldImage = ImageNameList("IntensityImage",";") // Get existing ImageName in the window ImageGraph
 			ReplaceWave/W=IntensityImage image = $(StringFromList(0,OldImage)), $(SelImageName) //Replace images. image is a flag here	
