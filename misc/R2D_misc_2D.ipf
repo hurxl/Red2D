@@ -1,6 +1,7 @@
 #pragma TextEncoding = "UTF-8"
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
+// *** Misc
 
 Function R2D_negative2NaN()
 	
@@ -150,6 +151,7 @@ Function R2D_MakeSensitivityButtonProc2D(ba) : ButtonControl
 End
 
 // *************************
+// *** Simple Circular Average
 // Simply take a circular avegae of the images. No q vector conversion and no solid angle corrections.
 // *************************
 /////////GUI/////////
@@ -435,7 +437,7 @@ End
 
 
 // *************************
-// *** Convert 2D NORMAL scattering images to different 2D profiles ***
+// *** Convert 2D
 // *************************
 
 /////////GUI/////////
@@ -464,27 +466,12 @@ Function R2D_2DImageConverterPanel()
 	SetdataFolder saveDFR
 	
 	/// Check if panel exist
-//	DoWindow Azimuthal2D
 	DoWindow Convert_2D_coordinates
 	If(V_flag == 0)
 		NewPanel/K=1/N=Convert_2D_coordinates/W=(800,100,1450,420)
 	Else
 		DoWindow/F Convert_2D_coordinates
 	Endif
-
-//	//Create a new panel to collect parameter to perform circular average
-//	If(ParamIsDefault(refresh))
-//		KillWindow/Z Azimuthal2D
-//		NewPanel/K=1/N=Azimuthal2D/W=(800,100,1150,500)
-//	Else
-//		GetWindow/Z Azimuthal2D wsize
-//		V_left *= ScreenResolution/72
-//		V_right *= ScreenResolution/72
-//		V_top *= ScreenResolution/72
-//		V_bottom *= ScreenResolution/72
-//		KillWindow/Z Azimuthal2D
-//		NewPanel/K=1/N=Azimuthal2D/W=(V_left,V_top,V_right,V_bottom)
-//	Endif
 	
 	SetVariable setvar0 title="X0 [pt]",pos={20,5},size={200,25},limits={-inf,inf,1},fSize=13, value=U_X0
 	SetVariable setvar1 title="Y0 [pt]",pos={20,30},size={200,25},limits={-inf,inf,1},fSize=13, value=U_Y0
@@ -521,7 +508,7 @@ Function ButtonProcAz2D(ba) : ButtonControl
 	switch( ba.eventCode )
 		case 2: // mouse up
 			NVAR phi_offset = :Red2DPackage:U_phiOffset
-			DoAzimuthal2D(phi_offset)
+			Azimuthal2D(phi_offset)
 			break
 		case -1: // control being killed
 			break
@@ -545,8 +532,8 @@ Function ButtonProcqxqy2D(ba) : ButtonControl
 	return 0
 End
 
-//////////Main Code//////////
-Static Function DoAzimuthal2D(phi_offset)
+// *** Azimuthal Conversion
+Static Function Azimuthal2D(phi_offset)
 	variable phi_offset
 	
 	/// Check if in the image folder. Error_ImagesExist will create a Red2Dpackage folder and a imagelist.
@@ -582,7 +569,7 @@ Static Function DoAzimuthal2D(phi_offset)
 			
 		Variable t0=StartMsTimer // Start Timer
 				
-		Azimuthal2D($(ImageList[i]), dfAz2d) // Convert
+		Azimuthal2D_worker($(ImageList[i]), dfAz2d) // Convert
 				
 		Print i+1,"/",numOfImages, ";", StopMSTimer(t0)/1E+6, "sec/image" //End Timer
 				
@@ -631,7 +618,7 @@ Function R2D_calc_phiMap(phi_offset)
 End
 
 /// Convert to Azimuthal2D loop
-ThreadSafe Static Function Azimuthal2D(pWave, dfAz2d)
+ThreadSafe Static Function Azimuthal2D_worker(pWave, dfAz2d)
 	Wave pWave
 	string dfAz2d
 	
@@ -690,12 +677,12 @@ ThreadSafe Static Function Azimuthal2D(pWave, dfAz2d)
 	
 End
 
-
+// *** QxQy conversion
 /// Convert intensity pixel map to intensity qx, qy map
-/// 2023-03-12 not complete. Do not work properly.
-Function R2D_Convert2IntQxQyMap(pWave, dfIqImage)
+/// 2024-06-25 properly worked
+Function R2D_QxQy2D(pWave, QxQy2D_path)
 	wave pWave	// target 2D scattering image
-	string dfIqImage	// datafolder for intensity qx, qy images.
+	string QxQy2D_path	// fullpath of output QxQy2D
 	
 	/// Set global variables, which are shared with the other procedures. 
 	NVAR Xmax = :Red2DPackage:U_Xmax
@@ -705,14 +692,17 @@ Function R2D_Convert2IntQxQyMap(pWave, dfIqImage)
 	NVAR qy_index_min = :Red2DPackage:U_qy_index_min
 	NVAR qy_index_num = :Red2DPackage:U_qy_index_num
 	NVAR qres = :Red2DPackage:U_qres
+	wave qVecMap = :Red2DPackage:qVecMap
+	wave qVecIndexMap = :Red2DPackage:qVecIndexMap
 	wave qVecIndexMap_withOffset = :Red2DPackage:qVecIndexMap_withOffset
 	Wave SolidAngleCorrMap = :Red2DPackage:SolidAngleCorrMap
 	
    // pwave is a p(pixel)-based intensity image, IpImage
-   // IqImage is a q-based intensity image
-   // I want to convert the IpImage to IqImage
+   // QxQy2D is a q-based intensity image
+   // I want to convert the Ip-image to Iq-image
    // To do this conversion, I need a conversion map
    // qvecMap is a p-based q-vector map, telling us the qx, qy, and qz, of each pixel, stored as a beam (igor term)
+   // qscalarMap is a scalar map of q-vector
    
    // How to do this conversion with the programming
    // create an empty q-based image
@@ -720,7 +710,7 @@ Function R2D_Convert2IntQxQyMap(pWave, dfIqImage)
 		// the coordinates have evenly spaced and rounded q values, set by q_res (pixel size)
 		// the number of points of each coordinate is determined by q_max - q_min / q_res
 		// not all q-values have intensity-values.
-	make/FREE/D/O/N=(qx_index_num, qy_index_num) rawSum_map, count_map, intensity
+	make/FREE/D/O/N=(qx_index_num, qy_index_num) tempSum_map, count_map//, QxQy2D
 	
 	// Create a conversion map wave
 	// Note: although above maps (will) have a wave scaling based on q-indices (q-values), the row-column indices of above waves start from 0.
@@ -728,38 +718,42 @@ Function R2D_Convert2IntQxQyMap(pWave, dfIqImage)
 //	MatrixOP/O qVecIndexMap_withOffset = qVecIndexMap[][][0] - qx_index_min + qVecIndexMap[][][1] - qy_index_min + qVecIndexMap[][][2] - qz_index_min
 	
    // remap IpImage to IqImage based on the qvecMap (p-based conversion map)
-   variable i, j, row, col
+   variable i, j, row, col, phcount, qx, qy, qx_index, qy_index, qx_index_offset, qy_index_offset
    count_map = 0 //initialize count map
    
    for(i=0; i<Xmax+1; i++)	// scan each pixel in the IpImage and remap the intensity value to the corresponding IqImage based on the conversion matrxi qvecMap.
     	for (j=0; j<Ymax+1; j++)
-
-    		if(pWave[i][j]<0)
-    			//skip add when intensity is negative.
+			phcount = pWave[i][j]
+    		if(phcount<0 || numtype(phcount) == 2)
+    			//skip add when intensity is negative or NaN.
     		else
-    			row = qVecIndexMap_withOffset[i][j][0]
-    			col = qVecIndexMap_withOffset[i][j][1]
+//    			qx = qVecMap[i][j][0]	// get qx of the corresponding pixel (pxpy)
+//    			qy = qVecMap[i][j][1]	// get qy of the corresponding pixel (pxpy)
+//    			qx_index = qVecIndexMap[i][j][0]	// get normalized integer index of qx of the corresponding pixel (pxpy)
+//    			qy_index = qVecIndexMap[i][j][1]	// get normalized integer index of qy of the corresponding pixel (pxpy)
+    			qx_index_offset = qVecIndexMap_withOffset[i][j][0]	// qx index with offset starts from 0
+    			qy_index_offset = qVecIndexMap_withOffset[i][j][1]
+    			// q_index = round(q/q_res)
 
-    			// ADD INTENSITY.
-	 	  	 	rawSum_map[row][col] += pWave[i][j]*SolidAngleCorrMap[i][j]
-	 	  	 	count_map[row][col] += 1 //calculate the pixel number that corresponds to distance r, considering the mask.
+    			// Add photon counts
+	 	  	 	tempSum_map[qx_index_offset][qy_index_offset] += phcount*SolidAngleCorrMap[i][j]
+	 	  	 	count_map[qx_index_offset][qy_index_offset] += 1 //calculate the pixel number that corresponds to distance r, considering the mask.
 	 	   endif
 	 	   
 	 	endfor
 	 endfor	
 	
-	intensity = rawSum_map/count_map	// normalize the intensity by the counts
+	MatrixOP/FREE QxQy2D = tempSum_map/count_map	// normalize the intensity by the counts
 	
-	SetScale/P x, qx_index_min*qres, qres, "Å\S−1\M", intensity
-	SetScale/P y, qy_index_min*qres, qres, "Å\S−1\M", intensity
+	SetScale/P x, qx_index_min*qres, qres, "Å\S−1\M", QxQy2D
+	SetScale/P y, qy_index_min*qres, qres, "Å\S−1\M", QxQy2D
 	
-	string newintname = dfIqImage + NameofWave(pWave)
-	duplicate/O/D intensity $newintname
+	duplicate/O/D QxQy2D, $QxQy2D_path
 
 End
 
 // *************************
-// Get stats of 2D images.
+// *** Get 2D stats
 // *************************
 
 Function R2D_TotalCount()
@@ -841,7 +835,7 @@ Function R2D_GetBeamCenter()
 End
 
 // *************************
-// Export 2D scattering profiles
+// *** Export 2D
 // *************************
 Function R2D_Export2D(WhichName, type)
 	Variable WhichName	//0 for wave name, 1 for sample name.
