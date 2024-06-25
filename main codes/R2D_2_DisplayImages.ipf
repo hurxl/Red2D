@@ -12,7 +12,7 @@ Function R2D_Display2D()
 	/// Check if panel exist
 	DoWindow Display2D
 	If(V_flag == 0)
-		NewPanel/K=1/N=Display2D/W=(800,100,1557,580)
+		NewPanel/K=1/N=Display2D/W=(800,100,1557,630)
 		SetWindow Display2D, hook(Display2D) = R2D_DisplayImagesWindowHook	
 	Else
 		DoWindow/F Display2D
@@ -27,8 +27,11 @@ Function R2D_Display2D()
 	If(SortOrder == 0 || numtype(SortOrder) != 0)
 		SortOrder = 1
 	Endif
-	PopupMenu popup0 title="Sort list by ",value="Name;Date created",fSize=12, pos={110, 335}
-	PopupMenu popup0 mode=SortOrder, proc=PopMenuProc_Diplay2D_SortOrder
+	
+	// Color range
+	Variable/G :Red2DPackage:U_ColorLow
+	Variable/G :Red2DPackage:U_ColorHigh
+	Variable/G :Red2DPackage:U_ColorLog
 	
 	// Create an image list
 	R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
@@ -36,14 +39,26 @@ Function R2D_Display2D()
 	Make/O/T/N=0 :Red2DPackage:ImageNote
 	
 	//Create listbox named ImageList and make it follows ListBoxProc
-	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,300}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
-	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,450}, pos={355,25}, fSize=13
+	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,330}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
+	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,500}, pos={355,25}, fSize=13
+
 	TitleBox title0 title="Images",  fSize=14, pos={145,5}, frame=0
 	TitleBox title1 title="Note",  fSize=14, pos={515,5}, frame=0
-	Button button0 title="Bring Image to Front", fSize=13, size={160,23},pos={100,365},proc=ButtonProcR2D_BringImageToFront
-	Button button1 title="Save Image as JPEG", fSize=13, size={160,23},pos={100,410},proc=ButtonProcR2D_SaveImageAsJPEG
-	Checkbox cbox0 title="Save with Sample Name", fSize=13, pos={100, 440}
+
+	// Display
+	PopupMenu popup0 title="Sort list by ",value="Name;Date created",fSize=12, pos={30, 368}
+	PopupMenu popup0 mode=SortOrder, proc=PopMenuProc_Diplay2D_SortOrder	
+	Button button0 title="Bring to Front", fSize=13, size={120,23},pos={190,365},proc=ButtonProcR2D_BringImageToFront
 	
+	// Color Range
+	SetVariable setvar0 title="Color Low",pos={30,415},size={160,25},limits={-inf,+inf,10},fSize=13, value=:Red2DPackage:U_ColorLow, proc=R2D_ColorRange_SetVarProc
+	SetVariable setvar2 title="High",pos={200,415},size={130,25},limits={-inf,+inf,10},fSize=13, value=:Red2DPackage:U_ColorHigh, proc=R2D_ColorRange_SetVarProc
+	CheckBox cb1 title="Log Color", pos={30, 445}, fSize=13, variable=:Red2DPackage:U_ColorLog, proc=R2D_LogColor_CheckProc
+
+	// Save Image
+	Checkbox cbox0 title="Use Sample Name", fSize=13, pos={30, 488}
+	Button button1 title="Save as JPEG", fSize=13, size={120,23},pos={190,485},proc=ButtonProcR2D_SaveImageAsJPEG
+
 	SetDataFolder $savedDF
 End
 
@@ -185,6 +200,48 @@ Function R2D_DisplayImagesWindowHook(s)
 	return hookResult	// If non-zero, we handled event and Igor will ignore it.
 End
 
+Function R2D_ColorRange_SetVarProc(sva) : SetVariableControl
+	STRUCT WMSetVariableAction &sva
+
+	switch( sva.eventCode )
+		case 1: // mouse up
+		case 2: // Enter key
+		case 3: // Live update
+			Variable dval = sva.dval
+			String sval = sva.sval
+			
+			NVAR low = :Red2DPackage:U_ColorLow
+			NVAR high = :Red2DPackage:U_ColorHigh
+			
+			R2D_ColorRangeAdjust_worker(low, high)
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+Function R2D_LogColor_CheckProc(cba) : CheckBoxControl
+	STRUCT WMCheckboxAction &cba
+
+	switch( cba.eventCode )
+		case 2: // mouse up
+			Variable checked = cba.checked
+			print checked
+			Variable LogColor = checked
+			ModifyImage ''#0 log=LogColor
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+
 //////////Main Code////////////
 
 Static Function Show2D(row)
@@ -286,5 +343,20 @@ Function R2D_SavePic(WinNameStr, WhichName)
 	// save as a picture	
 	Variable DPI = 600
 	SavePICT/O/WIN=$WinNameStr/E=-6/RES=(DPI) as filename
+
+End
+
+Function R2D_ColorRangeAdjust_worker(low, high, [tarWinName])
+	variable low
+	variable high
+	string tarWinName
+	
+	If(ParamIsDefault(tarWinName))
+		ModifyImage ''#0 ctab= {low,high,Turbo,0}
+	Else
+		If(Strlen(WinList(tarWinName, ";","WIN:1"))>0)
+			ModifyImage/W=tarWinName ''#0 ctab= {low,high,Turbo,0}
+		Endif
+	Endif
 
 End
