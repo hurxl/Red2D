@@ -36,6 +36,12 @@ Function R2D_Display2D()
 	Variable/G :Red2DPackage:U_ColorLog
 	NVAR lowstep = :Red2DPackage:U_ColorLowStep
 	NVAR highstep = :Red2DPackage:U_ColorHighStep
+	if(numtype(lowstep)==2)
+		lowstep = 0
+	endif
+	if(numtype(highstep)==2)
+		highstep = 0
+	endif
 	
 	// Create an image list
 	R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
@@ -57,7 +63,7 @@ Function R2D_Display2D()
 	Button button0 title="Bring to Front", fSize=13, size={110,23},pos={200,355},proc=ButtonProcR2D_BringImageToFront
 
 	// Color Range
-	TitleBox title2 title="Color Adjust",  fSize=13, pos={40,415}, frame=0
+	TitleBox title2 title="Adjust Color",  fSize=13, pos={40,415}, frame=0
 	CheckBox cb1 title="log Color", pos={200, 415}, fSize=13, variable=:Red2DPackage:U_ColorLog, proc=R2D_LogColor_CheckProc
 	SetVariable setvar0 title="Low",pos={40,445},size={120,25},limits={-inf,+inf, lowstep},fSize=13, value=:Red2DPackage:U_ColorLow, proc=R2D_ColorRange_SetVarProc
 	SetVariable setvar2 title="High",pos={200,445},size={120,25},limits={-inf,+inf, highstep},fSize=13, value=:Red2DPackage:U_ColorHigh, proc=R2D_ColorRange_SetVarProc
@@ -228,11 +234,11 @@ Function R2D_ColorRange_SetVarProc(sva) : SetVariableControl
 			lowstep = 10^floor( (log(low)-1) )
 			highstep = 10^floor( (log(high)-1) )
 			
-			if(numtype(lowstep)==2 || lowstep <= 0)
+			if(numtype(lowstep)==2)
 				lowstep = 1
 			endif
-			if(numtype(highstep)==2 || highstep <= 0)
-				highstep = 1
+			if(numtype(highstep)==2)
+				highstep = 100
 			endif
 			
 			SetVariable setvar0 limits={-inf,+inf,lowstep}
@@ -244,8 +250,11 @@ Function R2D_ColorRange_SetVarProc(sva) : SetVariableControl
 			
 			NVAR low = :Red2DPackage:U_ColorLow
 			NVAR high = :Red2DPackage:U_ColorHigh
-
-			R2D_ColorRangeAdjust_worker(low, high)
+			
+			DoWindow IntensityImage
+			If(V_flag != 0)
+				R2D_ColorRangeAdjust_worker(low, high)
+			Endif
 			
 			break
 		case -1: // control being killed
@@ -298,6 +307,14 @@ Static Function Show2D(row)
 //			ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,ColdWarm,0},log=1
 			if(numtype(low) == 2 || numtype(high) == 2 || numtype(ColorLog) == 2)
 				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,Turbo,0},log=1
+				low = 1
+				high = wavemax($SelImageName)
+				ColorLog = 1
+			elseif(low == 0 && high == 0)
+				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,Turbo,0},log=1
+				low = 1
+				high = wavemax($SelImageName)
+				ColorLog = 1
 			else
 				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {low,high,Turbo,0},log=ColorLog
 			endif
