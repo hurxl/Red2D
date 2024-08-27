@@ -426,7 +426,7 @@ Function R2D_MakeThresholdMask(threshold, EdgeSize, type)
 	// Create ROI if exists
 	ImageGenerateROIMask/W=IntensityImage/E=1/I=0 $topimage_name	// ImageGenerateROIMask does not directly accept wave, it needs instance name
 	// by default ImageGenerateROIMask creates a mask wave, by using /E=1/I0 to make it ROI wave or mask outsie of ROI.
-	wave M_ROIMask
+	wave/Z M_ROIMask
 	
 	// Apply threshold
 	if(V_flag)	// if roi exists
