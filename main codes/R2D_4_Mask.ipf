@@ -33,8 +33,8 @@ Function R2D_MaskPanel()
 	TitleBox title0, pos={50,10}, frame=0, fSize=13, title="Threshold Mask (use ROI to limit region)"
 	SetVariable setvar0 title="Threshold [count]",pos={30,40},size={180,25},limits={-inf,+inf,1},fSize=13, value=:Red2DPackage:U_maskthreshold
 	SetVariable setvar1 title="Extended Edge [px]",pos={235,40},size={170,25},limits={0,+inf,1},fSize=13, value=:Red2DPackage:U_maskEdgeSize
-	Button button0 title="New Mask (Below TH)",pos={425,10},size={145,23},proc=ButtonProcMakeThresholdMask_below
-	Button button8 title="New Mask (Above TH)",pos={425,37},size={145,23},proc=ButtonProcMakeThresholdMask_above
+	Button button0 title="New TH Mask (Below)",pos={425,37},size={145,23},proc=ButtonProcMakeThresholdMask_below
+	Button button8 title="New TH Mask (Above)",pos={425,10},size={145,23},proc=ButtonProcMakeThresholdMask_above
 
 	
 	// sector mask GUI
@@ -739,6 +739,11 @@ Function ListControl_SelectMask(lba) : ListBoxControl
 
 	If(R2D_Error_ImagesExist(NoMessage = 1) == -1) // Check if in the image folder. Error_ImagesExist will create a Red2Dpackage folder and imagelist.
 		Abort
+	Endif
+	
+	DoWindow IntensityImage
+	If(V_flag == 0)
+		return -1
 	Endif
 
 	string mask_name = listWave[row][1]	// get mask wave name

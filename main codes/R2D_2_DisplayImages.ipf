@@ -106,15 +106,24 @@ Function ButtonProcR2D_HideMask(ba) : ButtonControl
 	switch( ba.eventCode )
 		case 2: // mouse up
 			
-			string masklist = R2D_GetMaskList_simple()
-			variable nitem = itemsInList(masklist)
+//			string masklist = R2D_GetMaskList_simple()
+//			variable nitem = itemsInList(masklist)
+//			variable i
+//			string maskname
+//			for(i=0; i<nitem; i++)
+//				maskname = StringFromList(i, masklist)
+//				RemoveImage/W=IntensityImage/Z $maskname
+//			endfor
+
+			string imglist = ImageNameList("IntensityImage",";")
+			variable nitem = itemsInList(imglist)
 			variable i
 			string maskname
-			for(i=0; i<nitem; i++)
-				maskname = StringFromList(i, masklist)
+			for(i=nitem-1; i>0; i--)
+				maskname = StringFromList(i, imglist)
 				RemoveImage/W=IntensityImage/Z $maskname
 			endfor
-			
+		
 			break
 		case -1: // control being killed
 			break
