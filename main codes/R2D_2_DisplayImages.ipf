@@ -52,15 +52,18 @@ Function R2D_Display2D()
 	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,320}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
 	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,520}, pos={355,25}, fSize=13
 
-	TitleBox title0 title="Images",  fSize=14, pos={145,5}, frame=0
+	TitleBox title0 title="Images",  fSize=14, pos={6,5}, frame=0
 	TitleBox title1 title="Note",  fSize=14, pos={515,5}, frame=0
 
 	// Sort
-	PopupMenu popup0 title="Sort by ",value="Name;Date created",fSize=13, pos={40, 358}
+	PopupMenu popup0 title="",value="Name;Date created",fSize=13, pos={240, 4}, bodyWidth=100
 	PopupMenu popup0 mode=SortOrder, proc=PopMenuProc_Diplay2D_SortOrder	
 
 	// Bring to Front
-	Button button0 title="Bring to Front", fSize=13, size={110,23},pos={200,355},proc=ButtonProcR2D_BringImageToFront
+	Button button0 title="Bring to Front", fSize=13, size={110,23},pos={50,355},proc=ButtonProcR2D_BringImageToFront
+	
+	// Hide Mask
+	Button button2 title="Hide Mask", fSize=13, size={110,23},pos={200,355},proc=ButtonProcR2D_HideMask
 
 	// Color Range
 	TitleBox title2 title="Adjust Color",  fSize=13, pos={40,415}, frame=0
@@ -88,6 +91,29 @@ Function ButtonProcR2D_BringImageToFront(ba) : ButtonControl
 		case 2: // mouse up
 			
 			DoWindow/F IntensityImage
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+Function ButtonProcR2D_HideMask(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+
+	switch( ba.eventCode )
+		case 2: // mouse up
+			
+			string masklist = R2D_GetMaskList_simple()
+			variable nitem = itemsInList(masklist)
+			variable i
+			string maskname
+			for(i=0; i<nitem; i++)
+				maskname = StringFromList(i, masklist)
+				RemoveImage/W=IntensityImage/Z $maskname
+			endfor
 			
 			break
 		case -1: // control being killed

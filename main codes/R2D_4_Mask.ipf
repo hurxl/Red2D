@@ -719,7 +719,7 @@ Function/S R2D_GetMaskList(matchStr)
 		endif
 	endfor
 	
-	return masklist
+	return maskongraph_list
 
 End
 
