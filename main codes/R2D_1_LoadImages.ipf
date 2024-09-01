@@ -13,6 +13,7 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 
 	// Get file path list.
 	// The codes differs based on "mode", "extension", and "folderPath".
+	string R2D_PCImageFolder_str
 	string filePaths = ""	// initialize file path list
 	
 	if(cmpstr(mode, "folder") == 0)	// "folder" mode
@@ -24,7 +25,7 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 			NewPath/O R2D_PCImageFolder, folderPath  // load preset path from "folderPath" without showing a dialog
 		Endif
 		PathInfo R2D_PCImageFolder
-		string R2D_PCImageFolder_str = S_path
+		R2D_PCImageFolder_str = S_path
 		
 		// get the list of all file paths in the selected folder
 		string filenames = IndexedFile(R2D_PCImageFolder, -1, extension)
@@ -68,7 +69,21 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 			Print "User cancelled"
 			return filePaths		// Will be empty if user canceled
 		endif
-				
+
+	elseif(cmpstr(mode, "recursive") == 0)	// "recursive" mode
+	
+		// create a symbolic path of the image folder in the pc
+		If(ParamIsDefault(folderPath))	// if folderPath is not provided
+			NewPath/O/M="Select a folder" R2D_PCImageFolder  // create a new folderPath, user dialog
+		Else  // if folderPath is provided
+			NewPath/O R2D_PCImageFolder, folderPath  // load preset path from "folderPath" without showing a dialog
+		Endif
+		PathInfo R2D_PCImageFolder
+		R2D_PCImageFolder_str = S_path
+		
+		
+		R2D_LoadAllTIFF(path = R2D_PCImageFolder_str, overwrite = overwrite)
+			
 	else
 	
 		print "Something wrong in the mode selection. Please check the codes."
@@ -669,4 +684,27 @@ Function/S R2D_GetHeader_TIFF(path)
 	
 	return header
 
+End
+
+// *** Organize Images to folders by their name
+Function R2D_SortImagesByBeamSizeAndSDD()
+	
+	R2D_CreateImageList(1)	// create an imagelist
+	wave/T imagelist = :Red2Dpackage:imagelist
+	variable numOfImages = DimSize(imagelist, 0)
+	
+	variable i
+	string datafoldername
+	string SDD, BeamSize
+	string wname
+	For(i=0; i<numOfImages; i++)
+		wname = imagelist[i]
+		Wave target = $wname
+		BeamSize = StringFromList(0, wname, "_") + StringFromList(1, wname, "_")
+		SDD = StringFromList(5, wname, "_")
+		datafoldername = "BeamSize"+BeamSize+"_SDD"+SDD
+		NewDataFolder/O $datafoldername
+		MoveWave target, $(":"+datafoldername+":")
+	Endfor
+	
 End

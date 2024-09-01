@@ -6,7 +6,8 @@ Menu "Red2D"
 
 	Submenu "1. Load Images"
 		"Load Selected TIFF Images", R2D_LoadImages(".tif", "files", 1)	// files: load selected files, 1: overwrite enabled
-		"Load All TIFF Images in Folder", R2D_LoadImages(".tif", "folder", 1)	// folder: load all files in selected, 1: overwrite enabled
+		"Load All TIFF Images in Folder", R2D_LoadImages(".tif", "folder", 1)	// folder: load all files in the selected folder, 1: overwrite enabled
+		"Load TIFF Recursively", R2D_LoadImages(".tif", "recursive", 1)	// recursive: load all files recursively, 1: overwrite enabled
 		"-"
 		"Load Selected EDF Images", R2D_LoadImages(".edf", "files", 1)	// files: load selected files, 1: overwrite enabled
 		"Load All EDF Images in Folder", R2D_LoadImages(".edf", "folder", 1)	// folder: load all files in selected, 1: overwrite enabled
