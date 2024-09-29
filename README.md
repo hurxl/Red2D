@@ -2,7 +2,7 @@
 ![GitHub release](https://img.shields.io/github/release/hurxl/Red2D.svg)
 ![GitHub platform](https://img.shields.io/badge/platform-Igor%20Pro-brightgreen.svg)
 [![Github All Releases](https://img.shields.io/github/downloads/hurxl/Red2D/total.svg)]()
-![Red2D_image](https://user-images.githubusercontent.com/52224108/60145474-1d91e280-9801-11e9-891f-739cd63bf8f3.png)
+![Red2D_image](https://github.com/hurxl/Red2D/blob/master/Red2D%20conversion.jpg)
 
 
 ## Installation
