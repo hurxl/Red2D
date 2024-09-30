@@ -30,7 +30,7 @@ Function/S R2D_unzipH5zip()
 	string archivePathStr = S_fileName
 	string unzippedPathStr = SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp"
 	
-	UnzipFile/O archivePathStr, unzippedPathStr
+	UnzipFile/Z/O archivePathStr, unzippedPathStr
 	
 		if(V_flag == 0) //  the operation succeeds
 			NewPath/O IgorUserTmp, unzippedPathStr
