@@ -193,6 +193,8 @@ function Red2D_SpliteImageStack()
 		imagename += "_"+num2str(round(sample_temperature[i]))+"C"
 		imagename = R2D_CleanupName(imagename)
 		
+		imagename = CreateDataObjectName($("SDD_"+num2str(round(SDD[i]*1000))+"mm"), imagename, 1, 0, 1) // Make unique name
+		
 		print imagename
 		
 		namelist += imagename + ";"
@@ -324,5 +326,4 @@ function Red2D_writeTimeAndTrnasToDatasheet()
 		
 	endfor
 end
-
 
