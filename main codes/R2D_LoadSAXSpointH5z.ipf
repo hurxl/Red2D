@@ -30,7 +30,7 @@ Function/S R2D_unzipH5zip()
 	string archivePathStr = S_fileName
 	string unzippedPathStr = SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp"
 	
-	UnzipFile/O archivePathStr, unzippedPathStr
+	UnzipFile/Z/O archivePathStr, unzippedPathStr
 	
 		if(V_flag == 0) //  the operation succeeds
 			NewPath/O IgorUserTmp, unzippedPathStr
@@ -215,7 +215,7 @@ function Red2D_SpliteImageStack()
 		wnote += "Measeurment time : "+num2str(measeurment_time[i])+" [sec]"+"\r"
 		wnote += "Sample temperature : "+num2str(sample_temperature[i])+" [C]"+"\r"
 		wnote += "sample_thickness : "+num2str(sample_thickness[i])+"\r"	
-		wnote += "Transmittance : "+num2str(transmittance[i]*1e-2)+" [cm]"+"\r"
+		wnote += "Transmittance : "+num2str(transmittance[i])+"\r"
 		wnote += "flux_entering_sample : "+num2str(flux_entering_sample[i])+" [cts]"+"\r"
 		wnote += "flux_exiting_sample : "+num2str(flux_exiting_sample[i])+" [cts]"+"\r"
 		
