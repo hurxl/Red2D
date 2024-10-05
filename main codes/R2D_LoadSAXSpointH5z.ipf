@@ -245,7 +245,7 @@ function Red2D_SpliteImageStack()
 
 	endfor
 	
-	String allwlist = wavelist("*",";","")
+	String allwlist = wavelist("*",";","DIMS:1")
 	
 	for(i=0; i< ItemsInList(allwlist);i+=1)
 		killwaves/Z $(StringFromList(i, allwlist))
