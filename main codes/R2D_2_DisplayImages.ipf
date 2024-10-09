@@ -78,7 +78,7 @@ Function R2D_Display2D()
 	SetVariable setvar0 title="Low",pos={40,445},size={120,25},limits={-inf,+inf, lowstep},fSize=13, value=:Red2DPackage:U_ColorLow, proc=R2D_ColorRange_SetVarProc
 	SetVariable setvar2 title="High",pos={200,445},size={120,25},limits={-inf,+inf, highstep},fSize=13, value=:Red2DPackage:U_ColorHigh, proc=R2D_ColorRange_SetVarProc
 	TitleBox title4 title="Color Table", fSize=13, pos={40,480}, frame=0
-	PopupMenu popup1,mode=(WhichListItem(ColorTable, CTabList(),";")+1),value=#"\"*COLORTABLEPOPNONAMES*\"", pos={132,478},size={200,20},proc=Red2_ColorTableMenu
+	PopupMenu popup1,mode=(WhichListItem(ColorTable, CTabList(),";")+1),value=#"\"*COLORTABLEPOPNONAMES*\"", pos={132,478},size={200,20},proc=Red2D_ColorTableMenu
 
 	// Save Image
 	Button button1 title="Export JPEG", fSize=13, size={110,23},pos={50,523},proc=ButtonProcR2D_SaveImageAsJPEG
@@ -326,7 +326,7 @@ Function R2D_LogColor_CheckProc(cba) : CheckBoxControl
 End
 
 
-Function Red2_ColorTableMenu(pa) : PopupMenuControl
+Function Red2D_ColorTableMenu(pa) : PopupMenuControl
 	STRUCT WMPopupAction &pa
 
 	switch( pa.eventCode )
