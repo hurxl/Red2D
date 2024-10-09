@@ -43,6 +43,13 @@ Function R2D_Display2D()
 		highstep = 0
 	endif
 	
+	// Color table
+	String/G :Red2DPackage:U_ColorTable
+	SVAR ColorTable = :Red2DPackage:U_ColorTable
+	If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
+		ColorTable = "Turbo" 
+	endif
+	
 	// Create an image list
 	R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
 	Wave/T ImageList = :Red2DPackage:ImageList
@@ -65,19 +72,21 @@ Function R2D_Display2D()
 	// Hide Mask
 	Button button2 title="Hide Mask", fSize=13, size={110,23},pos={200,355},proc=ButtonProcR2D_HideMask
 
-	// Color Range
+	// Color Range and Table
 	TitleBox title2 title="Adjust Color",  fSize=13, pos={40,415}, frame=0
 	CheckBox cb1 title="log Color", pos={200, 415}, fSize=13, variable=:Red2DPackage:U_ColorLog, proc=R2D_LogColor_CheckProc
 	SetVariable setvar0 title="Low",pos={40,445},size={120,25},limits={-inf,+inf, lowstep},fSize=13, value=:Red2DPackage:U_ColorLow, proc=R2D_ColorRange_SetVarProc
 	SetVariable setvar2 title="High",pos={200,445},size={120,25},limits={-inf,+inf, highstep},fSize=13, value=:Red2DPackage:U_ColorHigh, proc=R2D_ColorRange_SetVarProc
+	TitleBox title4 title="Color Table", fSize=13, pos={40,480}, frame=0
+	PopupMenu popup1,mode=(WhichListItem(ColorTable, CTabList(),";")+1),value=#"\"*COLORTABLEPOPNONAMES*\"", pos={132,478},size={200,20},proc=Red2_ColorTableMenu
 
 	// Save Image
-	Button button1 title="Export JPEG", fSize=13, size={110,23},pos={50,500},proc=ButtonProcR2D_SaveImageAsJPEG
-	Checkbox cbox0 title="Use Sample Name", fSize=13, pos={180, 503}
+	Button button1 title="Export JPEG", fSize=13, size={110,23},pos={50,523},proc=ButtonProcR2D_SaveImageAsJPEG
+	Checkbox cbox0 title="Use Sample Name", fSize=13, pos={180, 526}
 	
 	// Misc
 	GroupBox group0 pos={30,395},size={300,2}
-	GroupBox group1 pos={30,480},size={300,2}
+	GroupBox group1 pos={30,510},size={300,2}
 //	GroupBox group2 pos={30,505},size={300,2}
 	
 	SetDataFolder $savedDF
@@ -305,7 +314,6 @@ Function R2D_LogColor_CheckProc(cba) : CheckBoxControl
 	switch( cba.eventCode )
 		case 2: // mouse up
 			Variable checked = cba.checked
-			print checked
 			Variable LogColor = checked
 			ModifyImage ''#0 log=LogColor
 			
@@ -316,6 +324,34 @@ Function R2D_LogColor_CheckProc(cba) : CheckBoxControl
 
 	return 0
 End
+
+
+Function Red2_ColorTableMenu(pa) : PopupMenuControl
+	STRUCT WMPopupAction &pa
+
+	switch( pa.eventCode )
+		case 2: // mouse up
+			Variable popNum = pa.popNum
+			String popStr = pa.popStr
+			
+			SVAR ColorTable = :Red2DPackage:U_ColorTable
+			ColorTable = popStr
+			NVAR low = :Red2DPackage:U_ColorLow
+			NVAR high = :Red2DPackage:U_ColorHigh
+			
+			DoWindow IntensityImage
+			If(V_flag != 0)
+				R2D_ColorRangeAdjust_worker(low, high)
+			Endif
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
 
 
 //////////Main Code////////////
@@ -330,10 +366,15 @@ Static Function Show2D(row)
 	NVAR low = :Red2DPackage:U_ColorLow
 	NVAR high = :Red2DPackage:U_ColorHigh
 	NVAR ColorLog = :Red2DPackage:U_ColorLog
+	SVAR ColorTable = :Red2DPackage:U_ColorTable
 
 	If(row>NumInList-1) // Check if selected row in range. If out of range do nothing.
 		// Do nothing.
 	Else
+	
+	If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
+		ColorTable = "Turbo" 
+	endif
 		String SelImageName = ImageList[row] // Get selected Imagename by using the flag row.
 		
 		DoWindow IntensityImage // Check if there is a window named 2DImageWindow. Exist returns 1 else 0.	
@@ -341,17 +382,17 @@ Static Function Show2D(row)
 			NewImage/K=1/N=IntensityImage $SelImageName
 //			ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,ColdWarm,0},log=1
 			if(numtype(low) == 2 || numtype(high) == 2 || numtype(ColorLog) == 2)
-				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,Turbo,0},log=1
+				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,$ColorTable,0},log=1
 				low = 1
 				high = wavemax($SelImageName)
 				ColorLog = 1
 			elseif(low == 0 && high == 0)
-				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,Turbo,0},log=1
+				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,$ColorTable,0},log=1
 				low = 1
 				high = wavemax($SelImageName)
 				ColorLog = 1
 			else
-				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {low,high,Turbo,0},log=ColorLog
+				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {low,high,$ColorTable,0},log=ColorLog
 			endif
 		Else // Replace selected images on the window named 2DImageWindow.
 			String OldImage = ImageNameList("IntensityImage",";") // Get existing ImageName in the window ImageGraph
@@ -442,12 +483,13 @@ Function R2D_ColorRangeAdjust_worker(low, high, [tarWinName])
 	variable low
 	variable high
 	string tarWinName
+	SVAR ColorTable = :Red2DPackage:U_ColorTable
 	
 	If(ParamIsDefault(tarWinName))
-		ModifyImage ''#0 ctab= {low,high,Turbo,0}
+		ModifyImage ''#0 ctab= {low,high,$ColorTable,0}
 	Else
 		If(Strlen(WinList(tarWinName, ";","WIN:1"))>0)
-			ModifyImage/W=tarWinName ''#0 ctab= {low,high,Turbo,0}
+			ModifyImage/W=tarWinName ''#0 ctab= {low,high,$ColorTable,0}
 		Endif
 	Endif
 
