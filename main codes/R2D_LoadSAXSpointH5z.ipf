@@ -3,15 +3,16 @@
 #pragma DefaultTab={3,20,4}		// Set default tab width in Igor Pro 9 and later
 
 Function R2D_Load_SAXSpoint_zip()
-	
-	DeleteFolder/Z=1 SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp" // Delete tmp folder. Z=1 flag : Deletes a folder only if it exists.
-	
+		
 	string unzippedTmpPath = R2D_unzipH5zip()
 	if (numtype(strlen(unzippedTmpPath)) == 0 )
 		R2D_Load_SAXSpoint_h5_files(unzippedTmpPath)			
 	endif
 	
-	DeleteFolder/Z=1 SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp" // Delete tmp folder 
+	String h5path = SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp:Sampler.h5"
+	
+	deleteFile/Z h5path	
+	
 End
 
 
@@ -74,8 +75,6 @@ Function R2D_Load_SAXSpoint_h5_files(filePath)
 	HDF5LoadData/Q/O/Z/N = wavelength fileID, "/entry/data/wavelength" // load wavelength
 	HDF5LoadData/Q/O/Z/N = flux_entering_sample fileID, "/entry/data/flux_entering_sample" // load flux_entering_sample
 	HDF5LoadData/Q/O/Z/N = flux_exiting_sample fileID, "/entry/data/flux_exiting_sample" // load flux_exiting_sample
-
-
 	
 	HDF5LoadData/Q/O/Z/N = description fileID, "/entry/instrument/detector/description" // load detector namme
 	HDF5LoadData/Q/O/Z/N = detector_number fileID, "/entry/instrument/detector/detector_number" // load detector_number
@@ -202,9 +201,14 @@ function Red2D_SpliteImageStack()
 	endfor
 
 	SplitWave/O/SDIM=2/NAME=namelist imagestack //Split 3dwave to 2dwave
+	
 	string wnote = ""
+	
+	
 
 	for(i=0; i< DimSize(imagestack, 2)	; i+=1) // Writing note
+		wave target = $(StringFromList(i, namelist))
+		
 		wnote += "Detector : "+ description[0]+"	 S/N "+detector_number[0]+"\r"
 		wnote += "Pixel size : "+ num2str(x_pixel_size[0]*1e6)+" [µm]"+" × "+ num2str(y_pixel_size[0]*1e6)+" [µm]"+"\r"
 		wnote += "Sample name : "+sample_name[i]+"\r"
@@ -219,9 +223,10 @@ function Red2D_SpliteImageStack()
 		wnote += "flux_entering_sample : "+num2str(flux_entering_sample[i])+" [cts]"+"\r"
 		wnote += "flux_exiting_sample : "+num2str(flux_exiting_sample[i])+" [cts]"+"\r"
 		
-
-		Note $(StringFromList(i, namelist)) , wnote
-		 wnote = ""
+		if (strlen(note(target)) == 0)
+			Note target, wnote
+		endif
+		
 	endfor 		
  	
  	FindDuplicates/FREE/RN = SDDtype SDD // Find num of SDD 
@@ -250,6 +255,8 @@ function Red2D_SpliteImageStack()
 	for(i=0; i< ItemsInList(allwlist);i+=1)
 		killwaves/Z $(StringFromList(i, allwlist))
 	endfor
+	
+	killwaves imagestack
 
 end
 
