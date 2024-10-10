@@ -3,15 +3,23 @@
 #pragma DefaultTab={3,20,4}		// Set default tab width in Igor Pro 9 and later
 
 Function R2D_Load_SAXSpoint_zip()
-		
+	string unzippedPathStr = SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp" 
+	NewPath/O IgorUserTmp, unzippedPathStr
+
+	String h5list = IndexedFile(IgorUserTmp, -1, ".h5") // get h5 file list in tmp folder
+	variable i
+	
+	for(i=0; i<itemsInList(h5list); i+=1) // delete all h5 file in tmp folder
+		String h5path = unzippedPathStr + ":" + StringFromList(i, h5list)
+		deleteFile/Z h5path	
+	endfor
+
 	string unzippedTmpPath = R2D_unzipH5zip()
 	if (numtype(strlen(unzippedTmpPath)) == 0 )
 		R2D_Load_SAXSpoint_h5_files(unzippedTmpPath)			
-	endif
+	endif	
 	
-	String h5path = SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp:Sampler.h5"
-	
-	deleteFile/Z h5path	
+	deleteFile/Z unzippedPathStr + ":" + IndexedFile(IgorUserTmp, 0, ".h5") // delete loaded h5 file
 	
 End
 
@@ -64,14 +72,15 @@ Function R2D_Load_SAXSpoint_h5_files(filePath)
 	
 	HDF5LoadData/Q/O/Z/N = imagestack_raw fileID, "/entry/data/data" // load imagefiles stack
 	HDF5LoadData/Q/O/Z/N = measeurment_time fileID, "/entry/data/count_time" // load measeurment time
+	HDF5LoadData/Q/O/Z/N = averaged_frames fileID, "/entry/data/averaged_frames" // load averaged frames
 	HDF5LoadData/Q/O/Z/N = transmittance fileID, "/entry/data/transmittance" // load transmittance
 	HDF5LoadData/Q/O/Z/N = SDD fileID, "/entry/data/sdd" // load sdd
 	HDF5LoadData/Q/O/Z/N = sample_name_raw fileID, "/entry/data/sample_name" // load sample_name
 	HDF5LoadData/Q/O/Z/N = sample_temperature fileID, "/entry/data/sample_temperature" // load sample_temperature
-	HDF5LoadData/Q/O/Z/N = sample_thickness fileID, "/entry/data/sample_thickness" // load sample_temperature
-	HDF5LoadData/Q/O/Z/N = sample_column fileID, "/entry/data/sample_column" // load sample_temperature
-	HDF5LoadData/Q/O/Z/N = sample_row fileID, "/entry/data/sample_row" // load sample_temperature	
-	HDF5LoadData/Q/O/Z/N = ambient_status_raw fileID, "/entry/data/ambient_status" // load sample_temperature	
+	HDF5LoadData/Q/O/Z/N = sample_thickness fileID, "/entry/data/sample_thickness" // load sample_thickness
+	HDF5LoadData/Q/O/Z/N = sample_column fileID, "/entry/data/sample_column" // load sample_column
+	HDF5LoadData/Q/O/Z/N = sample_row fileID, "/entry/data/sample_row" // load sample_row	
+	HDF5LoadData/Q/O/Z/N = ambient_status_raw fileID, "/entry/data/ambient_status" // load ambient_status Air or VAcuum	
 	HDF5LoadData/Q/O/Z/N = wavelength fileID, "/entry/data/wavelength" // load wavelength
 	HDF5LoadData/Q/O/Z/N = flux_entering_sample fileID, "/entry/data/flux_entering_sample" // load flux_entering_sample
 	HDF5LoadData/Q/O/Z/N = flux_exiting_sample fileID, "/entry/data/flux_exiting_sample" // load flux_exiting_sample
@@ -101,8 +110,8 @@ Function R2D_Load_SAXSpoint_h5_files(filePath)
 	// convert num to ASCII character
 	
 	Make/T/O/N = (dimsize(sample_name_raw,0)) sample_name// make 1Dwave to store sample name 
-	Make/T/O/N = (dimsize(sample_column,0)) sample_position// make 1Dwave to store sample name 
-	Make/T/O/N = (dimsize(ambient_status_raw,0)) ambient_status// make 1Dwave to store sample name 
+	Make/T/O/N = (dimsize(sample_column,0)) sample_position// make 1Dwave to store sample position
+	Make/T/O/N = (dimsize(ambient_status_raw,0)) ambient_status// make 1Dwave to store ambient status
 
 	wave/T sample_name
 	wave/T sample_position
@@ -143,7 +152,7 @@ Function R2D_Load_SAXSpoint_h5_files(filePath)
 	
 	wave imagestack_raw
 	MatrixOp/O imagestack = (transposeVol(imagestack_raw,3))  // Convert numofstack x 1062 x 1028 to  1028 x 1062 x numofstack
-	ImageRotate/O/F  imagestack // Rotates the image by 180 degrees
+	ImageRotate/O/V  imagestack // Flip the image vertically.
 	Multithread imagestack[][][] = imagestack[p][q][r] <= -1 ? NaN : imagestack[p][q][r] // negative values to NaN; pixels with NaN are auto	
 
 	killwaves/Z imagestack_raw
@@ -165,6 +174,7 @@ function Red2D_SpliteImageStack()
 	wave SDD
 	wave sample_temperature
 	wave measeurment_time
+	wave averaged_frames
 	wave/T sample_position
 	wave/T sample_name
 	wave/T ambient_status
@@ -203,9 +213,7 @@ function Red2D_SpliteImageStack()
 	SplitWave/O/SDIM=2/NAME=namelist imagestack //Split 3dwave to 2dwave
 	
 	string wnote = ""
-	
-	
-
+		
 	for(i=0; i< DimSize(imagestack, 2)	; i+=1) // Writing note
 		wave target = $(StringFromList(i, namelist))
 		
@@ -217,8 +225,9 @@ function Red2D_SpliteImageStack()
 		wnote += "SDD : "+num2str(SDD[i])+" [m]"+"\r"
 		wnote += "Sample position : "+sample_position[i]+"\r"
 		wnote += "Measeurment time : "+num2str(measeurment_time[i])+" [sec]"+"\r"
+		wnote += "Averaged frames : "+num2str(averaged_frames[i])+"\r"
 		wnote += "Sample temperature : "+num2str(sample_temperature[i])+" [C]"+"\r"
-		wnote += "sample_thickness : "+num2str(sample_thickness[i])+"\r"	
+		wnote += "sample_thickness : "+num2str(sample_thickness[i]/100)+" [cm]"+"\r"	
 		wnote += "Transmittance : "+num2str(transmittance[i])+"\r"
 		wnote += "flux_entering_sample : "+num2str(flux_entering_sample[i])+" [cts]"+"\r"
 		wnote += "flux_exiting_sample : "+num2str(flux_exiting_sample[i])+" [cts]"+"\r"
@@ -227,6 +236,7 @@ function Red2D_SpliteImageStack()
 			Note target, wnote
 		endif
 		
+		wnote = ""
 	endfor 		
  	
  	FindDuplicates/FREE/RN = SDDtype SDD // Find num of SDD 
@@ -236,7 +246,7 @@ function Red2D_SpliteImageStack()
 	variable j
 	string list
 	
-	for(i=0; i< DimSize(SDDtype, 0)	; i+=1)
+	for(i=0; i< DimSize(SDDtype, 0)	; i+=1) //Separate folders for each SDD
 		strSDD = "SDD_"+num2str(SDDtype[i])+"mm" // making
 		NewDataFolder/O $(strSDD) 
 		DFREF dfr = $(":"+strSDD)
@@ -251,12 +261,11 @@ function Red2D_SpliteImageStack()
 	endfor
 	
 	String allwlist = wavelist("*",";","DIMS:1")
-	
 	for(i=0; i< ItemsInList(allwlist);i+=1)
 		killwaves/Z $(StringFromList(i, allwlist))
 	endfor
 	
-	killwaves imagestack
+	killwaves/Z imagestack
 
 end
 
