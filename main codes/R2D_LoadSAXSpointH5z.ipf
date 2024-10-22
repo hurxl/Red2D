@@ -104,6 +104,8 @@ Function R2D_Load_SAXSpoint_h5_files(filePath)
 	wave sample_row
 	wave sample_temperature
 	wave ambient_status_raw
+	wave imagestack_raw
+
 	
 	variable i,j
 	
@@ -150,7 +152,6 @@ Function R2D_Load_SAXSpoint_h5_files(filePath)
 	
 	//stack image transform
 	
-	wave imagestack_raw
 	MatrixOp/O imagestack = (transposeVol(imagestack_raw,3))  // Convert numofstack x 1062 x 1028 to  1028 x 1062 x numofstack
 	ImageRotate/O/V  imagestack // Flip the image vertically.
 	Multithread imagestack[][][] = imagestack[p][q][r] <= -1 ? NaN : imagestack[p][q][r] // negative values to NaN; pixels with NaN are auto	
@@ -188,13 +189,15 @@ function Red2D_SpliteImageStack()
 	wave x_pixel_size
 	wave y_pixel_size
 	
-	variable lay = DimSize(imagestack, 2)		
-	
+	variable lay = DimSize(imagestack, 2)
+	lay = max(lay,1)	//  Check if there is only one image. 
+
 	variable i
 	
 	string namelist = ""
 	string imagename 
-	for(i=0; i< DimSize(imagestack, 2)	; i+=1) // Making image wavelist 
+	
+	for(i=0; i< lay	; i+=1) // Making image wavelist 
 		imagename = ""
 		imagename += sample_name[i]
 		imagename += "_"+"SDD_"+num2str(round(SDD[i]*1000))+"mm"
@@ -209,12 +212,18 @@ function Red2D_SpliteImageStack()
 		namelist += imagename + ";"
 
 	endfor
+	
+	if (lay >> 1) //
+		SplitWave/O/SDIM=2/NAME=namelist imagestack //Split 3dwave to 2dwave	
+	else
+		duplicate/O imagestack, $(StringFromList(0, namelist))
+	endif
 
-	SplitWave/O/SDIM=2/NAME=namelist imagestack //Split 3dwave to 2dwave
+
 	
 	string wnote = ""
 		
-	for(i=0; i< DimSize(imagestack, 2)	; i+=1) // Writing note
+	for(i=0; i< lay	; i+=1) // Writing note
 		wave target = $(StringFromList(i, namelist))
 		
 		wnote += "Detector : "+ description[0]+"	 S/N "+detector_number[0]+"\r"
@@ -237,10 +246,19 @@ function Red2D_SpliteImageStack()
 		endif
 		
 		wnote = ""
-	endfor 		
- 	
- 	FindDuplicates/FREE/RN = SDDtype SDD // Find num of SDD 
+	endfor
+	
+	Wave SDDtype
+	
+	if (numpnts(SDD) >> 1)
+		FindDuplicates/FREE/RN = SDDtype SDD // Find num of SDD 
+	else 
+		Make/O/N = 1 SDDtype
+		SDDtype = SDD
+		
+	endif 		
  	SDDtype = round(SDDtype*1000)
+
 	
 	string strSDD
 	variable j
