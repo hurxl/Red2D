@@ -18,7 +18,7 @@ Red2D is a small data reduction package to convert 2D elastic scattering pattern
 
 ## Main features
 
-- Load 2D scattering patterns (32bit signed integer tiff)
+- Load 2D scattering patterns (32bit signed integer tiff, EDF, HDF5, text image)
 - Display 2D images and 1D I-q or I-2θ profiles
 - Get beam center and SDD by fitting standard samples (AgBh, Si, CeO2, Chicken Tendon)
 - Make and apply masks on images
