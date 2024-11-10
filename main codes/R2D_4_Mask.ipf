@@ -400,23 +400,27 @@ Function R2D_MakeThresholdMask(threshold, EdgeSize, type)
 		Abort
 	Endif
 	
+	// 2024-11-10 I do not know why this complicated code was used.
 	// get top image except masks
-	string image_namelist = SortList(ImageNameList("IntensityImage",";"),";",1)	// get all image names from the specified graph
-	variable image_number = itemsInList(Image_namelist)
-	string dfr_name
-	string image_name
-	string topimage_name
-	variable i
-	for(i=0; i<image_number; i++)	// get all wave stored in red2dpackage:mask:
-		image_name = StringFromList(i, image_namelist)
-		wave image_wave = ImageNameToWaveRef("IntensityImage", image_name)	// set reference for image wave on graph
-		dfr_name = GetWavesDataFolder(image_wave,1)	// get full path of the wave, no wave name
-		if(!StringMatch(dfr_name, "*:Red2DPackage:Mask:"))
-			wave TopImage = image_wave	// this is the first non-mask image
-			topimage_name = NameOfWave(TopImage)
-			break
-		endif
-	endfor	
+//	string image_namelist = SortList(ImageNameList("IntensityImage",";"),";",1)	// get all image names from the specified graph
+//	variable image_number = itemsInList(Image_namelist)
+//	string dfr_name
+//	string image_name
+//	string topimage_name
+//	variable i
+//	for(i=0; i<image_number; i++)	// get all wave stored in red2dpackage:mask:
+//		image_name = StringFromList(i, image_namelist)
+//		wave image_wave = ImageNameToWaveRef("IntensityImage", image_name)	// set reference for image wave on graph
+//		dfr_name = GetWavesDataFolder(image_wave,1)	// get full path of the wave, no wave name
+//		if(!StringMatch(dfr_name, "*:Red2DPackage:Mask:"))
+//			wave TopImage = image_wave	// this is the first non-mask image
+//			topimage_name = NameOfWave(TopImage)
+//			break
+//		endif
+//	endfor
+	string image_namelist = ImageNameList("IntensityImage",";")
+	string topimage_name = StringFromList(0, image_namelist)
+	wave/Z TopImage = $topimage_name
 	
 	If(!waveexists(TopImage))
 		Print "no image found"
