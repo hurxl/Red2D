@@ -3,6 +3,59 @@
 
 // *** Misc
 
+// CUI Only 2024-11-10
+Function R2D_FindHotPixels(threshold)
+	variable threshold
+
+	// get top image except masks
+	string image_namelist = ImageNameList("IntensityImage",";")
+	string topimage_name = StringFromList(0, image_namelist)
+	wave/Z TopImage = $topimage_name
+	
+	Duplicate/O TopImage, Hotpixels
+	Multithread Hotpixels = TopImage[p][q] > threshold ? 1 : 0
+	MatrixOP/O/FREE hotsum = sum(Hotpixels)
+	printf "%g hot pixels found", hotsum[0]
+	make/O/N=(hotsum[0],2) hotpixel_loc
+
+	MatrixOP/O/FREE sumrowarray = sumrows(Hotpixels)
+	
+	variable xsize = DimSize(Hotpixels, 0)
+	variable ysize = DimSize(Hotpixels, 1)
+	
+	variable i, j
+	variable count = 0
+	for(i=0; i<xsize; i++)
+		if(sumrowarray[i] > 0)	// if this column contains more than one hot pixel
+			MatrixOP/O/FREE targetrow = row(Hotpixels, i)
+			for(j=0; j<ysize; j++)
+				if(targetrow[j] > 0)
+					hotpixel_loc[count][0] = i
+					hotpixel_loc[count][1] = j
+					count ++
+				endif
+			endfor
+		endif
+	endfor
+
+End
+
+// CUI only 2024-11-10
+Function R2D_NaN2en30()
+	
+	R2D_CreateImageList(1)  // create a imagelist of current datafolder, sort by name. 1 for name, 2 for date_created.
+	Wave/T ImageList = :Red2DPackage:ImageList
+	Variable numOfImages = DimSize(ImageList,0)
+	
+	variable i
+	For(i = 0; i < numOfImages; i++)
+		wave refwave = $ImageList[i]
+		Redimension/S refwave  // change 32bit signed integer to signed single float
+		Multithread refwave[][] = numtype(refwave[p][q]) == 2 ? 1e-30 : refwave[p][q]
+	Endfor
+	
+End
+
 Function R2D_negative2NaN()
 	
 	R2D_CreateImageList(1)  // create a imagelist of current datafolder, sort by name. 1 for name, 2 for date_created.

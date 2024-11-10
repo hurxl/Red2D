@@ -41,7 +41,7 @@ End
 // Check unexpected operations, used throughout the R2D package.
 // *************************
 
-// Check if the ImageList matches to the 2D waves in current data folder.
+// Check if the Images exist in the selected folder, and if their sizes are the same.
 // If not warn the user and stop this procedure.
 Function R2D_Error_ImagesExist([NoMessage])
 	Variable NoMessage  // if specified (any value), suppress the error message.
