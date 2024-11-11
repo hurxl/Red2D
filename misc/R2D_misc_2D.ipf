@@ -40,7 +40,7 @@ Function R2D_FindHotPixels(threshold)
 
 End
 
-// CUI only 2024-11-10
+// CUI only 2024-11-10, This is useful when we want to change the panel spaces and dead pixels to black color.
 Function R2D_NaN2en30()
 	
 	R2D_CreateImageList(1)  // create a imagelist of current datafolder, sort by name. 1 for name, 2 for date_created.

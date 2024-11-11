@@ -70,6 +70,7 @@ Menu "Red2D"
 		"Make Masked 2D Images", R2D_MakeMaskedImages()
 		"Sensitivity correction 2D", R2D_Sensitivity2D()
 		"Convert 32bit integer images to single float (-1 to NaN)", R2D_negative2NaN()
+		"Convert NaN to 1E-30", R2D_NaN2en30()
 		"-"
 		Submenu "2D Operation"
 			"1. Time and Transmission (2D)", R2D_TimeAndTrans2D()
