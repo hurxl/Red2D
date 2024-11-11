@@ -3,10 +3,16 @@
 
 /////////GUI//////////
 Function R2D_Display2D()
+
 	/// Check if in the image folder.
 	String ImageFolderPath = R2D_GetImageFolderPath()
 	If(strlen(ImageFolderPath) == 0)
 		Abort "You may be in a wrong datafolder."
+	Else
+		String savedDF = GetDataFolder(1)	// save current folder as a reference
+		SetDataFolder $ImageFolderPath	// set datafolder to the image folder
+		String simple_imagefolderpath = GetDataFolder(1)		// for display, the default image folder path may contain ::
+		NewDataFolder/O Red2Dpackage	// create an Red2Dpackage folder within the image folder
 	Endif
 	
 	/// Check if panel exist
@@ -18,10 +24,8 @@ Function R2D_Display2D()
 		DoWindow/F Display2D
 	Endif
 	
+	
 	// Create a popupmenu to select the order of ImageList and then create the Imagelist
-	String savedDF = GetDataFolder(1)
-	SetDataFolder $ImageFolderPath
-	NewDataFolder/O Red2Dpackage
 	Variable/G :Red2Dpackage:U_SortOrder
 	NVAR SortOrder = :Red2Dpackage:U_SortOrder
 	If(SortOrder == 0 || numtype(SortOrder) != 0)
@@ -59,7 +63,7 @@ Function R2D_Display2D()
 	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,320}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
 	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,520}, pos={355,25}, fSize=13
 
-	TitleBox title0 title="Images",  fSize=14, pos={6,5}, frame=0
+	TitleBox title0 title=simple_imagefolderpath,  fSize=14, pos={6,5}, frame=0
 	TitleBox title1 title="Note",  fSize=14, pos={515,5}, frame=0
 
 	// Sort
@@ -81,12 +85,12 @@ Function R2D_Display2D()
 	PopupMenu popup1,mode=(WhichListItem(ColorTable, CTabList(),";")+1),value=#"\"*COLORTABLEPOPNONAMES*\"", pos={132,478},size={200,20},proc=Red2D_ColorTableMenu
 
 	// Save Image
-	Button button1 title="Export JPEG", fSize=13, size={110,23},pos={50,523},proc=ButtonProcR2D_SaveImageAsJPEG
-	Checkbox cbox0 title="Use Sample Name", fSize=13, pos={180, 526}
+	Button button1 title="Export JPEG", fSize=13, size={110,23},pos={50,510},proc=ButtonProcR2D_SaveImageAsJPEG
+	Checkbox cbox0 title="Use Sample Name", fSize=13, pos={180, 513}
 	
 	// Misc
 	GroupBox group0 pos={30,395},size={300,2}
-	GroupBox group1 pos={30,510},size={300,2}
+//	GroupBox group1 pos={30,510},size={300,2}
 //	GroupBox group2 pos={30,505},size={300,2}
 	
 	SetDataFolder $savedDF

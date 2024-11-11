@@ -15,7 +15,7 @@ Function R2D_FindHotPixels(threshold)
 	Duplicate/O TopImage, Hotpixels
 	Multithread Hotpixels = TopImage[p][q] > threshold ? 1 : 0
 	MatrixOP/O/FREE hotsum = sum(Hotpixels)
-	printf "%g hot pixels found", hotsum[0]
+	printf "%g hot pixels found\r", hotsum[0]
 	make/O/N=(hotsum[0],2) hotpixel_loc
 
 	MatrixOP/O/FREE sumrowarray = sumrows(Hotpixels)
@@ -40,7 +40,7 @@ Function R2D_FindHotPixels(threshold)
 
 End
 
-// CUI only 2024-11-10, This is useful when we want to change the panel spaces and dead pixels to black color.
+// This function makes the panel space (NaN) black. NaN shows white color.
 Function R2D_NaN2en30()
 	
 	R2D_CreateImageList(1)  // create a imagelist of current datafolder, sort by name. 1 for name, 2 for date_created.
@@ -53,6 +53,23 @@ Function R2D_NaN2en30()
 		Redimension/S refwave  // change 32bit signed integer to signed single float
 		Multithread refwave[][] = numtype(refwave[p][q]) == 2 ? 1e-30 : refwave[p][q]
 	Endfor
+	
+End
+
+Function R2D_negative2zero()
+	
+	R2D_CreateImageList(1)  // create a imagelist of current datafolder, sort by name. 1 for name, 2 for date_created.
+	Wave/T ImageList = :Red2DPackage:ImageList
+	Variable numOfImages = DimSize(ImageList,0)
+	
+	variable i
+	For(i = 0; i < numOfImages; i++)
+		wave refwave = $ImageList[i]
+		Redimension/S refwave  // change 32bit signed integer to signed single float
+		Multithread refwave[][] = refwave[p][q] < 0 ? 0 : refwave[p][q]	
+	Endfor
+	
+	Print "Success. Images in current datafolder were converted to datatype single float. Pixels with -1 was replaced with NaN."
 	
 End
 
