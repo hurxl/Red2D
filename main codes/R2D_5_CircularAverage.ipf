@@ -12,56 +12,79 @@ Function R2D_CircularAveragePanel()
 //		Abort
 //	Endif
 	String ImageFolderPath = R2D_GetImageFolderPath()	// Get image datafolder even 1D folder is activated.
+			print ImageFolderPath
 	If(strlen(ImageFolderPath) == 0)
 		Abort "You may be in a wrong datafolder."
+	Else
+		String savedDF = GetDataFolder(1)	// save current folder as a reference
+		print savedDF
+		SetDataFolder $ImageFolderPath	// set datafolder to the image folder
+		String simple_imagefolderpath = GetDataFolder(1)		// for display, the default image folder path may contain ::
+		NewDataFolder/O Red2Dpackage	// create an Red2Dpackage folder within the image folder
 	Endif
-	DFREF saveDFR = GetDataFolderDFR()	// get current datafolder. It could be image folder or 1D folder.
-	SetDataFolder $ImageFolderPath		// move to image folder
+//	DFREF saveDFR = GetDataFolderDFR()	// get current datafolder. It could be image folder or 1D folder.
+//	SetDataFolder $ImageFolderPath		// move to image folder
 	
 	String reflist = wavelist("*",";","DIMS:2,TEXT:0") //Get wavelist from current folder limited for 2D waves
 	Wave/T reftw = ListToTextWave(reflist,";") // Create a text wave reference containing reflist
 	Wave TopImage = $reftw[0]
 	
-	NewDataFolder/O/S Red2DPackage
-		Variable/G U_Xmax, U_Ymax, U_X0, U_Y0, U_SDD, U_Lambda, U_PixelSize
-		Variable/G U_tiltX, U_tiltY, U_tiltZ, U_SortOrder// U_tiltZ is not in use. It is actuall X2. I use X-Y-X type rotation.
-		String/G U_MaskName_All_CA, U_MaskName_Auto
-		Variable/G U_row_CA
-		U_Xmax=Dimsize(TopImage,0)-1 //Get image size. Minus 1 because Dimsize is size while Xmax means the coordinates.
-		U_Ymax=Dimsize(TopImage,1)-1 //Get image size
-		NVAR SortOrder = U_SortOrder
-
-		If(numtype(U_X0) != 0)
-			U_X0 = 0
-		Endif
-		If(numtype(U_X0) != 0)
-			U_Y0 = 0
-		Endif
-		If(U_SDD == 0 || numtype(U_SDD) != 0)
-			U_SDD = 1
-		Endif
-		If(U_Lambda == 0 || numtype(U_Lambda) != 0)
-			U_Lambda = 1
-		Endif
-		If(U_PixelSize == 0 || numtype(U_PixelSize) != 0)
-			U_PixelSize = 1
-		Endif
-		If(numtype(U_tiltX) != 0)
-			U_tiltX = 0
-		Endif
-		If(numtype(U_tiltY) != 0)
-			U_tiltY = 0
-		Endif
-		If(numtype(U_tiltZ) != 0)
-			U_tiltZ = 0
-		Endif
-		If(U_SortOrder == 0 || numtype(U_SortOrder) != 0)
-			U_SortOrder = 1
-		Endif
-		If(numtype(U_row_CA) != 0)
-			U_row_CA = 0
-		Endif
-	SetDataFolder $ImageFolderPath		// move to image folder
+//	NewDataFolder/O/S Red2DPackage
+	Variable/G :Red2Dpackage:U_Xmax, :Red2Dpackage:U_Ymax, :Red2Dpackage:U_X0, :Red2Dpackage:U_Y0
+	Variable/G :Red2Dpackage:U_SDD, :Red2Dpackage:U_Lambda, :Red2Dpackage:U_PixelSize
+	Variable/G :Red2Dpackage:U_tiltX, :Red2Dpackage:U_tiltY, :Red2Dpackage:U_tiltZ, :Red2Dpackage:U_SortOrder// U_tiltZ is not in use. It is actuall X2. I use X-Y-X type rotation.
+	String/G :Red2Dpackage:U_MaskName_All_CA, :Red2Dpackage:U_MaskName_Auto
+	Variable/G :Red2Dpackage:U_row_CA
+	
+	NVAR U_Xmax = :Red2Dpackage:U_Xmax
+	NVAR U_Ymax= :Red2Dpackage:U_Ymax
+	NVAR U_X0 = :Red2Dpackage:U_X0
+	NVAR U_Y0 = :Red2Dpackage:U_Y0
+	NVAR U_SDD = :Red2Dpackage:U_SDD
+	NVAR U_Lambda = :Red2Dpackage:U_Lambda
+	NVAR U_PixelSize = :Red2Dpackage:U_PixelSize
+	NVAR U_tiltX = :Red2Dpackage:U_tiltX
+	NVAR U_tiltY = :Red2Dpackage:U_tiltY
+	NVAR U_tiltZ = :Red2Dpackage:U_tiltZ
+	NVAR U_SortOrder = :Red2Dpackage:U_SortOrder
+	SVAR U_MaskName_All_CA = :Red2Dpackage:U_MaskName_All_CA
+	SVAR U_MaskName_Auto = :Red2Dpackage:U_MaskName_Auto
+	NVAR U_row_CA = :Red2Dpackage:U_row_CA
+		
+	U_Xmax=Dimsize(TopImage,0)-1 //Get image size. Minus 1 because Dimsize is size while Xmax means the coordinates.
+	U_Ymax=Dimsize(TopImage,1)-1 //Get image size
+	
+	If(numtype(U_X0) != 0)
+		U_X0 = 0
+	Endif
+	If(numtype(U_X0) != 0)
+		U_Y0 = 0
+	Endif
+	If(U_SDD == 0 || numtype(U_SDD) != 0)
+		U_SDD = 1
+	Endif
+	If(U_Lambda == 0 || numtype(U_Lambda) != 0)
+		U_Lambda = 1
+	Endif
+	If(U_PixelSize == 0 || numtype(U_PixelSize) != 0)
+		U_PixelSize = 1
+	Endif
+	If(numtype(U_tiltX) != 0)
+		U_tiltX = 0
+	Endif
+	If(numtype(U_tiltY) != 0)
+		U_tiltY = 0
+	Endif
+	If(numtype(U_tiltZ) != 0)
+		U_tiltZ = 0
+	Endif
+	If(U_SortOrder == 0 || numtype(U_SortOrder) != 0)
+		U_SortOrder = 1
+	Endif
+	If(numtype(U_row_CA) != 0)
+		U_row_CA = 0
+	Endif
+//	SetDataFolder $ImageFolderPath		// move to image folder
 
 	/// Check if panel exist
 	DoWindow CircularAverage
@@ -72,6 +95,7 @@ Function R2D_CircularAveragePanel()
 		DoWindow/F CircularAverage
 	Endif
 	
+	TitleBox title0 title=simple_imagefolderpath,  fSize=14, pos={6,5}, frame=0
 	SetVariable setvar0 title="X0 [pt]",pos={15,25},size={200,25},limits={-inf,inf,1},fSize=13, value=:Red2DPackage:U_X0
 	SetVariable setvar1 title="Y0 [pt]",pos={15,50},size={200,25},limits={-inf,inf,1},fSize=13, value=:Red2DPackage:U_Y0
 	SetVariable setvar2 title="SDD [m]",pos={15,75},size={200,25},limits={0,inf,0.1},fSize=13, value=:Red2DPackage:U_SDD
@@ -91,7 +115,8 @@ Function R2D_CircularAveragePanel()
 	// when refresh above popup, the selection number will remain in old one. Therefore, when it exceeds current list, no selection appears.
 	Execute/P/Q "PopupMenu popup1 pos={15,200}"  // a workaround about Igor's know bug for bodywidth option.
 	
-	SetdataFolder saveDFR
+//	SetdataFolder saveDFR
+	SetDataFolder $savedDF
 	
 End
 
