@@ -41,16 +41,18 @@ Function R2D_MaskPanel()
 	TitleBox title1, pos={95,90}, frame=0, fSize=13, title="Sector Mask"
 	SetVariable setvar2 title="X0 [pt]",pos={30,120},size={210,25},limits={-inf,+inf,1},fSize=13, value=:Red2DPackage:U_X0
 	SetVariable setvar3 title="Y0 [pt]",pos={30,145},size={210,25},limits={-inf,+inf,1},fSize=13, value=:Red2DPackage:U_Y0
-	SetVariable setvar4 title="φ0 [º]",pos={30,170},size={210,25},limits={0,180,1},fSize=13, value=:Red2DPackage:U_phi0, help={"phi0 should be in range of 0 - 180."}
-	SetVariable setvar5 title="Δφ [º]",pos={30,195},size={210,25},limits={0,180,1},fSize=13, value=:Red2DPackage:U_dphi, help={"dphi should be in range of 0 - 180."}
-	Button button1 title="New Sector Mask",pos={55,235},size={160,23},proc=ButtonProcMakeSectorMask
+	SetVariable setvar4 title="φ0 [º]",pos={30,170},size={210,25},limits={0,360,1},fSize=13, value=:Red2DPackage:U_phi0, help={"phi0 should be in range of 0 - 180."}
+	SetVariable setvar5 title="Δφ [º]",pos={30,195},size={210,25},limits={0,360,1},fSize=13, value=:Red2DPackage:U_dphi, help={"dphi should be in range of 0 - 180."}
+	Button button1 title="New Sector Mask",pos={20,235},size={130,23},proc=ButtonProcMakeSectorMask
+	CheckBox cb1 title="Pair Sector", pos={165, 228}, fSize=13
+	CheckBox cb2 title="Reverse Mask", pos={165, 247}, fSize=13
 
 	
 	// roi mask GUI
 	TitleBox title2, pos={420,90}, frame=0, fSize=13, title="ROI Mask"
 	TitleBox title3, pos={317,120}, frame=5, fSize=13
 	TitleBox title3, title=" 1. Display your image\r\r 2. Go Igor menu 'Image' → 'Image ROI...' \r \r 3. Draw ROI (region of interest)"
-	Button button2 title="New ROI Mask",size={140,23},pos={320,235},proc=ButtonProcCreROIMask
+	Button button2 title="New ROI Mask",pos={320,235} ,size={130,23}, proc=ButtonProcCreROIMask
 	CheckBox cb0 title="Reverse ROI", pos={480, 238}, fSize=13, proc=CheckBoxProc_reversedmask
 
 	
@@ -132,7 +134,12 @@ Function ButtonProcMakeSectorMask(ba) : ButtonControl
 			if(V_flag == 0)
 				Abort "IntensiytImage window does not exist. Try to use Display Images to make a new image window."
 			endif
-			MakeSectorMask()
+
+			ControlInfo/W=MaskPanel cb1
+			variable pairflag = V_Value // 0 single, 1 pair
+			ControlInfo/W=MaskPanel cb2
+			variable reverseflag = V_Value // 0 normal, 1 reversed
+			MakeSectorMask(pairflag, reverseflag)
 		 	R2D_GetMaskList("")
 			break
 		case -1: // control being killed
@@ -264,7 +271,10 @@ End
 // *** Main Codes ***
 // *************************
 // Create Sector Mask
-Static Function MakeSectorMask()
+Static Function MakeSectorMask(pairflag, reverseflag)
+	variable pairflag	// 0 single, 1 pair
+	variable reverseflag // 0 normal, 1 reversed
+	
 	//Check if in images folder
 	If(R2D_Error_ImagesExist() == -1)
 		Abort
@@ -298,31 +308,48 @@ Static Function MakeSectorMask()
 	//Create SectorMask
 	variable i, j
 	variable/C z
-	variable phi
+	variable phi, pairphi
 	For(i=0; i<U_Xmax+1; i+=1) //gXmax is the coordinates.
 		For(j=0; j<U_Ymax+1; j+=1)
-			/// Get the polar cordinate of the selected pixcel.
+			// Get the polar cordinate of the selected pixcel.
 			z = r2polar(cmplx(i-U_X0,-j+U_Y0))
 			phi = imag(z)/pi*180
 	    			
-			/// Change 0->+180, 0->-180 style to 0->+360 sytle
-	   		If(phi<0)
-	   			phi +=360
-	   		Endif
+			// Change 0->+180, 0->-180 style to 0->+360 sytle
+   		If(phi<0)
+   			phi +=360
+   		Endif
     				
-   	 		/// Type 1 into SectorMask when phi in range.
-    		If(U_phi0 - U_dphi/2 < 0 && phi >= U_phi0 - U_dphi/2 + 360)
+   	 	// Type 0 into SectorMask when phi in range.
+    		If(U_phi0 - U_dphi/2 < 0 && phi >= U_phi0 - U_dphi/2 + 360)	// when the low limit is negative: (-* ~ -0) -> (* ~ +360)
     			SectorMask[i][j] = 1
-    		Elseif(U_phi0 - U_dphi/2 <= phi && phi <= U_phi0 + U_dphi/2)
+    		Elseif(U_phi0 + U_dphi/2 > 360 && phi <= U_phi0 + U_dphi/2 - 360)	// when the high limit is over 360: (360 ~ 360+*) -> (0 ~ *)
+    			SectorMask[i][j] = 1
+    		Elseif(U_phi0 - U_dphi/2 <= phi && phi <= U_phi0 + U_dphi/2)	// when the limits are in range of 0~360
+   			SectorMask[i][j] = 1
+   		Endif
+   		
+   		If(pairflag == 1)
+   			pairphi = U_phi0 + 180
+   			if(pairphi > 180)
+   				pairphi = U_phi0 - 180
+   			endif
+	    		If(pairphi - U_dphi/2 < 0 && phi >= pairphi - U_dphi/2 + 360)	// when the low limit is negative: (-* ~ -0) -> (* ~ +360)
+	    			SectorMask[i][j] = 1
+	    		Elseif(pairphi + U_dphi/2 > 360 && phi <= pairphi + U_dphi/2 - 360)	// when the high limit is over 360: (360 ~ 360+*) -> (0 ~ *)
+	    			SectorMask[i][j] = 1
+	    		Elseif(pairphi - U_dphi/2 <= phi && phi <= pairphi + U_dphi/2)	// when the limits are in range of 0~360
 	   			SectorMask[i][j] = 1
-	   		Elseif(U_phi0 + 180 - U_dphi/2 <= phi && phi <= U_phi0 + 180 + U_dphi/2)
-	   			SectorMask[i][j] = 1
-	   		Elseif(U_phi0 + 180 + U_dphi/2 >= 360 && phi + 360 <= U_phi0 + 180 + U_dphi/2)
-	   			SectorMask[i][j] = 1
-   			Endif
+	   		Endif
+			Endif
    			
 		Endfor
 	Endfor
+	
+	// reverse mask
+	if(reverseflag)
+		Multithread SectorMask = SectorMask[p][q] > 0 ? 0 : 1
+	endif
 		 
 	//Append M_SectorMask to Top Image
 	RemoveImage/Z SectorMask //ImageName is the actual Image Name, not the wave name
