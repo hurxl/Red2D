@@ -331,14 +331,14 @@ Static Function MakeSectorMask(pairflag, reverseflag)
    		
    		If(pairflag == 1)
    			pairphi = U_phi0 + 180
-   			if(pairphi > 180)
+   			if(pairphi > 360)
    				pairphi = U_phi0 - 180
    			endif
 	    		If(pairphi - U_dphi/2 < 0 && phi >= pairphi - U_dphi/2 + 360)	// when the low limit is negative: (-* ~ -0) -> (* ~ +360)
 	    			SectorMask[i][j] = 1
 	    		Elseif(pairphi + U_dphi/2 > 360 && phi <= pairphi + U_dphi/2 - 360)	// when the high limit is over 360: (360 ~ 360+*) -> (0 ~ *)
 	    			SectorMask[i][j] = 1
-	    		Elseif(pairphi - U_dphi/2 <= phi && phi <= pairphi + U_dphi/2)	// when the limits are in range of 0~360
+	    		Elseif(phi >= pairphi - U_dphi/2 && phi <= pairphi + U_dphi/2)	// when the limits are in range of 0~360
 	   			SectorMask[i][j] = 1
 	   		Endif
 			Endif
