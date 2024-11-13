@@ -12,12 +12,12 @@ Function R2D_CircularAveragePanel()
 //		Abort
 //	Endif
 	String ImageFolderPath = R2D_GetImageFolderPath()	// Get image datafolder even 1D folder is activated.
-			print ImageFolderPath
+//			print ImageFolderPath
 	If(strlen(ImageFolderPath) == 0)
 		Abort "You may be in a wrong datafolder."
 	Else
 		String savedDF = GetDataFolder(1)	// save current folder as a reference
-		print savedDF
+//		print savedDF
 		SetDataFolder $ImageFolderPath	// set datafolder to the image folder
 		String simple_imagefolderpath = GetDataFolder(1)		// for display, the default image folder path may contain ::
 		NewDataFolder/O Red2Dpackage	// create an Red2Dpackage folder within the image folder
