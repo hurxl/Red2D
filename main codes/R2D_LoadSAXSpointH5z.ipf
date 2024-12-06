@@ -2,27 +2,52 @@
 #pragma rtGlobals=3				// Use modern global access method and strict wave access
 #pragma DefaultTab={3,20,4}		// Set default tab width in Igor Pro 9 and later
 
-Function R2D_Load_SAXSpoint_zip()
-	string unzippedPathStr = SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp" 
-	NewPath/O IgorUserTmp, unzippedPathStr
+Function/S R2D_Load_SAXSpoint_zip()
+
+	// Windows or Mac
+	string os = IgorInfo(2)
+
+	// Igor User Folder
+	PathInfo IgorUserFiles
+	string PCpath_IgorUserFiles
+	
+	// Create tmp folder inside Igor Pro User Files
+	string TempFolderPath
+	string cmd
+	String path
+	if(stringmatch(os,"Macintosh"))	// Mac
+		PCpath_IgorUserFiles = ParseFilePath(5, S_path,"/",0,0) // convert symbolic path to MacOS UNIX path.
+		TempFolderPath = PCpath_IgorUserFiles + "tmp"
+		sprintf cmd, "mkdir -p '%s'", TempFolderPath
+		R2D_ExecuteUnixShellCommand(cmd, 0, 0)
+	elseif(stringmatch(os, "Windows"))	// Windows
+		PCpath_IgorUserFiles = ParseFilePath(5, TempFolderPath,"\\",0,0)	// convert symbolic path to Windows path.
+		TempFolderPath = PCpath_IgorUserFiles + "tmp"
+		sprintf cmd, "mkdir '%s'", TempFolderPath
+		R2D_ExecuteWindowsShellCommand(cmd, 0, 0)
+	endif
+	
+	PathInfo IgorUserFiles
+	TempFolderPath = S_path + "tmp"
+	
+	NewPath/O IgorUserTmp, TempFolderPath
 
 	String h5list = IndexedFile(IgorUserTmp, -1, ".h5") // get h5 file list in tmp folder
 	variable i
-	
-	for(i=0; i<itemsInList(h5list); i+=1) // delete all h5 file in tmp folder
-		String h5path = unzippedPathStr + ":" + StringFromList(i, h5list)
-		deleteFile/Z h5path	
+	for(i=0; i<itemsInList(h5list); i++) // delete all h5 file in tmp folder
+		String h5file = StringFromList(i, h5list)
+		deleteFile/Z/P=IgorUserTmp h5file	
 	endfor
 
 	string unzippedTmpPath = R2D_unzipH5zip()
 	if (numtype(strlen(unzippedTmpPath)) == 0 )
-		R2D_Load_SAXSpoint_h5_files(unzippedTmpPath)			
-	endif	
+//		R2D_Load_SAXSpoint_h5_files(unzippedTmpPath)			
+	endif
 	
-	deleteFile/Z unzippedPathStr + ":" + IndexedFile(IgorUserTmp, 0, ".h5") // delete loaded h5 file
+	h5file = IndexedFile(IgorUserTmp, 0, ".h5")
+	deleteFile/Z/P=IgorUserTmp h5file	
 	
 End
-
 
 Function/S R2D_unzipH5zip()
 	
@@ -37,13 +62,13 @@ Function/S R2D_unzipH5zip()
 	else
 	
 	string archivePathStr = S_fileName
-	string unzippedPathStr = SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp"
+	string TempFolderPath = SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp"
 	
-	UnzipFile/Z/O archivePathStr, unzippedPathStr
+	UnzipFile/Z/O archivePathStr, TempFolderPath
 	
 		if(V_flag == 0) //  the operation succeeds
-			NewPath/O IgorUserTmp, unzippedPathStr
-			string filepath = unzippedPathStr + ":" + IndexedFile(IgorUserTmp, 0, ".h5")
+			NewPath/O IgorUserTmp, TempFolderPath
+			string filepath = TempFolderPath + ":" + IndexedFile(IgorUserTmp, 0, ".h5")
 			print "The zip is expaneded in " +filepath
 			return filepath
 		else
@@ -288,76 +313,160 @@ function Red2D_SpliteImageStack()
 end
 
 
-Function Red2D_writeValToDatasheet(ImageName, colStr, val, format) // this is same function as DLS package
-	string ImageName
-	string colStr
-	variable val
-	string format
-	
-	// check if summary wave exists, if specified column exists, and if the ImageName exists.
-	wave/Z/T Datasheet = $(GetDatasheetPath())
-	if(!WaveExists(Datasheet))
-		Print "Datasheet does not exist in Red2Dpackage. Stop writing to Datasheet."
-		return -1
-	endif
-	variable colindex = FindDimLabel(Datasheet, 1, colStr)
-	if(colindex < 0)	// not found
-		Print colStr +" does not exist in the Datasheet. Stop writing to Datasheet."
-		return -1
-	endif
-	variable nameindex = FindDimLabel(Datasheet, 1, "ImageName")
-	FindValue/TEXT=(ImageName)/RMD=[][nameindex] Datasheet
-//	print imagename
-	if(V_row < 0)
-		Print "The specified ImageName does not exist in the Datasheet. Stop writing to Datasheet."
-		return -1
-	endif
-	
-	// write the val to summary
-	if(numtype(val) == 2)	// if val = NaN, make it to an empty string.
-		Datasheet[V_row][colindex] = ""
-	else
-		Datasheet[V_row][colindex] = num2str(val, format)
-	endif
-	
-	return 0
-	
+//Function Red2D_writeValToDatasheet(ImageName, colStr, val, format) // this is same function as DLS package
+//	string ImageName
+//	string colStr
+//	variable val
+//	string format
+//	
+//	// check if summary wave exists, if specified column exists, and if the ImageName exists.
+//	wave/Z/T Datasheet = $(GetDatasheetPath())
+//	if(!WaveExists(Datasheet))
+//		Print "Datasheet does not exist in Red2Dpackage. Stop writing to Datasheet."
+//		return -1
+//	endif
+//	variable colindex = FindDimLabel(Datasheet, 1, colStr)
+//	if(colindex < 0)	// not found
+//		Print colStr +" does not exist in the Datasheet. Stop writing to Datasheet."
+//		return -1
+//	endif
+//	variable nameindex = FindDimLabel(Datasheet, 1, "ImageName")
+//	FindValue/TEXT=(ImageName)/RMD=[][nameindex] Datasheet
+////	print imagename
+//	if(V_row < 0)
+//		Print "The specified ImageName does not exist in the Datasheet. Stop writing to Datasheet."
+//		return -1
+//	endif
+//	
+//	// write the val to summary
+//	if(numtype(val) == 2)	// if val = NaN, make it to an empty string.
+//		Datasheet[V_row][colindex] = ""
+//	else
+//		Datasheet[V_row][colindex] = num2str(val, format)
+//	endif
+//	
+//	return 0
+//	
+//End
+//
+//function Red2D_writeTimeAndTrnasToDatasheet()
+//	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet. if in a wrong datafolder, return an error and abort.
+//	wave/T/Z datasheet = $Datasheet_Path
+//	String imagefolder = GetWavesDataFolder(datasheet,1)+":" // get the full path of the datafolder for datasheet
+//	
+//	String imagename
+//	String imagepath
+//	String target
+//	String image_note
+//	String buffer
+//	variable numInDatasheet = Dimsize(Datasheet, 0)
+//	variable i, j, v
+//	
+//	for(i=0; i<numInDatasheet; i+=1)	 // get note from image wave
+//		imagename = Datasheet[i][%ImageName]  // get imagename
+//		print ImageName
+//		imagepath = imagefolder+imagename  // set image full path. the user may be in the image folder and 1d folder.
+//		image_note = note($imagepath)  // get note of the image
+//				
+//		for(j=0; j<ItemsInList(image_note, "\r"); j+=1)
+//			buffer = StringFromList(j, image_note, "\r")
+//			
+//			If (stringmatch(buffer, "Measeurment time *")) // write Measeurment time
+//				sscanf buffer , "Measeurment time : %f", v
+//				Red2D_writeValToDatasheet(imagename, "Time_s", v, "%g")
+//			endif
+//			
+//			If (stringmatch(buffer, "Transmittance *")) // write trans 
+//				sscanf buffer , "Transmittance : %f", v
+//				Red2D_writeValToDatasheet(imagename, "Trans", v, "%f")
+//			endif
+//			
+//		endfor
+//		
+//	endfor
+//end
+
+
+Function R2D_FillDataseetSAXSpoint()
+
+	R2D_FillDataseet_worker("Sample Name", " : ", "\r", "SampleName")
+	R2D_FillDataseet_worker("Measeurment time", " : ", "\r", "Time_s")
+	R2D_FillDataseet_worker("Transmittance", " : ", "\r", "Trans")
+	R2D_FillDataseet_worker("sample_thickness", " : ", "\r", "Thick_cm")
+
 End
 
-function Red2D_writeTimeAndTrnasToDatasheet()
+Function R2D_FillDataseet_worker(Key, KeySeparator, ListSeparator, DatasheetColName)
+	String Key
+	String KeySeparator
+	String ListSeparator
+	String DatasheetColName
+	
 	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet. if in a wrong datafolder, return an error and abort.
 	wave/T/Z datasheet = $Datasheet_Path
 	String imagefolder = GetWavesDataFolder(datasheet,1)+":" // get the full path of the datafolder for datasheet
-	
+
 	String imagename
 	String imagepath
 	String target
 	String image_note
-	String buffer
 	variable numInDatasheet = Dimsize(Datasheet, 0)
-	variable i, j, v
+	variable i
 	
-	for(i=0; i<numInDatasheet; i+=1)	 // get note from image wave
+	For(i=0; i<numInDatasheet; i++)
 		imagename = Datasheet[i][%ImageName]  // get imagename
-		print ImageName
 		imagepath = imagefolder+imagename  // set image full path. the user may be in the image folder and 1d folder.
 		image_note = note($imagepath)  // get note of the image
-				
-		for(j=0; j<ItemsInList(image_note, "\r"); j+=1)
-			buffer = StringFromList(j, image_note, "\r")
-			
-			If (stringmatch(buffer, "Measeurment time *")) // write Measeurment time
-				sscanf buffer , "Measeurment time : %f", v
-				Red2D_writeValToDatasheet(imagename, "Time_s", v, "%g")
-			endif
-			
-			If (stringmatch(buffer, "Transmittance *")) // write trans 
-				sscanf buffer , "Transmittance : %f", v
-				Red2D_writeValToDatasheet(imagename, "Trans", v, "%f")
-			endif
-			
-		endfor
-		
-	endfor
-end
+		target = StringByKey(key, image_note, KeySeparator, ListSeparator)  // get sample name in the note
+		if(strlen(target) == 0 || numtype(strlen(target)) == 2)
+			// do nothing
+		else
+			Datasheet[i][%$DatasheetColName] = target
+		endif
+	Endfor
 
+End
+
+
+// Execute Shell Command
+Function/S R2D_ExecuteUnixShellCommand(uCommand, printCommandInHistory, printResultInHistory) //Execute shell command, e.g. Contin
+    String uCommand                         // Unix command to execute
+    Variable printCommandInHistory
+    Variable printResultInHistory
+
+	if (printCommandInHistory)
+	printf "Unix command: %s\r", uCommand // %s is where the uCommand will be inserted
+	endif
+
+	String cmd
+	sprintf cmd, "do shell script \"%s\"", uCommand // %s is where the uCommand will be inserted
+	ExecuteScriptText/UNQ/Z cmd      // /UNQ removes quotes surrounding reply
+//	Print cmd
+           
+    if (printResultInHistory)
+		Print S_value
+    endif
+    
+	return S_value
+End
+
+Function/S R2D_ExecuteWindowsShellCommand(uCommand, printCommandInHistory, printResultInHistory) //Execute shell command, e.g. Contin
+    String uCommand                         // Unix command to execute
+    Variable printCommandInHistory
+    Variable printResultInHistory
+
+	if (printCommandInHistory)
+	printf "Windows command: %s\r", uCommand // %s is where the uCommand will be inserted
+	endif
+
+	String cmd
+	sprintf cmd, "cmd.exe /C %s", uCommand // %s is where the uCommand will be inserted
+	ExecuteScriptText/B/Z cmd      // /UNQ removes quotes surrounding reply
+//	Print cmd
+           
+    if (printResultInHistory)
+		Print S_value
+    endif
+    
+	return S_value
+End
