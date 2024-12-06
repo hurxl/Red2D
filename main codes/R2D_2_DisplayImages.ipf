@@ -18,7 +18,7 @@ Function R2D_Display2D()
 	/// Check if panel exist
 	DoWindow Display2D
 	If(V_flag == 0)
-		NewPanel/K=1/N=Display2D/W=(800,100,1557,650)
+		NewPanel/K=1/N=Display2D/W=(800,100,1557,680)
 		SetWindow Display2D, hook(Display2D) = R2D_DisplayImagesWindowHook	
 	Else
 		DoWindow/F Display2D
@@ -61,7 +61,7 @@ Function R2D_Display2D()
 	
 	//Create listbox named ImageList and make it follows ListBoxProc
 	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,320}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
-	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,520}, pos={355,25}, fSize=13
+	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,550}, pos={355,25}, fSize=13
 
 	TitleBox title0 title=simple_imagefolderpath,  fSize=14, pos={6,5}, frame=0
 	TitleBox title1 title="Note",  fSize=14, pos={515,5}, frame=0
@@ -74,19 +74,21 @@ Function R2D_Display2D()
 	Button button0 title="Bring to Front", fSize=13, size={110,23},pos={50,355},proc=ButtonProcR2D_BringImageToFront
 	
 	// Hide Mask
-	Button button2 title="Hide Mask", fSize=13, size={110,23},pos={200,355},proc=ButtonProcR2D_HideMask
+	Button button1 title="Hide Mask", fSize=13, size={110,23},pos={200,355},proc=ButtonProcR2D_HideMask
 
 	// Color Range and Table
 	TitleBox title2 title="Adjust Color",  fSize=13, pos={40,415}, frame=0
-	CheckBox cb1 title="log Color", pos={200, 415}, fSize=13, variable=:Red2DPackage:U_ColorLog, proc=R2D_LogColor_CheckProc
-	SetVariable setvar0 title="Low",pos={40,445},size={120,25},limits={-inf,+inf, lowstep},fSize=13, value=:Red2DPackage:U_ColorLow, proc=R2D_ColorRange_SetVarProc
-	SetVariable setvar2 title="High",pos={200,445},size={120,25},limits={-inf,+inf, highstep},fSize=13, value=:Red2DPackage:U_ColorHigh, proc=R2D_ColorRange_SetVarProc
-	TitleBox title4 title="Color Table", fSize=13, pos={40,480}, frame=0
+	CheckBox cb0 title="log Color", pos={200, 415}, fSize=13, variable=:Red2DPackage:U_ColorLog, proc=R2D_LogColor_CheckProc
+	SetVariable setvar0 title="Low",pos={30,445},size={130,25},limits={-inf,+inf, lowstep},fSize=13, value=:Red2DPackage:U_ColorLow, proc=R2D_ColorRange_SetVarProc
+	SetVariable setvar1 title="High",pos={200,445},size={130,25},limits={-inf,+inf, highstep},fSize=13, value=:Red2DPackage:U_ColorHigh, proc=R2D_ColorRange_SetVarProc
+	TitleBox title3 title="Color Table", fSize=13, pos={30,480}, frame=0
 	PopupMenu popup1,mode=(WhichListItem(ColorTable, CTabList(),";")+1),value=#"\"*COLORTABLEPOPNONAMES*\"", pos={132,478},size={200,20},proc=Red2D_ColorTableMenu
 
 	// Save Image
-	Button button1 title="Export JPEG", fSize=13, size={110,23},pos={50,510},proc=ButtonProcR2D_SaveImageAsJPEG
-	Checkbox cbox0 title="Use Sample Name", fSize=13, pos={180, 513}
+	Button button2 title="Export as JPEG", fSize=13, size={120,23},pos={40,515},proc=ButtonProcR2D_SaveImageAsJPEG
+	Button button3 title="Export as PDF", fSize=13, size={120,23},pos={200,515},proc=ButtonProcR2D_SaveImageAsPDF
+	Checkbox cb1 title="Use Sample Name", fSize=13, pos={50, 550}
+	Checkbox cb2 title="Export All", fSize=13, pos={220, 550}
 	
 	// Misc
 	GroupBox group0 pos={30,395},size={300,2}
@@ -150,18 +152,24 @@ Function ButtonProcR2D_SaveImageAsJPEG(ba) : ButtonControl
 
 	switch( ba.eventCode )
 		case 2: // mouse up
-			
-			String WinNameStr = "IntensityImage"
-			Variable WhichName
-			
-			ControlInfo/W=Display2D cbox0
-			If(V_Value == 0)
-				WhichName = 0
-			else
-				WhichName = 1
-			endif
 
-			R2D_SavePic(WinNameStr, WhichName)
+			R2D_SavePic("IntensityImage", ".jpg")
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+Function ButtonProcR2D_SaveImageAsPDF(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+
+	switch( ba.eventCode )
+		case 2: // mouse up
+			
+			R2D_SavePic("IntensityImage", ".pdf")
 			
 			break
 		case -1: // control being killed
@@ -290,7 +298,7 @@ Function R2D_ColorRange_SetVarProc(sva) : SetVariableControl
 			endif
 			
 			SetVariable setvar0 limits={-inf,+inf,lowstep}
-			SetVariable setvar2 limits={-inf,+inf,highstep}
+			SetVariable setvar1 limits={-inf,+inf,highstep}
 
 		case 3: // Live update
 			Variable dval = sva.dval
@@ -434,12 +442,61 @@ Function/S R2D_GetImageFolderPath()
 End
 
 
-Function R2D_SavePic(WinNameStr, WhichName)
+Function R2D_SavePIC(WinNameStr, extension)
+	String WinNameStr
+	String extension
+	
+	ControlInfo/W=Display2D cb1	// use sample name ?
+	Variable WhichName
+	If(V_Value == 0)
+		WhichName = 0
+	else
+		WhichName = 1
+	endif
+	
+	ControlInfo/W=Display2D cb2 // export all ?
+	If(V_Value == 0)	// export only top image
+		R2D_SavePIC_worker(WinNameStr, WhichName, extension)
+	else	// export all
+		R2D_Display2D() // refresh list
+		
+		String ImageFolderPath = R2D_GetImageFolderPath()	// Check if in the image folder
+		If(strlen(ImageFolderPath) == 0)
+			Abort "You may be in a wrong datafolder."
+		Endif
+		String savedDF = GetDataFolder(1)
+		
+		SetDataFolder $ImageFolderPath
+			wave/T ImageList = :Red2DPackage:ImageList
+			If(!WaveExists(ImageList))
+				Abort "Imagelist does not exist. You may be in a wrong datafolder."
+			Endif
+			String currImageListPath = GetWavesDataFolder(ImageList, 2)
+			variable NumOfImages = numpnts(ImageList)
+			
+			NewPath/O ForlderToSaveImage
+			variable i
+			for(i=0; i<NumOfImages; i++)
+				Show2D(i)
+				R2D_SavePIC_worker(WinNameStr, WhichName, extension, pathName = "ForlderToSaveImage")
+				
+				String ImageNote_content = note($ImageList[i]) // Get selected Imagename by using the flag row.
+				wave/T tempnote = ListToTextWave(ImageNote_content, "\r")
+				Duplicate/O/T tempnote, :Red2DPackage:ImageNote
+			endfor		
+		SetDataFolder $savedDF
+	endif
+
+End
+
+
+Function R2D_SavePIC_worker(WinNameStr, WhichName, extension, [pathName])
 	String WinNameStr
 	Variable WhichName
+	String extension
+	String pathName		// name of symbolic path for the folder to save files
 	
 	// get image name
-//	String WinNameStr = "IntensityImage"
 	String TopImageName = StringFromList(0, ImageNameList(WinNameStr, ";"))
 	
 	// get sample name
@@ -449,7 +506,7 @@ Function R2D_SavePic(WinNameStr, WhichName)
 	else
 		PackagePath = GetDataFolder(1)+":Red2Dpackage:"
 	endif
-	Wave/T datasheet = $(PackagePath + "Datasheet")
+	Wave/Z/T datasheet = $(PackagePath + "Datasheet")
 	String SampleName
 	If(WaveExists(datasheet)==1)
 		Make/FREE/T/O/N=(DimSize(Datasheet,0)) ImageName = Datasheet[p][%ImageName]
@@ -465,10 +522,10 @@ Function R2D_SavePic(WinNameStr, WhichName)
 	String filename
 	Switch(WhichName)
 		Case 1:
-			If(Strlen(SampleName) == 0)	// if sample name does not exist, use image name
-				filename = TopImageName
-			Else
+			If(Strlen(SampleName) > 0 )	// if sample name exist
 				filename = SampleName //	set file name
+			Else
+				filename = TopImageName
 			Endif
 			break
 		
@@ -476,10 +533,22 @@ Function R2D_SavePic(WinNameStr, WhichName)
 			filename = TopImageName //	set file name
 			break
 	Endswitch
+	filename += extension
 
 	// save as a picture	
-	Variable DPI = 600
-	SavePICT/O/WIN=$WinNameStr/E=-6/RES=(DPI) as filename
+	if(stringmatch(extension, ".pdf"))
+		if(ParamIsDefault(PathName))
+			SavePICT/O/WIN=$WinNameStr/E=-2 as filename
+		else
+			SavePICT/O/WIN=$WinNameStr/E=-2/P=$pathName as filename
+		endif
+	elseif(stringmatch(extension, ".jpg"))
+		if(ParamIsDefault(PathName))
+			SavePICT/O/WIN=$WinNameStr/E=-6/RES=600 as filename
+		else
+			SavePICT/O/WIN=$WinNameStr/E=-6/RES=600/P=$pathName as filename
+		endif
+	endif
 
 End
 
