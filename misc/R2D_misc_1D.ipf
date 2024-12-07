@@ -2,7 +2,7 @@
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
 // *************************
-// Combine multiple 1D profiles with different SDDs.
+// *** Combine multiple 1D profiles with different SDDs.
 // *************************
 Function R2D_SDDCombineranel() // Create a panel to combine waves of different SDD
 	
@@ -376,126 +376,133 @@ End
 
 Static Function UpdateCursor(WindowName)
 	String WindowName
-			//Get info from package datafolder
-			Dowindow/F $WindowName
-			
-			SVAR LongSDDIntPath = root:Red2Dpackage:U_LongSDDIntPath
-			SVAR midSDDIntPath = root:Red2Dpackage:U_midSDDIntPath
-			SVAR ShortSDDIntPath = root:Red2Dpackage:U_ShortSDDIntPath
-			String long_qpath = RemoveEnding(LongSDDIntPath, "_i") + "_q"
-			String mid_qpath = RemoveEnding(midSDDIntPath, "_i") + "_q"
-			String short_qpath = RemoveEnding(ShortSDDIntPath, "_i") + "_q"
-			String long_errPath = RemoveEnding(LongSDDIntPath, "_i") + "_s"
-			String mid_errpath = RemoveEnding(midSDDIntPath, "_i") + "_s"
-			String short_errPath = RemoveEnding(ShortSDDIntPath, "_i") + "_s"
-			
-			Wave/Z I_long = $LongSDDIntPath
-			Wave/Z I_mid = $midSDDIntPath
-			Wave/Z I_short = $ShortSDDIntPath
-			Wave/Z q_long = $long_qpath
-			Wave/Z q_mid = $mid_qpath
-			Wave/Z q_short = $short_qpath
-			Wave/Z err_long = $long_errPath
-			Wave/Z err_mid = $mid_errPath
-			Wave/Z err_short = $short_errPath
-
-			NVAR qindex_0 = root:Red2Dpackage:U_qindex_0
-			NVAR qindex_1 = root:Red2Dpackage:U_qindex_1
-			NVAR qindex_2 = root:Red2Dpackage:U_qindex_2
-			NVAR qindex_3 = root:Red2Dpackage:U_qindex_3
-			
-			NVAR U_Cursorlong = root:Red2Dpackage:U_Cursorlong
-			NVAR U_Cursormid = root:Red2Dpackage:U_Cursormid
-
-			//Get trace name and the selected q index
-			String TraNamLst = TraceNameList("", ";", 1)
-			Variable NumTraces = ItemsInList(TraNamLst)
-			String TraceName_long
-			String TraceName_mid
-			String TraceName_short
-			If(WaveExists(I_short))
-				TraceName_long = StringFromList(NumTraces-3, TraNamLst)
-				TraceName_mid = StringFromList(NumTraces-2, TraNamLst)
-				TraceName_short = StringFromList(NumTraces-1, TraNamLst)
-			Else
-				TraceName_long = StringFromList(NumTraces-2, TraNamLst)
-				TraceName_mid = StringFromList(NumTraces-1, TraNamLst)
-			Endif
-			
-			
-			// Long and middle
-			//Use cursor to set q index and value of mid SDD
-			qindex_0 = U_Cursorlong	// get value from panel
-			Cursor/W=$WindowName A $TraceName_long qindex_0		// set cursor
-			Variable qval_long = q_long[qindex_0]	// get q value
-			
-			//Find nearest q index of long SDD
-			Variable qTol = qval_long*0.00001
-			FindValue/V=(qval_long) /T=(qTol) q_mid
-			Variable i
-			For(i=0; i<1000; i++)
-				If(V_value==-1)
-					qTol*=(i+1)
-					FindValue/V=(qval_long) /T=(qTol) q_mid 
-				Endif
-			Endfor
-			
-			If(V_value == -1) //No nearest value found
-				Abort "Neast q value was not found."
-			Else
-				qindex_1 = V_value
-			Endif
-			
-			Do
-				qindex_1 +=1
-				if(q_long[qindex_0] < q_mid[qindex_1])
-					break
-				Endif
-			While(1)
-
-			Cursor/W=$WindowName B $TraceName_mid qindex_1
-			
-		If(WaveExists(I_short))
-			// Middle and short
-			//Use cursor to set q index and value of mid SDD
-			qindex_2 = U_Cursormid	// get value from panel
-			Cursor/W=$WindowName C $TraceName_mid qindex_2		// set cursor
-			Variable qval_mid = q_mid[qindex_2]	// get q value
-			
-			//Find nearest q index of long SDD
-			qTol = qval_mid*0.0000001
-			FindValue/V=(qval_mid) /T=(qTol) q_short
-			For(i=0; i<1000; i++)
-				If(V_value==-1)
-					qTol*=(i+1)
-					FindValue/V=(qval_mid) /T=(qTol) q_short
-				Endif
-			Endfor
-			
-			If(V_value == -1) //No nearest value found
-				Abort "Neast q value was not found."
-			Else
-				qindex_3 = V_value
-			Endif
-			
-			Do
-				qindex_3 +=1
-				if(q_mid[qindex_2] < q_short[qindex_3])
-					break
-				Endif
-			While(1)
-
-			Cursor/W=$WindowName D $TraceName_short qindex_3
+	//Get info from package datafolder
+	Dowindow/F $WindowName
+	
+	SVAR LongSDDIntPath = root:Red2Dpackage:U_LongSDDIntPath
+	SVAR midSDDIntPath = root:Red2Dpackage:U_midSDDIntPath
+	SVAR ShortSDDIntPath = root:Red2Dpackage:U_ShortSDDIntPath
+	String long_qpath = RemoveEnding(LongSDDIntPath, "_i") + "_q"
+	String mid_qpath = RemoveEnding(midSDDIntPath, "_i") + "_q"
+	String short_qpath = RemoveEnding(ShortSDDIntPath, "_i") + "_q"
+	String long_errPath = RemoveEnding(LongSDDIntPath, "_i") + "_s"
+	String mid_errpath = RemoveEnding(midSDDIntPath, "_i") + "_s"
+	String short_errPath = RemoveEnding(ShortSDDIntPath, "_i") + "_s"
+	
+	Wave/Z I_long = $LongSDDIntPath
+	Wave/Z I_mid = $midSDDIntPath
+	Wave/Z I_short = $ShortSDDIntPath
+	Wave/Z q_long = $long_qpath
+	Wave/Z q_mid = $mid_qpath
+	Wave/Z q_short = $short_qpath
+	Wave/Z err_long = $long_errPath
+	Wave/Z err_mid = $mid_errPath
+	Wave/Z err_short = $short_errPath
+	
+	NVAR qindex_0 = root:Red2Dpackage:U_qindex_0
+	NVAR qindex_1 = root:Red2Dpackage:U_qindex_1
+	NVAR qindex_2 = root:Red2Dpackage:U_qindex_2
+	NVAR qindex_3 = root:Red2Dpackage:U_qindex_3
+	
+	NVAR U_Cursorlong = root:Red2Dpackage:U_Cursorlong
+	NVAR U_Cursormid = root:Red2Dpackage:U_Cursormid
+	
+	//Get trace name and the selected q index
+	String TraNamLst = TraceNameList("", ";", 1)
+	Variable NumTraces = ItemsInList(TraNamLst)
+	String TraceName_long
+	String TraceName_mid
+	String TraceName_short
+	If(WaveExists(I_short))
+		TraceName_long = StringFromList(NumTraces-3, TraNamLst)
+		TraceName_mid = StringFromList(NumTraces-2, TraNamLst)
+		TraceName_short = StringFromList(NumTraces-1, TraNamLst)
+	Else
+		TraceName_long = StringFromList(NumTraces-2, TraNamLst)
+		TraceName_mid = StringFromList(NumTraces-1, TraNamLst)
+	Endif
+	
+	
+	// Long and middle
+	//Use cursor to set q index and value of mid SDD
+	qindex_0 = U_Cursorlong	// get value from panel
+	Cursor/P/W=$WindowName A $TraceName_long qindex_0		// set cursor
+	Variable qval_long = q_long[qindex_0]	// get q value
+	
+	if(numtype(qval_long) == 2)
+		return -1
+	endif
+	
+	//Find nearest q index of long SDD
+	Variable qTol = qval_long*0.00001
+	FindValue/V=(qval_long) /T=(qTol) q_mid
+	Variable i
+	For(i=0; i<1000; i++)
+		If(V_value==-1)
+			qTol*=(i+1)
+			FindValue/V=(qval_long) /T=(qTol) q_mid 
 		Endif
+	Endfor
+	
+	If(V_value == -1) //No nearest value found
+		Abort "Nearst q value was not found."
+	Else
+		qindex_1 = V_value
+	Endif
+	
+	Do
+		qindex_1 +=1
+		if(q_long[qindex_0] < q_mid[qindex_1])
+			break
+		Endif
+	While(1)
+	
+	Cursor/W=$WindowName B $TraceName_mid qindex_1
 			
-		Cursor /M/C=(60000,0,0)/S=1 A
-		Cursor /M/C=(0,0,60000)/S=1 B
-		Cursor /M/C=(60000,0,0)/S=1 C
-		Cursor /M/C=(0,0,60000)/S=1 D
+	If(WaveExists(I_short))
+		// Middle and short
+		//Use cursor to set q index and value of mid SDD
+		qindex_2 = U_Cursormid	// get value from panel
+		Cursor/P/W=$WindowName C $TraceName_mid qindex_2		// set cursor
+		Variable qval_mid = q_mid[qindex_2]	// get q value
+		if(numtype(qval_mid) == 2)
+			return -1
+		endif
+
+		//Find nearest q index of long SDD
+		qTol = qval_mid*0.0000001
+		FindValue/V=(qval_mid) /T=(qTol) q_short
+		For(i=0; i<1000; i++)
+			If(V_value==-1)
+				qTol*=(i+1)
+				FindValue/V=(qval_mid) /T=(qTol) q_short
+			Endif
+		Endfor
+		
+		If(V_value == -1) //No nearest value found
+			Abort "Nearst q value was not found."
+		Else
+			qindex_3 = V_value
+		Endif
+		
+		Do
+			qindex_3 +=1
+			if(q_mid[qindex_2] < q_short[qindex_3])
+				break
+			Endif
+		While(1)
+	
+		Cursor/P/W=$WindowName D $TraceName_short qindex_3
+	Endif
+		
+	Cursor /M/C=(60000,0,0)/S=1 A
+	Cursor /M/C=(0,0,60000)/S=1 B
+	Cursor /M/C=(60000,0,0)/S=1 C
+	Cursor /M/C=(0,0,60000)/S=1 D
 End
 
 // *************************
-// Shorten 1D scattering profiles
+// *** Shorten 1D scattering profiles
 // *************************
 Function R2D_Shorten1D()
 	
@@ -544,7 +551,7 @@ Function R2D_Shorten1D()
 End
 
 // *************************
-// Resampling 1D scattering profiles
+// *** Resampling 1D scattering profiles
 // *************************
 Function R2D_LogResample1D()
 	/////Check error
@@ -675,7 +682,7 @@ Static Function/S LogResample(mode, base, pWave, err)
 End
 
 // *************************
-// Export 1D scattering profiles
+// *** Export 1D scattering profiles
 // *************************
 Function R2D_Export1D(WhichName, xaxis)
 	Variable WhichName	//0 for wave name, 1 for sample name.
@@ -793,7 +800,7 @@ Function R2D_Export1D(WhichName, xaxis)
 End
 
 // *************************
-// Load 1D profiles. q, i, s.
+// *** Load 1D profiles. q, i, s.
 // *************************
 Function/S R2D_LoadSelectedQIS()
 
@@ -871,7 +878,7 @@ Function/S R2D_LoadSelectedQIS()
 End
 
 // *************************
-// Add 1D waves. Not in use 2023-04-16.
+// *** Add 1D waves. Not in use 2023-04-16.
 // *************************
 Function R2D_Add1D(filtername, interval)
 	string filtername
