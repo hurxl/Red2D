@@ -581,7 +581,7 @@ Function R2D_SavePIC_worker(WinNameStr, WhichName, extension, [pathName])
 	if(stringmatch(GetDataFolder(1), "root:"))
 		PackagePath = "root:Red2Dpackage:"
 	else
-		PackagePath = GetDataFolder(1)+":Red2Dpackage:"
+		PackagePath = GetDataFolder(1)+"Red2Dpackage:"
 	endif
 	Wave/Z/T datasheet = $(PackagePath + "Datasheet")
 	String SampleName
