@@ -62,23 +62,6 @@ Function/S R2D_Load_SAXSpoint_h5z()
 
 	R2D_cleanuptmpfolder(".h5")
 	
-	// ask user to select a h5z file and unzip h5z
-	string first_h5path = R2D_unzipH5zip()
-	if (strlen(first_h5path) > 0 )
-		R2D_Load_SAXSpoint_hdf(first_h5path)
-	endif
-
-	R2D_cleanuptmpfolder(".h5")
-	
-End
-
-
-Function/S R2D_unzipH5zip()
-
-	// create a tmp folder if not exist
-	string IgorUserTmp_pathstr = R2D_createtmpfolder()
-	NewPath/Q/O IgorUserTmp, IgorUserTmp_pathstr	// create a symbloci path for the tmp folder
-	
 	// ask user to select a h5z file
 	variable refnum
 	string fileFilters = "Zipped HDF Files (*.h5z):.h5z;"
@@ -90,6 +73,21 @@ Function/S R2D_unzipH5zip()
 		string h5zPath = S_fileName
 	endif
 	
+	// unzip h5z
+	string first_h5path = R2D_unzipH5zip(h5zPath, IgorUserTmp_pathstr)
+	if (strlen(first_h5path) > 0 )
+		R2D_Load_SAXSpoint_hdf(first_h5path)
+	endif
+
+	R2D_cleanuptmpfolder(".h5")
+	
+End
+
+
+Function/S R2D_unzipH5zip(h5zPath, IgorUserTmp_pathstr)
+	string h5zPath
+	string IgorUserTmp_pathstr
+
 	// unzip the h5z
 	UnzipFile/Z/O h5zPath, IgorUserTmp_pathstr
 	if(V_flag == 0) //  the operation succeeds
@@ -410,18 +408,19 @@ end
 
 Function R2D_FillDataseetSAXSpoint()
 
-	R2D_FillDataseet_worker("Sample Name", " : ", "\r", "SampleName")
-	R2D_FillDataseet_worker("Measeurment time", " : ", "\r", "Time_s")
-	R2D_FillDataseet_worker("Transmittance", " : ", "\r", "Trans")
-	R2D_FillDataseet_worker("sample_thickness", " : ", "\r", "Thick_cm")
+	R2D_FillDataseet_worker("Sample Name", " : ", "\r", "SampleName", "text")
+	R2D_FillDataseet_worker("Measeurment time", " : ", "\r", "Time_s", "number")
+	R2D_FillDataseet_worker("Transmittance", " : ", "\r", "Trans", "number")
+	R2D_FillDataseet_worker("sample_thickness", " : ", "\r", "Thick_cm", "number")
 
 End
 
-Function R2D_FillDataseet_worker(Key, KeySeparator, ListSeparator, DatasheetColName)
+Function R2D_FillDataseet_worker(Key, KeySeparator, ListSeparator, DatasheetColName, format)
 	String Key
 	String KeySeparator
 	String ListSeparator
 	String DatasheetColName
+	String format
 	
 	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet. if in a wrong datafolder, return an error and abort.
 	wave/T/Z datasheet = $Datasheet_Path
@@ -432,8 +431,8 @@ Function R2D_FillDataseet_worker(Key, KeySeparator, ListSeparator, DatasheetColN
 	String target
 	String image_note
 	variable numInDatasheet = Dimsize(Datasheet, 0)
+	variable val
 	variable i
-	
 	For(i=0; i<numInDatasheet; i++)
 		imagename = Datasheet[i][%ImageName]  // get imagename
 		imagepath = imagefolder+imagename  // set image full path. the user may be in the image folder and 1d folder.
@@ -442,6 +441,10 @@ Function R2D_FillDataseet_worker(Key, KeySeparator, ListSeparator, DatasheetColN
 		if(strlen(target) == 0 || numtype(strlen(target)) == 2)
 			// do nothing
 		else
+			if(stringmatch(format, "number"))	// remove non-numeric characters
+				val = str2num(target)
+				target = num2str(val)
+			endif
 			Datasheet[i][%$DatasheetColName] = target
 		endif
 	Endfor

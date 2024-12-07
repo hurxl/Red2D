@@ -9,7 +9,7 @@ Menu "Red2D"
 		"Load All TIFF Images in Folder", R2D_LoadImages(".tif", "folder", 1)	// folder: load all files in the selected folder, 1: overwrite enabled
 		"Load TIFF Recursively", R2D_LoadImages(".tif", "recursive", 1)	// recursive: load all files recursively, 1: overwrite enabled
 		"-"
-//		"Load Selected h5z file",  R2D_Load_SAXSpoint_zip()	// h5z file: load h5z file of AntonPaar SAXSpoint
+		"Load a SAXSpoint h5z file",  R2D_Load_SAXSpoint_h5z()	// h5z file: load h5z file of AntonPaar SAXSpoint
 		"-"
 
 		"Load Selected EDF Images", R2D_LoadImages(".edf", "files", 1)	// files: load selected files, 1: overwrite enabled
@@ -41,7 +41,7 @@ Menu "Red2D"
 		"Show Existing Datasheet", R2D_CreateOrShowDatasheet(1)
 		"-"
 //		"Write time and trnas (only work SAXSpoint)",  Red2D_writeTimeAndTrnasToDatasheet()
-//		"Auto Fill Datasheet (SAXSpoint)", R2D_FillDataseetSAXSpoint()
+		"Auto Fill Datasheet (SAXSpoint)", R2D_FillDataseetSAXSpoint()
 	End
 	
 	Submenu "8. Normalize 1D"	
