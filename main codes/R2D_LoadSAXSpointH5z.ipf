@@ -2,84 +2,107 @@
 #pragma rtGlobals=3				// Use modern global access method and strict wave access
 #pragma DefaultTab={3,20,4}		// Set default tab width in Igor Pro 9 and later
 
-Function/S R2D_Load_SAXSpoint_zip()
+// *** MISC
+
+Function/S R2D_createtmpfolder()
 
 	// Windows or Mac
 	string os = IgorInfo(2)
 
-	// Igor User Folder
+	// Igor User Folder, and tmp folder
 	PathInfo IgorUserFiles
-	string PCpath_IgorUserFiles
+	string IgorUserTmp_pathstr = S_path + "tmp"	// path string of Igor User Tmp folder	(igor does not have default tmp folder)
 	
-	// Create tmp folder inside Igor Pro User Files
-	string TempFolderPath
+	// Check if tmp folder already exists. if not, create one.
+	GetFileFolderInfo/Q/Z IgorUserTmp_pathstr
+	string IgorUserTmp_pcpath
 	string cmd
-	String path
-	if(stringmatch(os,"Macintosh"))	// Mac
-		PCpath_IgorUserFiles = ParseFilePath(5, S_path,"/",0,0) // convert symbolic path to MacOS UNIX path.
-		TempFolderPath = PCpath_IgorUserFiles + "tmp"
-		sprintf cmd, "mkdir -p '%s'", TempFolderPath
-		R2D_ExecuteUnixShellCommand(cmd, 0, 0)
-	elseif(stringmatch(os, "Windows"))	// Windows
-		PCpath_IgorUserFiles = ParseFilePath(5, TempFolderPath,"\\",0,0)	// convert symbolic path to Windows path.
-		TempFolderPath = PCpath_IgorUserFiles + "tmp"
-		sprintf cmd, "mkdir '%s'", TempFolderPath
-		R2D_ExecuteWindowsShellCommand(cmd, 0, 0)
-	endif
-	
-	PathInfo IgorUserFiles
-	TempFolderPath = S_path + "tmp"
-	
-	NewPath/O IgorUserTmp, TempFolderPath
-
-	String h5list = IndexedFile(IgorUserTmp, -1, ".h5") // get h5 file list in tmp folder
-	variable i
-	for(i=0; i<itemsInList(h5list); i++) // delete all h5 file in tmp folder
-		String h5file = StringFromList(i, h5list)
-		deleteFile/Z/P=IgorUserTmp h5file	
-	endfor
-
-	string unzippedTmpPath = R2D_unzipH5zip()
-	if (numtype(strlen(unzippedTmpPath)) == 0 )
-//		R2D_Load_SAXSpoint_h5_files(unzippedTmpPath)			
-	endif
-	
-	h5file = IndexedFile(IgorUserTmp, 0, ".h5")
-	deleteFile/Z/P=IgorUserTmp h5file	
-	
-End
-
-Function/S R2D_unzipH5zip()
-	
-	variable refnum
-	string fileFilters = "Zipped HDF Files (*.h5z):.h5z;"
-	
-	Open/D/R/F=fileFilters/M="Select a zip file" refNum
-	
-	// if no files is selected, close this proceddure.
-	if (strlen(S_fileName) == 0)
-		Print "User cancelled"
-	else
-	
-	string archivePathStr = S_fileName
-	string TempFolderPath = SpecialDirPath("Igor Pro User Files", 0, 0, 0) + "tmp"
-	
-	UnzipFile/Z/O archivePathStr, TempFolderPath
-	
-		if(V_flag == 0) //  the operation succeeds
-			NewPath/O IgorUserTmp, TempFolderPath
-			string filepath = TempFolderPath + ":" + IndexedFile(IgorUserTmp, 0, ".h5")
-			print "The zip is expaneded in " +filepath
-			return filepath
-		else
-		
-			print "Unzipping failed."
-			return ""
+	If(V_flag == 0)	// tmp folder exists
+		// do nothing
+	else	// tmp folder does not exist
+		PathInfo IgorUserFiles	// get path string of user folder again, result saved in S_path
+		// note: ParseFilePath shows error for non-existing path
+		if(stringmatch(os,"Macintosh"))	// Mac
+			IgorUserTmp_pcpath = ParseFilePath(5, S_path,"/",0,0) + "tmp"	// convert symbolic path to MacOS UNIX path.
+			sprintf cmd, "mkdir -p '%s'", IgorUserTmp_pcpath
+			R2D_ExecuteUnixShellCommand(cmd, 0, 0)
+		elseif(stringmatch(os, "Windows"))	// Windows
+			IgorUserTmp_pcpath = ParseFilePath(5, S_path,"\\",0,0) + "tmp"	// convert symbolic path to Windows path.
+			sprintf cmd, "mkdir '%s'", IgorUserTmp_pcpath
+			R2D_ExecuteWindowsShellCommand(cmd, 0, 0)
 		endif
 	endif
+	
+	return IgorUserTmp_pathstr
+
 End
 
-Function R2D_Load_SAXSpoint_h5_files(filePath)
+Function R2D_cleanuptmpfolder(extension)
+	string extension
+
+	// cleanup tmp folder
+	String filelist = IndexedFile(IgorUserTmp, -1, extension) // get file list in tmp folder
+	String file
+	variable i
+	for(i=0; i<itemsInList(filelist); i++)	// delete all files
+		file = StringFromList(i, filelist)
+		deleteFile/Z/P=IgorUserTmp file	
+	endfor
+
+End
+
+
+// *** MAIN
+
+Function/S R2D_Load_SAXSpoint_h5z()
+
+	// create a tmp folder if not exist
+	string IgorUserTmp_pathstr = R2D_createtmpfolder()
+	NewPath/Q/O IgorUserTmp, IgorUserTmp_pathstr	// create a symbloci path for the tmp folder
+
+	R2D_cleanuptmpfolder(".h5")
+	
+	// ask user to select a h5z file and unzip h5z
+	string first_h5path = R2D_unzipH5zip()
+	if (strlen(first_h5path) > 0 )
+		R2D_Load_SAXSpoint_hdf(first_h5path)
+	endif
+
+	R2D_cleanuptmpfolder(".h5")
+	
+End
+
+
+Function/S R2D_unzipH5zip()
+
+	// create a tmp folder if not exist
+	string IgorUserTmp_pathstr = R2D_createtmpfolder()
+	NewPath/Q/O IgorUserTmp, IgorUserTmp_pathstr	// create a symbloci path for the tmp folder
+	
+	// ask user to select a h5z file
+	variable refnum
+	string fileFilters = "Zipped HDF Files (*.h5z):.h5z;"
+	Open/D/R/F=fileFilters/M="Select a zip file" refNum
+	if (strlen(S_fileName) == 0)	// if no files is selected, close this proceddure.
+		Print "User cancelled"
+		return ""
+	else
+		string h5zPath = S_fileName
+	endif
+	
+	// unzip the h5z
+	UnzipFile/Z/O h5zPath, IgorUserTmp_pathstr
+	if(V_flag == 0) //  the operation succeeds
+		string filepath = IgorUserTmp_pathstr + ":" + IndexedFile(IgorUserTmp, 0, ".h5")
+		print "The h5z is extracted in " + filepath
+		return filepath
+	else
+		print "Unzipping failed."
+		return ""
+	endif
+End
+
+Function R2D_Load_SAXSpoint_hdf(filePath)
 	string filePath
 	print filePath
 	
@@ -116,10 +139,10 @@ Function R2D_Load_SAXSpoint_h5_files(filePath)
 	HDF5LoadData/Q/O/Z/N = y_pixel_size fileID, "/entry/instrument/detector/y_pixel_size" // load y_pixel_size
 	
 	
-	if (V_flag != 0)
-		Print "HDF5LoadData failed"
-		result = -1
-	endif
+//	if (V_flag != 0)
+//		Print "HDF5LoadData failed"
+//		result = -1
+//	endif
 
 	// Close the HDF5 file
 	HDF5CloseFile fileID
@@ -156,7 +179,7 @@ Function R2D_Load_SAXSpoint_h5_files(filePath)
 			if (j < 128) // Bsecause size of sample_column and sample_row wave diffrerents with  sample_name_raw
 				if(sample_column[i][j] != 0)
 					columnstring += num2char(sample_column[i][j]) //Sample column
-				endif			
+				endif
 						
 				if(sample_row[i][j] != 0)
 					columnstring += num2char(sample_row[i][j]) //Sample row
@@ -165,7 +188,7 @@ Function R2D_Load_SAXSpoint_h5_files(filePath)
 				if(ambient_status_raw[i][j] != 0)
 					ambientstring += num2char(ambient_status_raw[i][j])  //Ambient status
 				endif
-			endif						
+			endif
 		endfor
 		
 		sample_name[i] = namestring
@@ -273,15 +296,13 @@ function Red2D_SpliteImageStack()
 		wnote = ""
 	endfor
 	
-	Wave SDDtype
-	
+	Wave/Z SDDtype
 	if (numpnts(SDD) >> 1)
 		FindDuplicates/FREE/RN = SDDtype SDD // Find num of SDD 
 	else 
 		Make/O/N = 1 SDDtype
 		SDDtype = SDD
-		
-	endif 		
+	endif
  	SDDtype = round(SDDtype*1000)
 
 	
