@@ -1,7 +1,7 @@
 ﻿#pragma TextEncoding = "UTF-8"
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
-/////////GUI//////////
+// *** GUI
 Function R2D_Display2D()
 
 	/// Check if in the image folder.
@@ -57,11 +57,14 @@ Function R2D_Display2D()
 	// Create an image list
 	R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
 	Wave/T ImageList = :Red2DPackage:ImageList
-	Make/O/T/N=0 :Red2DPackage:ImageNote
+	Wave/T/Z ImageNote = :Red2DPackage:ImageNote
+	if(!WaveExists(ImageNote))
+		Make/O/T/N=0 :Red2DPackage:ImageNote
+	endif
 	
 	//Create listbox named ImageList and make it follows ListBoxProc
 	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,320}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
-	ListBox lb2 listWave=:Red2DPackage:ImageNote, mode=0, frame=4, size={400,550}, pos={355,25}, fSize=13
+	ListBox lb2 listWave=ImageNote, mode=0, frame=4, size={400,550}, pos={355,25}, fSize=13, proc=R2D_ListBoxProc_Display2D_Note
 
 	TitleBox title0 title=simple_imagefolderpath,  fSize=14, pos={6,5}, frame=0
 	TitleBox title1 title="Note",  fSize=14, pos={515,5}, frame=0
@@ -98,7 +101,7 @@ Function R2D_Display2D()
 	SetDataFolder $savedDF
 End
 
-
+// *** Action
 Function ButtonProcR2D_BringImageToFront(ba) : ButtonControl
 	STRUCT WMButtonAction &ba
 
@@ -188,6 +191,12 @@ Function ListBoxProcShow2D(lba) : ListBoxControl
 	WAVE/Z selWave = lba.selWave
 
 	switch( lba.eventCode )
+		case 1: // Mouse down
+			if (lba.eventMod & 0x10)// Right-click?
+				R2D_Display2D_WaveListRightClick(row, listwave)
+			endif
+			break
+	
 		case 4: // cell selection
 			Variable numOfrows = DimSize(listWave,0)
 			If(row < numOfrows)
@@ -262,12 +271,12 @@ Function R2D_DisplayImagesWindowHook(s)
 
 	switch(s.eventCode)
 		case 0:	// window activated
-			String ImageFolderPath = R2D_GetImageFolderPath()
-			If(strlen(ImageFolderPath) > 0)
+//			String ImageFolderPath = R2D_GetImageFolderPath()
+//			If(strlen(ImageFolderPath) > 0)
 				R2D_Display2D()
 //				Print "Image folder detected. Refresh list."
 				hookResult = 1			
-			Endif
+//			Endif
 			break		
 	endswitch
 
@@ -364,10 +373,89 @@ Function Red2D_ColorTableMenu(pa) : PopupMenuControl
 	return 0
 End
 
+Function R2D_ListBoxProc_Display2D_Note(lba) : ListBoxControl
+	STRUCT WMListboxAction &lba
+
+	Variable row = lba.row
+	Variable col = lba.col
+	WAVE/T/Z listWave = lba.listWave
+	WAVE/Z selWave = lba.selWave
+	
+	switch (lba.eventCode)
+	case 1: // Mouse down
+		if (lba.eventMod & 0x10)// Right-click?
+			R2D_Display2D_NoteRightClick(row, listwave)
+		endif
+		break
+	endswitch
+
+	return 0
+
+End
+
+static Function R2D_Display2D_WaveListRightClick(row, listwave)
+	variable row
+	wave/T listwave
+
+	String popupItems = ""
+	popupItems += "Copy;"
+	PopupContextualMenu popupItems
+	
+	string tocopy = ""
+	string s
+	strswitch (S_selection)
+		case "Copy":
+			tocopy = listWave[row]
+			break
+	endswitch
+	
+	PutScrapText tocopy
+	
+	return 0
+End
+
+static Function R2D_Display2D_NoteRightClick(row, listwave)
+	variable row
+	wave/T listwave
+
+	String popupItems = ""
+	popupItems += "Copy Value;Copy Number;Copy Row;Copy Entire Note;"
+	PopupContextualMenu popupItems
+
+	string tocopy = ""
+	string s
+	strswitch (S_selection)
+		case "Copy Value":
+			s = StringFromList(1, listWave[row], ":")
+			s = TrimString(s)
+			s = ReplaceString("\"",s,"")
+			tocopy = s
+			break
+		case "Copy Number":	
+			s = StringFromList(1, listWave[row], ":")
+			s = TrimString(s)
+			s = ReplaceString("\"",s,"")
+			variable val = str2num(s)	// remove non-numeric characters
+			s = num2str(val)
+			tocopy = s
+			break
+		case "Copy Row":
+			tocopy = listWave[row]
+			break
+		case "Copy Entire Note":
+			for(s: listWave)
+				tocopy += s + "\r"
+			endfor			
+			break
+	endswitch
+	
+	PutScrapText tocopy
+	
+	return 0
+End
 
 
-//////////Main Code////////////
-
+// *** Main Code
 Static Function Show2D(row)
 	variable row
 	
@@ -428,18 +516,7 @@ Static Function Show2D(row)
 	Endif
 End
 
-Function/S R2D_GetImageFolderPath()
 
-	String ImageFolderPath = ""
-	If(R2D_Error_ImagesExist(NoMessage = 1) == 0) // no error
-		ImageFolderPath = GetDataFolder(1)
-	Elseif(R2D_Error_1Dexist(NoMessage = 1) == 0) // no error
-		ImageFolderPath = GetDataFolder(1)+":"
-	Endif
-	
-	return ImageFolderPath
-
-End
 
 
 Function R2D_SavePIC(WinNameStr, extension)
@@ -565,5 +642,20 @@ Function R2D_ColorRangeAdjust_worker(low, high, [tarWinName])
 			ModifyImage/W=tarWinName ''#0 ctab= {low,high,$ColorTable,0}
 		Endif
 	Endif
+
+End
+
+
+// *** MISC
+Function/S R2D_GetImageFolderPath()
+
+	String ImageFolderPath = ""
+	If(R2D_Error_ImagesExist(NoMessage = 1) == 0) // no error
+		ImageFolderPath = GetDataFolder(1)
+	Elseif(R2D_Error_1Dexist(NoMessage = 1) == 0) // no error
+		ImageFolderPath = GetDataFolder(1)+":"
+	Endif
+	
+	return ImageFolderPath
 
 End
