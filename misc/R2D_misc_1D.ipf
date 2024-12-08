@@ -553,131 +553,353 @@ End
 // *************************
 // *** Resampling 1D scattering profiles
 // *************************
-Function R2D_LogResample1D()
-	/////Check error
+//Function R2D_LogResample1D()
+//	/////Check error
+//	If(R2D_Error_1Dexist() == -1)
+//		Abort
+//	Endif
+//	
+//	// Let user input a base and select a Resample mode
+//	String mode = StrVarOrDefault("::Red2Dpackage:U_mode", "Resample")
+//	variable base = NumVarOrDefault("::Red2Dpackage:U_base",1.05)
+//	Prompt mode, "Resample mode",popup,"Resample;Bin"
+//	Prompt base, "Enetr a base value for for new index j (e.g. j = base^i )"
+//	DoPrompt "Resample info" mode, base
+//	if(V_Flag)
+//		Print "User canceled"
+//		Abort
+//	Elseif(base <= 1)
+//		Print "Base must be a value larger than 1"
+//		Abort "Base must be a value larger than 1"
+//	endif
+//	
+//	String/G ::Red2Dpackage:U_mode = mode
+//	Variable/G ::Red2Dpackage:U_base = base
+//	
+//	// Set a new datafolder to save resampled data
+//	String ResDFpath = "::Log" + mode + "_" + GetDataFolder(0)
+//	NewDataFolder/O $ResDFpath
+//	
+//	// GetWavelist in current datafolder
+//	String keyword
+//	String keyword_list = "*_q;*_i;*_s;*_2t"
+//	String reflist
+//	Variable numInList
+//	String tempName
+//	String newWavePath
+//	
+//	// Call Resample code
+//	Variable i, j
+//	For(i=0; i<4; i++)
+//		keyword = StringFromList(i, keyword_list)
+//		reflist = Wavelist(keyword,";","DIMS:1,TEXT:0")
+//		numInList = itemsInList(reflist)
+//		If(cmpstr(keyword, "*_s") == 0)	// if true, use error propagation
+//			For(j=0; j<numInList; j++)
+//				Wave/Z refWave = $StringFromList(j, reflist)
+//				tempName = LogResample(mode, base, refWave, 1)
+//				newWavePath = ResDFpath + ":" + NameOfWave(refWave)
+//				Duplicate/O/D $tempName, $newWavePath
+//				Killwaves $tempName
+//			Endfor
+//		Else	// if false, use normal Resample
+//			For(j=0; j<numInList; j++)
+//				Wave/Z refWave = $StringFromList(j, reflist)
+//				tempName = LogResample(mode, base, refWave, 0)
+//				newWavePath = ResDFpath + ":" + NameOfWave(refWave)
+//				Duplicate/O/D $tempName, $newWavePath
+//				Killwaves $tempName
+//			Endfor
+//		Endif	
+//	Endfor
+//	
+//End
+
+//Static Function/S LogResample(mode, base, pWave, err)
+//	String mode	// Resample or Bin, specified by resamp and bin
+//	variable base	// the base of log spacing
+//	wave pWave	// target wave
+//	variable err	// 0 for normal, 1 for error propagation
+//	
+//	Variable numPts = DimSize(pWave,0)	// Get Dimsize of target wave
+//	Duplicate/O/D/FREE pWave, errWave2
+//	errWave2 = pWave^2
+//	
+//	// log spacing data
+//	variable i, j, i0
+//	i = 0	// initialize
+//	j = 0	// initialize
+//	i0 = 0	// initialize
+//	Make/FREE/O/N=(numPts) refwave	// a reference wave to store the log spaced data
+//	//	The first point will not be binned or resampled.
+//	refwave[0] = pWave[0]	// i = round(base^j) - 1 = 0 when j = 0
+//	
+//	Do
+//		j ++	// Index of log spaced wave
+//		i = round(base^j) - 1	// the corresponding index of original wave
+//	
+//		If(i >= numPts)	// if the index is outside the wave, break loop
+//			break
+//		Endif
+//		
+//		If(i == i0)	// if the current index is equal to the previous one, then skip
+//			refwave[j] = NaN
+//		Else
+//			Strswitch(mode)
+//				Case "Bin":
+//						If(err == 0)
+//							refwave[j] = mean(pWave, pnt2x(pWave,i0+1),pnt2x(pWave,i)) 	// get an average
+//						Elseif(err == 1)
+//							refwave[j] = sqrt( sum(errWave2, pnt2x(pWave,i0+1),pnt2x(pWave,i)) )/ (i-i0)	// error propagation
+//						Endif
+//					break
+//				Case "Resample":
+//						refwave[j] = pWave[i]	// get log-spaced data. In Resample error wave, no need to use error propagation
+//					break
+//			Endswitch
+//		Endif
+//		
+//		i0 = i	// store the old index of original wave	
+//	While(1)
+//	
+//	// save data
+//	String NewName
+//	Strswitch(mode)
+//		case "Bin":
+//			NewName = NameOfWave(pWave) + "_logbin"
+//			break
+//		Case "Resample":
+//			NewName = NameOfWave(pWave) + "_logsamp"
+//			break
+//	endswitch
+//	Make/O/D/N=(j) $NewName
+//	wave NewWave = $NewName
+//	NewWave = refwave	// save refwave to a shorter new wave to remove unnecessary points
+//	//	Wavetransform/O zapNaNs NewWave	// remove NaN from waves
+//	
+//	Return NewName
+//
+//End
+
+Function R2D_LogSpace1D()
+
+	// error check
 	If(R2D_Error_1Dexist() == -1)
 		Abort
 	Endif
 	
-	// Let user input a base and select a Resample mode
+	// Prompt
 	String mode = StrVarOrDefault("::Red2Dpackage:U_mode", "Resample")
-	variable base = NumVarOrDefault("::Red2Dpackage:U_base",1.05)
+	Variable numLogPnts = NumVarOrDefault("::Red2Dpackage:U_numLogPnts",100)
+	Variable qloglow = NumVarOrDefault("::Red2Dpackage:U_qloglow",0.001)
+	Variable qloghigh = NumVarOrDefault("::Red2Dpackage:U_qloghigh",1)
+	
 	Prompt mode, "Resample mode",popup,"Resample;Bin"
-	Prompt base, "Enetr a base value for for new index j (e.g. j = base^i )"
-	DoPrompt "Resample info" mode, base
+	Prompt numLogPnts, "Enetr the number of points of new log-spaced waves"
+	Prompt qloglow, "Enetr lowest q (Å-1)"
+	Prompt qloghigh, "Enetr highest q (Å-1)"
+	DoPrompt "Resample info" mode, numLogPnts, qloglow, qloghigh
 	if(V_Flag)
 		Print "User canceled"
 		Abort
-	Elseif(base <= 1)
-		Print "Base must be a value larger than 1"
-		Abort "Base must be a value larger than 1"
+	Elseif(qloglow >= qloghigh)
+		Print "Lowest q should be smaller than the highest q"
+		Abort "Somthing wrong in the low and high q values."
 	endif
 	
 	String/G ::Red2Dpackage:U_mode = mode
-	Variable/G ::Red2Dpackage:U_base = base
+	Variable/G ::Red2Dpackage:U_numLogPnts = numLogPnts
+	Variable/G ::Red2Dpackage:U_qloglow = qloglow
+	Variable/G ::Red2Dpackage:U_qloghigh = qloghigh
 	
-	// Set a new datafolder to save resampled data
-	String ResDFpath = "::Log" + mode + "_" + GetDataFolder(0)
-	NewDataFolder/O $ResDFpath
+	// Create a new datafolder to save log-spaced data
+	String NewDFpath = "::Log" + mode + "_" + GetDataFolder(0)
+	NewDataFolder/O $NewDFpath
 	
-	// GetWavelist in current datafolder
-	String keyword
-	String keyword_list = "*_q;*_i;*_s;*_2t"
-	String reflist
-	Variable numInList
-	String tempName
-	String newWavePath
+	// get basename list
+	string qlist = R2D_WaveList_nofits("*_q")	// get q list
+	string basename_list = ReplaceString("_q;", qlist, ";") // get basename list
+	variable numOfwave = itemsInList(qlist)
+
+	Variable i
+	String basename
+	String q_newpath, i_newpath, s_newpath
+	for(i=0; i<numOfwave; i++)
+		basename = StringFromList(i, basename_list)
+		if(stringmatch(mode, "Resample"))
+			R2D_LogResample(basename, numLogPnts, qloglow, qloghigh)
+		elseif(stringmatch(mode, "Bin"))
+			R2D_LogBin(basename, numLogPnts, qloglow, qloghigh)
+		else
+			print i
+			break
+		endif
+		wave qw_log
+		wave iw_log
+		wave/Z sw_log
+		q_newpath = NewDFpath + ":" + basename + "_q"
+		i_newpath = NewDFpath + ":" + basename + "_i"
+		s_newpath = NewDFpath + ":" + basename + "_s"
+		Duplicate/O/D qw_log, $q_newpath
+		Duplicate/O/D iw_log, $i_newpath
+		if(waveExists(sw_log))
+			Duplicate/O/D sw_log, $s_newpath
+		endif
+	endfor
 	
-	// Call Resample code
-	Variable i, j
-	For(i=0; i<4; i++)
-		keyword = StringFromList(i, keyword_list)
-		reflist = Wavelist(keyword,";","DIMS:1,TEXT:0")
-		numInList = itemsInList(reflist)
-		If(cmpstr(keyword, "*_s") == 0)	// if true, use error propagation
-			For(j=0; j<numInList; j++)
-				Wave/Z refWave = $StringFromList(j, reflist)
-				tempName = LogResample(mode, base, refWave, 1)
-				newWavePath = ResDFpath + ":" + NameOfWave(refWave)
-				Duplicate/O/D $tempName, $newWavePath
-				Killwaves $tempName
-			Endfor
-		Else	// if false, use normal Resample
-			For(j=0; j<numInList; j++)
-				Wave/Z refWave = $StringFromList(j, reflist)
-				tempName = LogResample(mode, base, refWave, 0)
-				newWavePath = ResDFpath + ":" + NameOfWave(refWave)
-				Duplicate/O/D $tempName, $newWavePath
-				Killwaves $tempName
-			Endfor
-		Endif	
-	Endfor
+	KillWaves/Z qw_log, iw_log, sw_log
 	
 End
 
-Static Function/S LogResample(mode, base, pWave, err)
-	String mode	// Resample or Bin, specified by resamp and bin
-	variable base	// the base of log spacing
-	wave pWave	// target wave
-	variable err	// 0 for normal, 1 for error propagation
+// 2024-12-08 R2D_LogBin does not support 2 theta wave because it is difficult to calcualte 2theta from q without lambda.
+// Finding q-index can create 2 theta wave but it is not easy to write the code. I do not expect much demand for this feature. So, I decided not implement it for now.
+Function/S R2D_LogBin(basename, numPoints, low, high)
+	string basename		// basename of target waves
+	variable numPoints		// number of points in new wave
+	variable low		// lowest value of x axis (qmin)
+	variable high	// highest value of x axis (qmax)
 	
-	Variable numPts = DimSize(pWave,0)	// Get Dimsize of target wave
-	Duplicate/O/D/FREE pWave, errWave2
-	errWave2 = pWave^2
+	// get q wave and corresponding i, s waves
+	wave qw = $(basename + "_q")
+	wave iw = $(basename + "_i")
+	wave sw = $(basename + "_s")
 	
-	// log spacing data
-	variable i, j, i0
-	i = 0	// initialize
-	j = 0	// initialize
-	i0 = 0	// initialize
-	Make/FREE/O/N=(numPts) refwave	// a reference wave to store the log spaced data
-	//	The first point will not be binned or resampled.
-	refwave[0] = pWave[0]	// i = round(base^j) - 1 = 0 when j = 0
+	// create new log-spaced q wave
+	Make/O/N=(numPoints) qw_log, iw_log, sw_log // new q wave to store log spaced q values
+	qw_log = NaN
+	iw_log = NaN
+	sw_log = NaN
+	qw_log = low*(high/low)^(p/(numPoints-1))	// make log-spaced q wave
 	
-	Do
-		j ++	// Index of log spaced wave
-		i = round(base^j) - 1	// the corresponding index of original wave
+	//how to calculate log-spaced wave
+	//low, high
+	//numPoints
+	//delta = [log(high)-log(low)]/numPoints = [log(high/low)]/numPoints
+	//log(qw_log) = log(low) + delta*i
+	//qw_log = 10^(log(low) + delta*i) = low * 10^(delta*i) 
+	//= low * 10^([log(high/low)]/numPoints*i)
+	//= low * {10^(log(high/low)}^(i/numPoints)
+	//= low * {high/low}^(i/numPoints)
+	//log(qw_log) = log(low) + i/numPoints*log(high/low)
+	// bin the data points in range of ith point± detla/2
+	// logdelta = 1/numPoints*log(high/low)
 	
-		If(i >= numPts)	// if the index is outside the wave, break loop
+	variable numPoints_original = numpnts(qw)
+	variable logdelta = 1/(numPoints-1)*log(high/low)
+	variable i	// index of orignal q wave
+	variable j	// index of new log spaced q wave
+	variable k	// index for running average inside jth q-region
+	variable iavg	// memory for intensity average in jth q-region
+	for(i=0; i<numPoints_original; i++)
+		if(i == 0)	// initialize everything
+			j = 0
+			k = 0
+			iavg = 0
+		endif
+
+		if(j >= numPoints)		// prevent out of range error
 			break
-		Endif
+		endif
 		
-		If(i == i0)	// if the current index is equal to the previous one, then skip
-			refwave[j] = NaN
-		Else
-			Strswitch(mode)
-				Case "Bin":
-						If(err == 0)
-							refwave[j] = mean(pWave, pnt2x(pWave,i0+1),pnt2x(pWave,i)) 	// get an average
-						Elseif(err == 1)
-							refwave[j] = sqrt( sum(errWave2, pnt2x(pWave,i0+1),pnt2x(pWave,i)) )/ (i-i0)	// error propagation
-						Endif
-					break
-				Case "Resample":
-						refwave[j] = pWave[i]	// get log-spaced data. In Resample error wave, no need to use error propagation
-					break
-			Endswitch
-		Endif
+		if(qw[i] >= low && qw[i] <= high)	// within limits
+			if(log(qw[i]) >= log(qw_log[j]) - logdelta/2 && log(qw[i]) < log(qw_log[j]) + logdelta/2)	// if qw[i] is within the range, add it, then check qw[i+1]
+				if(numtype(iw[i]) == 0)		// not NaN or inf
+					k++	// increase local index
+					iavg = (iavg*(k-1) + iw[i])/k	// running average
+				endif
+			elseif(log(qw[i]) >= log(qw_log[j]) + logdelta/2)	// if qw[i] is over the high-limit of jth q-region, summarize jth region
+				if(k > 0)
+					iw_log[j] = iavg	// input average intensity in the jth region to qw_log
+				endif
+				j++	// go to j+1 region
+				k = 0	// reset count
+				iavg = 0 // reset intensity memory
+				i--	// step back 1 point for i to check it again in j+1 region
+			endif
+		elseif(qw[i] > high && k > 0)		// for last region. If there are non-input intensity memory
+			iw_log[j] = iavg	// input average intensity in the jth region to qw_log
+			j++	// go to j+1 region	
+		endif
+	endfor
+	
+	variable savg	// memory for standard deviation of the average in jth q-region
+	for(i=0; i<numPoints_original; i++)
+		if(i == 0)	// initialize everything
+			j = 0
+			k = 0
+			savg = 0
+		endif
+
+		if(j >= numPoints)		// prevent out of range error
+			break
+		endif
 		
-		i0 = i	// store the old index of original wave	
-	While(1)
+		if(qw[i] >= low && qw[i] <= high)	// within limits
+			if(log(qw[i]) >= log(qw_log[j]) - logdelta/2 && log(qw[i]) < log(qw_log[j]) + logdelta/2)	// if qw[i] is within the range, add it, then check qw[i+1]
+				if(numtype(sw[i]) == 0)		// not NaN or inf
+					k++	// increase local index
+					savg = sqrt((savg*(k-1))^2 + (sw[i])^2)/k	// running average
+				endif
+			elseif(log(qw[i]) >= log(qw_log[j]) + logdelta/2)	// if qw[i] is over the high-limit of jth q-region, summarize jth region
+				if(k > 0)
+					sw_log[j] = savg	// input average intensity in the jth region to qw_log
+				endif
+				j++	// go to j+1 region
+				k = 0	// reset count
+				savg = 0 // reset intensity memory
+				i--	// step back 1 point for i to check it again in j+1 region
+			endif
+		elseif(qw[i] > high && k > 0)		// for last region. If there are non-input intensity memory
+			sw_log[j] = savg	// input average intensity in the jth region to qw_log
+			j++	// go to j+1 region	
+		endif
+	endfor
+
+End
+
+Function/S R2D_LogResample(basename, numPoints, low, high)
+	string basename		// basename of target waves
+	variable numPoints		// number of points in new wave
+	variable low		// lowest value of x axis (qmin)
+	variable high	// highest value of x axis (qmax)
 	
-	// save data
-	String NewName
-	Strswitch(mode)
-		case "Bin":
-			NewName = NameOfWave(pWave) + "_logbin"
-			break
-		Case "Resample":
-			NewName = NameOfWave(pWave) + "_logsamp"
-			break
-	endswitch
-	Make/O/D/N=(j) $NewName
-	wave NewWave = $NewName
-	NewWave = refwave	// save refwave to a shorter new wave to remove unnecessary points
-	//	Wavetransform/O zapNaNs NewWave	// remove NaN from waves
+	// get q wave and corresponding i, s waves
+	wave qw = $(basename + "_q")
+	wave iw = $(basename + "_i")
+	wave sw = $(basename + "_s")
 	
-	Return NewName
+	// create new log-spaced q wave
+	Make/O/N=(numPoints) qw_log, iw_log, sw_log // new q wave to store log spaced q values
+	qw_log = NaN
+	iw_log = NaN
+	sw_log = NaN
+	qw_log = low*(high/low)^(p/(numPoints-1))	// make log-spaced q wave
+	
+	variable numPoints_original = numpnts(qw)
+	variable i	// index of orignal q wave
+	variable j	// index of new log spaced q wave
+	variable startP, endP
+	for(i=0; i<numPoints_original; i++)
+		if(i == 0)	// initialize everything
+			j = 0
+			FindLevel/P/Q/EDGE=1 qw, low
+			startP = V_LevelX
+			FindLevel/P/Q/EDGE=1 qw, high
+			endP = V_LevelX
+		endif
+
+		if(j >= numPoints)		// prevent out of range error
+			break
+		endif
+		
+		FindLevel/P/Q/EDGE=1/R=[startP, endP] qw, qw_log[j]
+		if(V_flag == 0)		// if found
+			iw_log[j] = iw[V_LevelX]
+			sw_log[j] = sw[V_LevelX]
+			startP = V_LevelX	// renew startP
+			j++
+		endif
+	endfor
 
 End
 
