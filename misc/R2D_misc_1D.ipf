@@ -173,6 +173,13 @@ Function ButtonProc_CombineWavesOfdifferentSDD(ba) : ButtonControl //Combine wav
 			// Bring the window to front
 			Dowindow/F CombineTest
 			
+			If(DatafolderExists("root:Red2Dpackage")==0)
+				NewDataFolder root:Red2Dpackage
+			Endif
+			If(DatafolderExists("root:SDD_combined")==0)
+				NewDataFolder root:SDD_combined
+			Endif
+			
 			//Get references of int, q and err waves
 			SVAR LongSDDIntPath = root:Red2Dpackage:U_LongSDDIntPath
 			SVAR midSDDIntPath = root:Red2Dpackage:U_midSDDIntPath
