@@ -945,7 +945,7 @@ Function R2D_Export1D(WhichName, xaxis)
 	String pxpName = IgorInfo(1) + ".pxp"
 	Variable refnum = 0
 	String PackagePath = GetDataFolder(1)+":Red2Dpackage:"
-	Wave/T datasheet = $(PackagePath + "Datasheet")
+	Wave/T/Z datasheet = $(PackagePath + "Datasheet")
 	NVAR/Z Wavelength = ::Red2Dpackage:U_Lambda
 	NVAR/Z SDD = ::Red2Dpackage:U_SDD
 	String Trans
