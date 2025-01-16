@@ -171,6 +171,7 @@ Static Function LoadTIFF(filepath, overwrite)
 		header += FindByKeyInTiffTag("MODEL", tiftag) + "\r"
 		header += FindByKeyInTiffTag("SOFTWARE", tiftag) + "\r"
 		header += FindByKeyInTiffTag("IMAGEDESCRIPTION", tiftag) + "\r"
+//		header += FindByKeyInTiffTag("Sample name", tiftag) + "\r"
 		header = ReplaceString("\r\n", header, "\r")	// cleanup whitespace
 		Note/K ImageWave, header  // note the wave with the header
 		KillDataFolder/Z :Tag0

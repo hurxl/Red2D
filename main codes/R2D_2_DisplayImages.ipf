@@ -88,8 +88,10 @@ Function R2D_Display2D()
 	PopupMenu popup1,mode=(WhichListItem(ColorTable, CTabList(),";")+1),value=#"\"*COLORTABLEPOPNONAMES*\"", pos={132,478},size={200,20},proc=Red2D_ColorTableMenu
 
 	// Save Image
-	Button button2 title="Export as JPEG", fSize=13, size={120,23},pos={40,515},proc=ButtonProcR2D_SaveImageAsJPEG
-	Button button3 title="Export as PDF", fSize=13, size={120,23},pos={200,515},proc=ButtonProcR2D_SaveImageAsPDF
+	TitleBox title4 title="Export as", fSize=13, pos={30,520}, frame=0
+	Button button2 title="JPEG", fSize=13, size={50,23},pos={120,515},proc=ButtonProcR2D_SaveImageAsJPEG
+	Button button3 title="PDF", fSize=13, size={50,23},pos={180,515},proc=ButtonProcR2D_SaveImageAsPDF
+	Button button4 title="TIFF", fSize=13, size={50,23},pos={240,515},proc=ButtonProcR2D_SaveImageAsTIFF
 	Checkbox cb1 title="Use Sample Name", fSize=13, pos={50, 550}
 	Checkbox cb2 title="Export All", fSize=13, pos={220, 550}
 	
@@ -173,6 +175,22 @@ Function ButtonProcR2D_SaveImageAsPDF(ba) : ButtonControl
 		case 2: // mouse up
 			
 			R2D_SavePic("IntensityImage", ".pdf")
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+Function ButtonProcR2D_SaveImageAsTIFF(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+
+	switch( ba.eventCode )
+		case 2: // mouse up
+			
+			R2D_SavePic("IntensityImage", ".tif")
 			
 			break
 		case -1: // control being killed
@@ -625,6 +643,18 @@ Function R2D_SavePIC_worker(WinNameStr, WhichName, extension, [pathName])
 		else
 			SavePICT/O/WIN=$WinNameStr/E=-6/RES=600/P=$pathName as filename
 		endif
+	elseif(stringmatch(extension, ".tif"))
+		wave imagew = $TopImageName
+//		R2D_convertWavenote2tiffTag(imagew)	// not work yet 2025-01-17
+		wave/T TiffTag
+		if(ParamIsDefault(PathName))
+//			ImageSave/O/T="tiff"/DS=32/WT=TiffTag imagew as filename	// tag not work yet
+			ImageSave/O/T="tiff"/DS=32 imagew as filename
+		else
+//			ImageSave/O/T="tiff"/DS=32/WT=TiffTag/P=$pathName imagew as filename	// tag not work yet
+			ImageSave/O/T="tiff"/DS=32/P=$pathName imagew as filename
+		endif
+		KillWaves/Z TiffTag
 	endif
 
 End
@@ -657,5 +687,36 @@ Function/S R2D_GetImageFolderPath()
 	Endif
 	
 	return ImageFolderPath
+
+End
+
+Function R2D_convertWavenote2tiffTag(w)
+	wave w
+	
+	string wnote = note(w)
+	
+	variable NumOfTag = ItemsInList(wnote, "\r")
+	
+	Make/T/O/N=(NumOfTag,5) TiffTag
+	
+	string tagi
+	string key
+	string val
+	variable i
+	for(i=0; i<NumOfTag; i++)
+		
+		// get key and val
+		tagi = StringFromList(i,wnote, "\r")
+		key = StringFromList(0, tagi, " : ")
+		val = StringFromList(1, tagi, " : ")
+		
+		// write to tag wave 
+		TiffTag[i][0] = num2str(40000 + i)	// ID		
+		TiffTag[i][1] = key	// Description
+		TiffTag[i][2] = num2str(2)	// Type, 4 = LONG (32-bit unsigned integer)
+		TiffTag[i][3] = num2str(1)	// Length, The number of data elements stored in this tag
+		TiffTag[i][4] = val	// Value
+		
+	endfor
 
 End
