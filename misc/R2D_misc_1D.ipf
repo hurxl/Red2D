@@ -1014,12 +1014,23 @@ Function R2D_Export1D(WhichName, xaxis)
 			Duplicate/O/D $(WaveNam + "_2t"), TwoTheta
 		endif
 		Duplicate/O/D $(WaveNam + "_i"), I_cm
-		Duplicate/O/D $(WaveNam + "_s"), s_cm
+		wave/Z s_wave = $(WaveNam + "_s")
+		if(waveExists(s_wave))
+			Duplicate/O/D s_wave, s_cm
+		endif
 		
 		If(xaxis == 0)
-			Save/A/G/W/P=FolderPath q_A, I_cm, s_cm as filename	// save seletected waves in a txt file as filename in folderpath.		
+			if(waveExists(s_wave))
+				Save/A/G/W/P=FolderPath q_A, I_cm, s_cm as filename	// save seletected waves in a txt file as filename in folderpath.		
+			else
+				Save/A/G/W/P=FolderPath q_A, I_cm as filename	// save seletected waves in a txt file as filename in folderpath.		
+			endif
 		Else
-			Save/A/G/W/P=FolderPath TwoTheta, I_cm, s_cm as filename	// save seletected waves in a txt file as filename in folderpath.			
+			if(waveExists(s_wave))
+				Save/A/G/W/P=FolderPath TwoTheta, I_cm, s_cm as filename	// save seletected waves in a txt file as filename in folderpath.
+			else
+				Save/A/G/W/P=FolderPath TwoTheta, I_cm as filename	// save seletected waves in a txt file as filename in folderpath.
+			endif
 		Endif
 		
 	Endfor
