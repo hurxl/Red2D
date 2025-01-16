@@ -198,6 +198,7 @@ Function R2D_Load_SAXSpoint_hdf(filePath)
 	
 	//stack image transform
 	
+	Redimension/S imagestack_raw
 	MatrixOp/O imagestack = (transposeVol(imagestack_raw,3))  // Convert numofstack x 1062 x 1028 to  1028 x 1062 x numofstack
 	ImageRotate/O/V  imagestack // Flip the image vertically.
 	Multithread imagestack[][][] = imagestack[p][q][r] <= -1 ? NaN : imagestack[p][q][r] // negative values to NaN; pixels with NaN are auto	
