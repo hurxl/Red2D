@@ -40,7 +40,6 @@ Menu "Red2D"
 		"Append New Waves", R2D_CreateOrShowDatasheet(2)
 		"Show Existing Datasheet", R2D_CreateOrShowDatasheet(1)
 		"-"
-//		"Write time and trnas (only work SAXSpoint)",  Red2D_writeTimeAndTrnasToDatasheet()
 		"Auto Fill Datasheet (SAXSpoint)", R2D_FillDataseetSAXSpoint()
 	End
 	

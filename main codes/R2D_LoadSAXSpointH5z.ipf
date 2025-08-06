@@ -123,13 +123,15 @@ Function R2D_Load_SAXSpoint_hdf(filePath)
 	HDF5LoadData/Q/O/Z/N = SDD fileID, "/entry/data/sdd" // load sdd
 	HDF5LoadData/Q/O/Z/N = sample_name_raw fileID, "/entry/data/sample_name" // load sample_name
 	HDF5LoadData/Q/O/Z/N = sample_temperature fileID, "/entry/data/sample_temperature" // load sample_temperature
-	HDF5LoadData/Q/O/Z/N = sample_thickness fileID, "/entry/data/sample_thickness" // load sample_thickness
+	HDF5LoadData/Q/O/Z/N = sample_thickness fileID, "/entry/data/sample_thickness" // load Sample thickness
 	HDF5LoadData/Q/O/Z/N = sample_column fileID, "/entry/data/sample_column" // load sample_column
 	HDF5LoadData/Q/O/Z/N = sample_row fileID, "/entry/data/sample_row" // load sample_row	
 	HDF5LoadData/Q/O/Z/N = ambient_status_raw fileID, "/entry/data/ambient_status" // load ambient_status Air or VAcuum	
 	HDF5LoadData/Q/O/Z/N = wavelength fileID, "/entry/data/wavelength" // load wavelength
 	HDF5LoadData/Q/O/Z/N = flux_entering_sample fileID, "/entry/data/flux_entering_sample" // load flux_entering_sample
 	HDF5LoadData/Q/O/Z/N = flux_exiting_sample fileID, "/entry/data/flux_exiting_sample" // load flux_exiting_sample
+	HDF5LoadData/A="file_time"/TYPE=1/Q/O/Z/N = AcquisitionStartTime fileID, "/" // load the start time for the first image capture
+	HDF5LoadData/Q/O/Z/N = ElapsedTime fileID, "/entry/data/time" // load the elapsed time since the AcuisitionStartTime, this is end time of the selected image.
 	
 	HDF5LoadData/Q/O/Z/N = description fileID, "/entry/instrument/detector/description" // load detector namme
 	HDF5LoadData/Q/O/Z/N = detector_number fileID, "/entry/instrument/detector/detector_number" // load detector_number
@@ -151,7 +153,6 @@ Function R2D_Load_SAXSpoint_hdf(filePath)
 	wave sample_temperature
 	wave ambient_status_raw
 	wave imagestack_raw
-
 	
 	variable i,j
 	
@@ -235,6 +236,8 @@ function Red2D_SpliteImageStack()
 	wave/T detector_number
 	wave x_pixel_size
 	wave y_pixel_size
+	wave/T AcquisitionStartTime
+	wave ElapsedTime
 	
 	variable lay = DimSize(imagestack, 2)
 	lay = max(lay,1)	//  Check if there is only one image. 
@@ -269,9 +272,12 @@ function Red2D_SpliteImageStack()
 
 	
 	string wnote = ""
-		
+	variable startTime, endTime
+	string startTime_str, endTime_str
 	for(i=0; i< lay	; i+=1) // Writing note
-		wave target = $(StringFromList(i, namelist))
+	
+		endTime = ISOToIgorSecs(AcquisitionStartTime[0]) + ElapsedTime[i]
+		startTime = endTime - measeurment_time[i]
 		
 		wnote += "Detector : "+ description[0]+"	 S/N "+detector_number[0]+"\r"
 		wnote += "Pixel size : "+ num2str(x_pixel_size[0]*1e6)+" [µm]"+" × "+ num2str(y_pixel_size[0]*1e6)+" [µm]"+"\r"
@@ -280,14 +286,17 @@ function Red2D_SpliteImageStack()
 		wnote += "Wavelength : "+num2str(wavelength[i]*1e10)+" [Å]"+"\r"
 		wnote += "SDD : "+num2str(SDD[i])+" [m]"+"\r"
 		wnote += "Sample position : "+sample_position[i]+"\r"
+		wnote += "Start time : "+ IgorSecsToTimeStamp(startTime) + "\r"
+		wnote += "End time : " + IgorSecsToTimeStamp(endTime) + "\r"
 		wnote += "Measeurment time : "+num2str(measeurment_time[i])+" [sec]"+"\r"
 		wnote += "Averaged frames : "+num2str(averaged_frames[i])+"\r"
 		wnote += "Sample temperature : "+num2str(sample_temperature[i])+" [C]"+"\r"
-		wnote += "sample_thickness : "+num2str(sample_thickness[i]/100)+" [cm]"+"\r"	
+		wnote += "Sample thickness : "+num2str(Sample_thickness[i]/10)+" [cm]"+"\r"	
 		wnote += "Transmittance : "+num2str(transmittance[i])+"\r"
 		wnote += "flux_entering_sample : "+num2str(flux_entering_sample[i])+" [cts]"+"\r"
 		wnote += "flux_exiting_sample : "+num2str(flux_exiting_sample[i])+" [cts]"+"\r"
 		
+		wave target = $(StringFromList(i, namelist))
 		if (strlen(note(target)) == 0)
 			Note target, wnote
 		endif
@@ -332,87 +341,76 @@ function Red2D_SpliteImageStack()
 
 end
 
+Function ISOToIgorSecs(isoStr)
+    String isoStr
+    Variable year, month, day, hour, minute, second
+    Variable tzSign, tzHour, tzMin, tzOffset
 
-//Function Red2D_writeValToDatasheet(ImageName, colStr, val, format) // this is same function as DLS package
-//	string ImageName
-//	string colStr
-//	variable val
-//	string format
-//	
-//	// check if summary wave exists, if specified column exists, and if the ImageName exists.
-//	wave/Z/T Datasheet = $(GetDatasheetPath())
-//	if(!WaveExists(Datasheet))
-//		Print "Datasheet does not exist in Red2Dpackage. Stop writing to Datasheet."
-//		return -1
-//	endif
-//	variable colindex = FindDimLabel(Datasheet, 1, colStr)
-//	if(colindex < 0)	// not found
-//		Print colStr +" does not exist in the Datasheet. Stop writing to Datasheet."
-//		return -1
-//	endif
-//	variable nameindex = FindDimLabel(Datasheet, 1, "ImageName")
-//	FindValue/TEXT=(ImageName)/RMD=[][nameindex] Datasheet
-////	print imagename
-//	if(V_row < 0)
-//		Print "The specified ImageName does not exist in the Datasheet. Stop writing to Datasheet."
-//		return -1
-//	endif
-//	
-//	// write the val to summary
-//	if(numtype(val) == 2)	// if val = NaN, make it to an empty string.
-//		Datasheet[V_row][colindex] = ""
-//	else
-//		Datasheet[V_row][colindex] = num2str(val, format)
-//	endif
-//	
-//	return 0
-//	
-//End
-//
-//function Red2D_writeTimeAndTrnasToDatasheet()
-//	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet. if in a wrong datafolder, return an error and abort.
-//	wave/T/Z datasheet = $Datasheet_Path
-//	String imagefolder = GetWavesDataFolder(datasheet,1)+":" // get the full path of the datafolder for datasheet
-//	
-//	String imagename
-//	String imagepath
-//	String target
-//	String image_note
-//	String buffer
-//	variable numInDatasheet = Dimsize(Datasheet, 0)
-//	variable i, j, v
-//	
-//	for(i=0; i<numInDatasheet; i+=1)	 // get note from image wave
-//		imagename = Datasheet[i][%ImageName]  // get imagename
-//		print ImageName
-//		imagepath = imagefolder+imagename  // set image full path. the user may be in the image folder and 1d folder.
-//		image_note = note($imagepath)  // get note of the image
-//				
-//		for(j=0; j<ItemsInList(image_note, "\r"); j+=1)
-//			buffer = StringFromList(j, image_note, "\r")
-//			
-//			If (stringmatch(buffer, "Measeurment time *")) // write Measeurment time
-//				sscanf buffer , "Measeurment time : %f", v
-//				Red2D_writeValToDatasheet(imagename, "Time_s", v, "%g")
-//			endif
-//			
-//			If (stringmatch(buffer, "Transmittance *")) // write trans 
-//				sscanf buffer , "Transmittance : %f", v
-//				Red2D_writeValToDatasheet(imagename, "Trans", v, "%f")
-//			endif
-//			
-//		endfor
-//		
-//	endfor
-//end
+    String datePart = StringFromList(0, isoStr, "T")
+    String timeZonePart = StringFromList(1, isoStr, "T")
+
+    // Remove timezone info
+    Variable plusPos = strsearch(timeZonePart, "+", 0)
+    Variable minusPos = strsearch(timeZonePart, "-", 0)
+    Variable tzPos
+    if (plusPos >= 0)
+        tzPos = plusPos
+        tzSign = 1
+    else
+        tzPos = minusPos
+        tzSign = -1
+    endif
+
+    String timePart, tzString
+    if (tzPos >= 0)
+        timePart = timeZonePart[0, tzPos - 1]
+        tzString = timeZonePart[tzPos, Inf]
+        tzHour = str2num(StringFromList(0, tzString[1, Inf], ":"))
+        tzMin  = str2num(StringFromList(1, tzString[1, Inf], ":"))
+        tzOffset = tzSign * (tzHour * 3600 + tzMin * 60)
+    else
+        timePart = timeZonePart
+        tzOffset = 0  // No timezone info, assume UTC
+    endif
+
+    // Parse date
+    year  = str2num(StringFromList(0, datePart, "-"))
+    month = str2num(StringFromList(1, datePart, "-"))
+    day   = str2num(StringFromList(2, datePart, "-"))
+
+    // Parse time
+    hour   = str2num(StringFromList(0, timePart, ":"))
+    minute = str2num(StringFromList(1, timePart, ":"))
+    second = str2num(StringFromList(2, timePart, ":"))  // may include fraction
+
+    Variable secs = date2secs(year, month, day) + hour*3600 + minute*60 + second
+//    secs -= tzOffset  // Convert to UTC time
+    return secs
+End
+
+Function/S IgorSecsToTimeStamp(secs)
+    Variable secs
+
+    // Get date and time strings
+    String dateStr = Secs2Date(secs, -2)  // e.g., "1993-03-14"
+    String timeStr = Secs2Time(secs, 3)     // e.g., "15:04:42"
+
+    // Combine all into time stamp
+    String TimeStampStr = dateStr + " " + timeStr
+    return TimeStampStr
+End
 
 
 Function R2D_FillDataseetSAXSpoint()
 
+	if(R2D_Error_DatasheetExist1D() < 0 )
+		return -1
+	endif
+
 	R2D_FillDataseet_worker("Sample Name", " : ", "\r", "SampleName", "text")
 	R2D_FillDataseet_worker("Measeurment time", " : ", "\r", "Time_s", "number")
 	R2D_FillDataseet_worker("Transmittance", " : ", "\r", "Trans", "number")
-	R2D_FillDataseet_worker("sample_thickness", " : ", "\r", "Thick_cm", "number")
+	R2D_FillDataseet_worker("Sample thickness", " : ", "\r", "Thick_cm", "number")
 
 End
 

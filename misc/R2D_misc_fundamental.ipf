@@ -115,15 +115,15 @@ Function R2D_Error_DatasheetExist1D()
 	variable numOfImages = DimSize(Datasheet,0)
 	If(WaveExists(Datasheet) == 0)
 		DoAlert 0, "No datasheet exists in the Red2DPackage folder."
-		Print "Error message:"
+		Print "Warning message:"
 		Print "No datasheet exists in the Red2DPackage folder."
 		Return -1	
 	Endif
 	
 	If(numOfImages == 0)
 		DoAlert 0, "The datasheet is empty. Please fill it before normalizing data."
-		Print "Error message:"
-		Print "The datasheet is empty. Please fill it before normalizing data."
+		Print "Warning message:"
+		Print "The datasheet is empty. Please fill it before auto-filling or normalizing data."
 		Return -1
 	Endif
 
