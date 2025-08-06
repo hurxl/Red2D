@@ -583,7 +583,7 @@ Function R2D_calc_qMap()
 	
 	Make/O/FREE qvec_min = {U_qx_index_min, U_qy_index_min, U_qz_index_min}
 	Duplicate/O qVecIndexMap, qVecIndexMap_withOffset
-	Multithread qVecIndexMap_withOffset = qVecIndexMap[p][q][r] - qvec_min[r]
+	Multithread qVecIndexMap_withOffset = qVecIndexMap[p][q][r] - qvec_min[r]	// subtract qx_min, qy_min, qz_min, from x-layer, y-layer, and z-layer of qvecIndexMap.
 
 	// Solid angle map
 	Multithread SolidAngleCorrMap = (pscalarMap/L0)^3/(U_PixelSize^2*1E-12/L0^2*1E+9) //Correction factor to convert I/pixel to I/Solid angle. The last 1E+9 converts to nano solid angle.

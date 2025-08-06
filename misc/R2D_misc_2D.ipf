@@ -553,7 +553,7 @@ Function R2D_2DImageConverterPanel()
 	SetVariable setvar7 title="phi offset [º]",pos={20,180},size={200,25},limits={0,inf,1},fSize=13, value=U_phiOffset, help={"start angle offset"}
 	ListBox lb listWave=:Red2DPackage:ImageList, frame=0, mode=0, pos={240,5}, size={400,300}, fSize=13
 	Button button0 title="Convert to Azimuthal Images",size={200,23},pos={20,210},proc=ButtonProcAz2D
-//	Button button1 title="Convert to qx-qy Images",size={200,23},pos={20,240},proc=ButtonProcqxqy2D
+	Button button1 title="Convert to qx-qy Images",size={200,23},pos={20,240},proc=ButtonProcqxqy2D
 	Button button2 title="Refresh",size={120,23},pos={60,280},proc=ButtonProcRefreshListAz2D
 	
 End
@@ -592,8 +592,9 @@ Function ButtonProcqxqy2D(ba) : ButtonControl
 
 	switch( ba.eventCode )
 		case 2: // mouse up
-//			NVAR phi_offset = :Red2DPackage:U_phiOffset
-//			ConvertToqxqyImages()
+
+			R2D_QxQy2D()
+			
 			break
 		case -1: // control being killed
 			break
@@ -748,9 +749,55 @@ ThreadSafe Static Function Azimuthal2D_worker(pWave, dfAz2d)
 End
 
 // *** QxQy conversion
+Static Function R2D_QxQy2D()
+//	variable phi_offset
+	
+	/// Check if in the image folder. Error_ImagesExist will create a Red2Dpackage folder and a imagelist.
+	If(R2D_Error_ImagesExist() == -1)
+		Abort
+	Endif
+	
+	/// Get global variables for the following procedures.
+	Wave/T ImageList = :Red2DPackage:ImageList
+	Variable numOfImages = DimSize(ImageList,0)
+	Wave TopImage = $ImageList[0]
+						
+	NVAR U_Xmax = :Red2DPackage:U_Xmax
+	NVAR U_Ymax = :Red2DPackage:U_Ymax
+	U_Xmax = Dimsize(TopImage,0) - 1		// These global variables are used in clac_q and circular average.
+   U_Ymax = Dimsize(TopImage,1) - 1
+	
+	/// Calculate q and phi at each pixel.
+	R2D_calc_qMap() // q is rounded and stored in qindexMap. Solid angle correction factor.
+	
+	// Create a folder to save converted images
+	NewDataFolder/O QxQy2D
+	string dfQxQy2d = GetDataFolder(1, QxQy2D) + ":" + "QxQy2D"
+	string outputpath	// Create path for the newly created QxQy image
+
+	/// Reorganize data into QxQy coordinates
+	DoWindow/H
+	Print "In preparation ..."
+	Doupdate
+	variable i
+	For(i=0; i<numOfImages; i++)
+			
+		Variable t0=StartMsTimer // Start Timer
+		outputpath = dfQxQy2d + ":" + ImageList[i]
+		R2D_QxQy2D_worker($(ImageList[i]), outputpath) // Convert
+				
+		Print i+1,"/",numOfImages, ";", StopMSTimer(t0)/1E+6, "sec/image" //End Timer
+				
+	Endfor
+
+End
+
 /// Convert intensity pixel map to intensity qx, qy map
 /// 2024-06-25 properly worked
-Function R2D_QxQy2D(pWave, QxQy2D_path)
+/// the effect of qz is ignored. The intensity is stacked on qz direction (qx, qy, SUM(qz)).
+/// Making qz effective is not difficult. I just need to create a 3D qxqyqz wave to store the photon counts.
+/// However, visualizing the 3D wave could be troublesome.
+ThreadSafe Static Function R2D_QxQy2D_worker(pWave, QxQy2D_path)
 	wave pWave	// target 2D scattering image
 	string QxQy2D_path	// fullpath of output QxQy2D
 	
@@ -762,9 +809,9 @@ Function R2D_QxQy2D(pWave, QxQy2D_path)
 	NVAR qy_index_min = :Red2DPackage:U_qy_index_min
 	NVAR qy_index_num = :Red2DPackage:U_qy_index_num
 	NVAR qres = :Red2DPackage:U_qres
-	wave qVecMap = :Red2DPackage:qVecMap
-	wave qVecIndexMap = :Red2DPackage:qVecIndexMap
-	wave qVecIndexMap_withOffset = :Red2DPackage:qVecIndexMap_withOffset
+	wave qVecMap = :Red2DPackage:qVecMap		// qvecMap is evenly spaced vector map of q. The spacing is U_qres.
+	wave qVecIndexMap = :Red2DPackage:qVecIndexMap	// = round(qvecMap/U_qres)
+	wave qVecIndexMap_withOffset = :Red2DPackage:qVecIndexMap_withOffset	// = qVecIndexMap[p][q][r] - qvec_min[r] ensure the index is always positive. See R2D_calc_qMap.
 	Wave SolidAngleCorrMap = :Red2DPackage:SolidAngleCorrMap
 	
    // pwave is a p(pixel)-based intensity image, IpImage
@@ -773,20 +820,13 @@ Function R2D_QxQy2D(pWave, QxQy2D_path)
    // To do this conversion, I need a conversion map
    // qvecMap is a p-based q-vector map, telling us the qx, qy, and qz, of each pixel, stored as a beam (igor term)
    // qscalarMap is a scalar map of q-vector
+   // averaging the photon counts in the pixels with the same qVecIndexMap_offset gives QxQy map.
+   // notably, not all q-values have intensity-values. There will be some null qxqy pixel.
    
-   // How to do this conversion with the programming
+   // How to do this conversion with the programming?
    // create an empty q-based image
-		// needs qx_max, qx_min, qy_max, qy_min
-		// the coordinates have evenly spaced and rounded q values, set by q_res (pixel size)
-		// the number of points of each coordinate is determined by q_max - q_min / q_res
-		// not all q-values have intensity-values.
-	make/FREE/D/O/N=(qx_index_num, qy_index_num) tempSum_map, count_map//, QxQy2D
-	
-	// Create a conversion map wave
-	// Note: although above maps (will) have a wave scaling based on q-indices (q-values), the row-column indices of above waves start from 0.
-	// Therefore, for the convenience in for loops, I need to add convert the q-indices map to row-column indices map.
-//	MatrixOP/O qVecIndexMap_withOffset = qVecIndexMap[][][0] - qx_index_min + qVecIndexMap[][][1] - qy_index_min + qVecIndexMap[][][2] - qz_index_min
-	
+   make/FREE/D/O/N=(qx_index_num, qy_index_num) tempSum_map, count_map	// temporary waves to store photon counts in qx qy coordinates
+   
    // remap IpImage to IqImage based on the qvecMap (p-based conversion map)
    variable i, j, row, col, phcount, qx, qy, qx_index, qy_index, qx_index_offset, qy_index_offset
    count_map = 0 //initialize count map
@@ -797,15 +837,10 @@ Function R2D_QxQy2D(pWave, QxQy2D_path)
     		if(phcount<0 || numtype(phcount) == 2)
     			//skip add when intensity is negative or NaN.
     		else
-//    			qx = qVecMap[i][j][0]	// get qx of the corresponding pixel (pxpy)
-//    			qy = qVecMap[i][j][1]	// get qy of the corresponding pixel (pxpy)
-//    			qx_index = qVecIndexMap[i][j][0]	// get normalized integer index of qx of the corresponding pixel (pxpy)
-//    			qy_index = qVecIndexMap[i][j][1]	// get normalized integer index of qy of the corresponding pixel (pxpy)
-    			qx_index_offset = qVecIndexMap_withOffset[i][j][0]	// qx index with offset starts from 0
-    			qy_index_offset = qVecIndexMap_withOffset[i][j][1]
-    			// q_index = round(q/q_res)
+    			qx_index_offset = qVecIndexMap_withOffset[i][j][0]	// x-layer. get qx index (with offset ) in this p-pixel
+    			qy_index_offset = qVecIndexMap_withOffset[i][j][1]	// y-layer. get qy index similarily.
 
-    			// Add photon counts
+    			// Sum up photon counts
 	 	  	 	tempSum_map[qx_index_offset][qy_index_offset] += phcount*SolidAngleCorrMap[i][j]
 	 	  	 	count_map[qx_index_offset][qy_index_offset] += 1 //calculate the pixel number that corresponds to distance r, considering the mask.
 	 	   endif

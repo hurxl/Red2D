@@ -67,7 +67,7 @@ Menu "Red2D"
 	Submenu "Misc"
 		"Auto Process", R2D_AutoProcess_panel()
 		"-"
-		"Convert to azimuthal-q coordinates", R2D_2DImageConverterPanel()
+		"Convert Coordinates of 2D Images", R2D_2DImageConverterPanel()
 		"Make Masked 2D Images", R2D_MakeMaskedImages()
 		"Sensitivity correction 2D", R2D_Sensitivity2D()
 		"Convert 32bit integer images to single float (-1 to NaN)", R2D_negative2NaN()
