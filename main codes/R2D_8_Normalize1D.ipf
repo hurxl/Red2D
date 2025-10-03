@@ -31,7 +31,7 @@ End
 
 
 ///////////Time and transmission correction//////////////
-Function TimeAndTrans1D()
+Function R2D_TimeAndTrans1D()
 		
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)
@@ -114,10 +114,162 @@ Function TimeAndTrans1D()
 		
 End
 
+///////////Time correction//////////////
+Function R2D_Time1D()
+		
+	//////ERROR CHECKER///////
+	If(R2D_Error_1Dexist() == -1)
+		Abort
+	Elseif(R2D_Error_DatasheetExist1D() == -1)
+		Abort
+	Elseif(R2D_Error_DatasheetMatch1D() == -1)
+		Abort
+	Endif
+	//////////////////////////
+	
+	
+	/////////////////////PREPARE TO NORMALIZE/////////////////////
+	R2D_Unique1DDataFolder("TT")
+
+	
+	/////////////////////////////Get datasheet/////////////////////////////
+	string IntList = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
+	IntList = R2D_skip_fit(IntList)
+	variable numOf1D = ItemsInList(IntList)
+	wave/T Datasheet = ::Red2DPackage:Datasheet
+	
+		/////////////////Calcualte thickness dependent transmission///////////////////
+	///Create a corrected transmission wave with the same dimension as the intensity wave
+	///According to Grillo, Soft Matter Characterization
+	///Tr_corr = (mu*thick*f_2t)^-1*exp(-mu*thick)*(1-exp(-mu*thick*f_2t))
+	///Tr_corr = (ee*f_2t)^-1*exp(-ee)*(1-exp(-ee*f_2t))
+	///f_2t = -1 + 1/cos(theta2/180*pi)   //with same dimension as the intensity wave, do not depend on sample
+	wave theta2 = $(RemoveEnding(StringFromList(0, IntList), "_i") + "_2t")
+	If(waveexists(theta2))
+		Duplicate/FREE/O/D theta2, f_2t, Tr_corr
+		f_2t = -1 + 1/cos(theta2/180*pi)  // independent of sample
+		Tr_corr = 1  // initialize
+	Else
+		wave temp_i = $(StringFromList(0, IntList))
+		Duplicate/FREE/O/D temp_i, Tr_corr
+		Tr_corr = 1
+	Endif
+	
+	/////////////////////////////NORMALIZATION/////////////////////////////
+	String targetName
+	Make/FREE/T/O/N=(DimSize(Datasheet, 0)) ImageName = Datasheet[p][%ImageName]
+	Variable Time_s
+	Print "Start time and transmission correction..."
+	Variable i
+	For(i=0;i<numOf1D; i+=1)
+		
+		/// Get target name from targetlist and remove the unncessary symbols.
+		targetName = RemoveEnding(StringFromList(i, IntList), "_i")
+		Wave Wave1D = $(targetName + "_i")
+		Wave Wave1D_s = $(targetName + "_s")
+		
+		// Get time and trans
+		FindValue/TEXT=(targetName) ImageName		// One wave must be found here because we have checked the consistence bwteen the datasheet and 1D waves in the beginning.
+		Time_s = str2num(Datasheet[V_value][%Time_s])
+		
+		/// Do the correction.
+		Wave1D = Wave1D/Time_s
+		Wave1D_s = Wave1D_s/Time_s
+
+		Print NameofWave(Wave1D) +"/Time_s "+ num2str(Time_s)
+		Print NameofWave(Wave1D_s) +"/Time_s "+ num2str(Time_s)
+
+	Endfor
+	
+	Print "Time correction completes..."
+		
+End
+
+/// Transmission correction ///
+Function R2D_Trans1D()
+		
+	//////ERROR CHECKER///////
+	If(R2D_Error_1Dexist() == -1)
+		Abort
+	Elseif(R2D_Error_DatasheetExist1D() == -1)
+		Abort
+	Elseif(R2D_Error_DatasheetMatch1D() == -1)
+		Abort
+	Endif
+	//////////////////////////
+	
+	
+	/////////////////////PREPARE TO NORMALIZE/////////////////////
+	R2D_Unique1DDataFolder("TT")
+
+	
+	/////////////////////////////Get datasheet/////////////////////////////
+	string IntList = WaveList("*_i", ";","DIMS:1,TEXT:0") //return a list of int in current datafolder
+	IntList = R2D_skip_fit(IntList)
+	variable numOf1D = ItemsInList(IntList)
+	wave/T Datasheet = ::Red2DPackage:Datasheet
+	
+		/////////////////Calcualte thickness dependent transmission///////////////////
+	///Create a corrected transmission wave with the same dimension as the intensity wave
+	///According to Grillo, Soft Matter Characterization
+	///Tr_corr = (mu*thick*f_2t)^-1*exp(-mu*thick)*(1-exp(-mu*thick*f_2t))
+	///Tr_corr = (ee*f_2t)^-1*exp(-ee)*(1-exp(-ee*f_2t))
+	///f_2t = -1 + 1/cos(theta2/180*pi)   //with same dimension as the intensity wave, do not depend on sample
+	wave theta2 = $(RemoveEnding(StringFromList(0, IntList), "_i") + "_2t")
+	If(waveexists(theta2))
+		Duplicate/FREE/O/D theta2, f_2t, Tr_corr
+		f_2t = -1 + 1/cos(theta2/180*pi)  // independent of sample
+		Tr_corr = 1  // initialize
+	Else
+		wave temp_i = $(StringFromList(0, IntList))
+		Duplicate/FREE/O/D temp_i, Tr_corr
+		Tr_corr = 1
+	Endif
+	
+	/////////////////////////////NORMALIZATION/////////////////////////////
+	String targetName
+	Make/FREE/T/O/N=(DimSize(Datasheet, 0)) ImageName = Datasheet[p][%ImageName]
+	Variable Trans
+	Variable ee
+	Print "Start time and transmission correction..."
+	Variable i
+	For(i=0;i<numOf1D; i+=1)
+		
+		/// Get target name from targetlist and remove the unncessary symbols.
+		targetName = RemoveEnding(StringFromList(i, IntList), "_i")
+		Wave Wave1D = $(targetName + "_i")
+		Wave Wave1D_s = $(targetName + "_s")
+		
+		// Get time and trans
+		FindValue/TEXT=(targetName) ImageName		// One wave must be found here because we have checked the consistence bwteen the datasheet and 1D waves in the beginning.
+		Trans = str2num(Datasheet[V_value][%Trans])
+		ee = -ln(trans)
+		If(waveexists(theta2))
+			If(ee == 0) // when trans = 1, ee = 0. The denominator in the trans correction equation becomes 0.
+				Tr_corr = 1  // To avoid the problem, we directly put the transmission in Tr_thick.
+			Else
+				Tr_corr = (ee*f_2t)^-1*exp(-ee)*(1-exp(-ee*f_2t))
+			Endif
+		Else
+			Tr_corr = Trans
+		Endif
+		
+		/// Do the correction.
+		Wave1D = Wave1D/Tr_corr
+		Wave1D_s = Wave1D_s/Tr_corr
+
+		Print NameofWave(Wave1D) + "/Scattering-angle-corrected-Trans "+ num2str(Trans)
+		Print NameofWave(Wave1D_s) + "/Scattering-angle-corrected-Trans "+ num2str(Trans)
+
+	Endfor
+	
+	Print "Time and transmission correction completes..."
+		
+End
 
 
 ///////////////Cell subtraction////////////////
-Function Cellsubtraction1D()
+Function R2D_Cellsubtraction1D()
 
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)
@@ -205,7 +357,7 @@ End
 
 
 /////////////////Thickness correction//////////////
-Function ThickCorr1D()
+Function R2D_ThickCorr1D()
 	
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)
@@ -376,7 +528,7 @@ Static Function/S FindAfile(target, ext)
 End
 
 
-Function AbsoluteNorm1D()
+Function R2D_AbsoluteNorm1D()
 
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)
@@ -432,7 +584,7 @@ End
 
 
 // *** Solvent subtraction
-Function SolventSubtraction()
+Function R2D_SolventSubtraction()
 
 	//////ERROR CHECKER///////
 	If(R2D_Error_1Dexist() == -1)

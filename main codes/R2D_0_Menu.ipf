@@ -44,14 +44,18 @@ Menu "Red2D"
 	End
 	
 	Submenu "8. Normalize 1D"	
-		"1. Time and Transmission", TimeAndTrans1D()
-		"2. Subtract Cell or Air", Cellsubtraction1D()
-		"3. Thickness Correction", ThickCorr1D()
-		"4. Absolute Intensity", AbsoluteNorm1D()
-		"5. Subtract Solvent", SolventSubtraction()
+		"1. Time and Transmission", R2D_TimeAndTrans1D()
+		"2. Subtract Cell or Air", R2D_Cellsubtraction1D()
+		"3. Thickness Correction", R2D_ThickCorr1D()
+		"4. Absolute Intensity", R2D_AbsoluteNorm1D()
+		"5. Subtract Solvent", R2D_SolventSubtraction()
 		"-"
 		"Load SAXS GC calibration curve (NIST SRM3600)", LoadGC_NIST("SAXS")
 		"Load SAXS GC calibration curve (AlfaAesar)", LoadGC_AlfaAesar("SAXS")
+		"-"
+		"Time only", R2D_Time1D()
+		"Transmission only", R2D_Trans1D()
+		
 	End
 	
 	Submenu "\\M09. Export/Import 1D"

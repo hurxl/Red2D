@@ -208,7 +208,7 @@ Function R2D_AutoProcess()
 	R2D_ImportDatasheet(path = pc_datasheet_path, noedit = 1) // re-import datasheet to prevent datasheet not match problem.
 	// disabled reimport datasheet because it may import new Trans and time values, while it was not there when filtering the images.
 //	KillWindow/Z $WinName(0,2)  // kill the top-most table to enable delete folder. Top-most table should be the datasheet created above.
-	TimeAndTrans1D()
+	R2D_TimeAndTrans1D()
 	
 //	// Remove Iq profiles with empty time and transmittance cells
 //	wave/T temp_datasheet = ::Red2DPackage:Datasheet
