@@ -197,6 +197,13 @@ Function R2D_MakeSensitivityButtonProc2D(ba) : ButtonControl
 				Abort "No selection."
 			Endif
 			
+			// Check if solid angle map exists
+			Wave/Z SolidAngleCorrMap = :Red2DPackage:SolidAngleCorrMap // get the solidangle wave created by above function.
+			If(!WaveExists(SolidAngleCorrMap))
+				Print "False"
+				Abort "The wave SolidAngleCorrMap does not exist. Please run either Fit Standard or Circular Average to generate this wave in the background."
+			Endif
+			
 			// Create a refcell in the new folder with the selected cell path
 			// The sensitivity standards, e.g., H2O and lupolen, should not have a constant intensity on the 2D images.
 			// There should be a natural decrease in the intensity as the pixels going out from the beam center
@@ -206,7 +213,7 @@ Function R2D_MakeSensitivityButtonProc2D(ba) : ButtonControl
 			Wave Sensitivity = :Red2Dpackage:sensitivity
 			Multithread Sensitivity[][] = Sensitivity[p][q] == 0 ? NaN : Sensitivity[p][q]  // convert zero value to NaN to remove these pixels from calculation.
 			R2D_calc_qMap() // calculate solidangle correction map. the function locates in the circular average ipf.
-			Wave SolidAngleCorrMap = :Red2DPackage:SolidAngleCorrMap // get the solidangle wave created by above function.
+			
 			MatrixOP/O Sensitivity = Sensitivity*SolidAngleCorrMap
 			ImageStats Sensitivity
 			Sensitivity /= V_avg
