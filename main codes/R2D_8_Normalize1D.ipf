@@ -45,7 +45,7 @@ Function R2D_TimeAndTrans1D()
 	
 	
 	/////////////////////PREPARE TO NORMALIZE/////////////////////
-	R2D_Unique1DDataFolder("TT")
+	R2D_Unique1DDataFolder("TTr")
 
 	
 	/////////////////////////////Get datasheet/////////////////////////////
@@ -129,7 +129,7 @@ Function R2D_Time1D()
 	
 	
 	/////////////////////PREPARE TO NORMALIZE/////////////////////
-	R2D_Unique1DDataFolder("TT")
+	R2D_Unique1DDataFolder("T")
 
 	
 	/////////////////////////////Get datasheet/////////////////////////////
@@ -200,7 +200,7 @@ Function R2D_Trans1D()
 	
 	
 	/////////////////////PREPARE TO NORMALIZE/////////////////////
-	R2D_Unique1DDataFolder("TT")
+	R2D_Unique1DDataFolder("Tr")
 
 	
 	/////////////////////////////Get datasheet/////////////////////////////
