@@ -83,6 +83,9 @@ Menu "Red2D"
 			"4. Absolute Intensity (2D)", AbsoluteNorm2D()
 			"5. Subtract Solvent (2D)", R2D_SolventSubtraction2D()
 			"-"
+			"Time only (2D)" , R2D_Time2D()
+			"Trans only (2D)" , R2D_Trans2D()
+			"-"
 			"Rebuild 2D from 1D", R2D_rebuild2D_panel()
 			"Add 2D Images", R2D_Add2DImages(0)
 		End
