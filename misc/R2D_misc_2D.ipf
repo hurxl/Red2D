@@ -198,10 +198,10 @@ Function R2D_MakeSensitivityButtonProc2D(ba) : ButtonControl
 			Endif
 			
 			// Check if solid angle map exists
-			Wave/Z SolidAngleCorrMap = :Red2DPackage:SolidAngleCorrMap // get the solidangle wave created by above function.
-			If(!WaveExists(SolidAngleCorrMap))
+			Wave/Z SolidAngleMap = :Red2DPackage:SolidAngleMap // get the solidangle wave created by above function.
+			If(!WaveExists(SolidAngleMap))
 				Print "False"
-				Abort "The wave SolidAngleCorrMap does not exist. Please run either Fit Standard or Circular Average to generate this wave in the background."
+				Abort "The wave SolidAngleMap does not exist. Please run either Fit Standard or Circular Average to generate this wave in the background."
 			Endif
 			
 			// Create a refcell in the new folder with the selected cell path
@@ -214,7 +214,7 @@ Function R2D_MakeSensitivityButtonProc2D(ba) : ButtonControl
 			Multithread Sensitivity[][] = Sensitivity[p][q] == 0 ? NaN : Sensitivity[p][q]  // convert zero value to NaN to remove these pixels from calculation.
 			R2D_calc_qMap() // calculate solidangle correction map. the function locates in the circular average ipf.
 			
-			MatrixOP/O Sensitivity = Sensitivity*SolidAngleCorrMap
+			MatrixOP/O Sensitivity = Sensitivity/SolidAngleMap
 			ImageStats Sensitivity
 			Sensitivity /= V_avg
 			Print "A sensitivity correction file was created and stored in Red2Dpackage datafolder."
@@ -708,7 +708,7 @@ ThreadSafe Static Function Azimuthal2D_worker(pWave, dfAz2d)
 	NVAR qres = :Red2DPackage:U_qres
 	Wave qScalarIndexMap = :Red2DPackage:qScalarIndexMap
 	Wave phiMap = :Red2DPackage:phiMap
-	Wave SolidAngleCorrMap = :Red2DPackage:SolidAngleCorrMap
+	Wave SolidAngleMap = :Red2DPackage:SolidAngleMap
 		
    /// Create a refwave to store values. added int and count number.
    	make/FREE/D/O/N=(qnum, 360) rawSum, count, intensity
@@ -729,7 +729,7 @@ ThreadSafe Static Function Azimuthal2D_worker(pWave, dfAz2d)
     			phi = phiMap[i][j]
 
     			// ADD INTENSITY.
-	 	  	 	rawSum[qindex][phi] += pWave[i][j]*SolidAngleCorrMap[i][j]
+	 	  	 	rawSum[qindex][phi] += pWave[i][j]/SolidAngleMap[i][j]
 	 	  	 	count[qindex][phi] += 1 //calculate the pixel number that corresponds to distance r, considering the mask.
 	 	   endif
 	 	   
@@ -819,7 +819,7 @@ ThreadSafe Static Function R2D_QxQy2D_worker(pWave, QxQy2D_path)
 	wave qVecMap = :Red2DPackage:qVecMap		// qvecMap is evenly spaced vector map of q. The spacing is U_qres.
 	wave qVecIndexMap = :Red2DPackage:qVecIndexMap	// = round(qvecMap/U_qres)
 	wave qVecIndexMap_withOffset = :Red2DPackage:qVecIndexMap_withOffset	// = qVecIndexMap[p][q][r] - qvec_min[r] ensure the index is always positive. See R2D_calc_qMap.
-	Wave SolidAngleCorrMap = :Red2DPackage:SolidAngleCorrMap
+	Wave SolidAngleMap = :Red2DPackage:SolidAngleMap
 	
    // pwave is a p(pixel)-based intensity image, IpImage
    // QxQy2D is a q-based intensity image
@@ -848,7 +848,7 @@ ThreadSafe Static Function R2D_QxQy2D_worker(pWave, QxQy2D_path)
     			qy_index_offset = qVecIndexMap_withOffset[i][j][1]	// y-layer. get qy index similarily.
 
     			// Sum up photon counts
-	 	  	 	tempSum_map[qx_index_offset][qy_index_offset] += phcount*SolidAngleCorrMap[i][j]
+	 	  	 	tempSum_map[qx_index_offset][qy_index_offset] += phcount/SolidAngleMap[i][j]
 	 	  	 	count_map[qx_index_offset][qy_index_offset] += 1 //calculate the pixel number that corresponds to distance r, considering the mask.
 	 	   endif
 	 	   

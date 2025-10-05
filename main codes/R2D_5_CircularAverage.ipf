@@ -549,7 +549,7 @@ Function R2D_calc_qMap()
 	// For detail, see titled detector issue.docx.
 	
 	Make/D/O/N=(U_Xmax+1,U_Ymax+1,3) pvecMap, qvecMap // 2D vector maps; each beam contains the vector values.
-	Make/D/O/N=(U_Xmax+1,U_Ymax+1) qScalarIndexMap, SolidAngleCorrMap	// 2D scalar maps
+	Make/D/O/N=(U_Xmax+1,U_Ymax+1) qScalarIndexMap, SolidAngleMap	// 2D scalar maps
 	
 	// pixel vector and scalar map. For detail, see titled detector issue.docx.
 	Multithread pvecMap = (p-U_X0)*avec[r]*U_PixelSize*1E-6 + (q-U_Y0)*bvec[r]*U_PixelSize*1E-6 + U_SDD*zvec[r]
@@ -586,8 +586,9 @@ Function R2D_calc_qMap()
 	Multithread qVecIndexMap_withOffset = qVecIndexMap[p][q][r] - qvec_min[r]	// subtract qx_min, qy_min, qz_min, from x-layer, y-layer, and z-layer of qvecIndexMap.
 
 	// Solid angle map
-	Multithread SolidAngleCorrMap = (pscalarMap/L0)^3/(U_PixelSize^2*1E-12/L0^2*1E+9) //Correction factor to convert I/pixel to I/Solid angle. The last 1E+9 converts to nano solid angle.
-		
+//	Multithread SolidAngleMap = U_PixelSize^2*1E-12/L0^2*1E+9 * (L0/pscalarMap)^3 //Correction factor to convert I/pixel to I/Solid angle. The last 1E+9 converts to nano solid angle.
+	Multithread SolidAngleMap = U_PixelSize^2*1E-12 * MatrixDot(nvec, pvecMap) / pscalarMap^3 * 1E+9 //modified for tilted detectors.
+	
 	/// Move back to image folder.
 //	SetdataFolder saveDFR
 	SetDataFolder $ImageFolderPath
@@ -605,7 +606,7 @@ ThreadSafe Static Function CircularAverage(pWave, df1d, mask_wave)
 	NVAR Ymax = :Red2DPackage:U_Ymax
 	NVAR qnum = :Red2DPackage:U_qnum
 	Wave qScalarIndexMap = :Red2DPackage:qScalarIndexMap
-	Wave SolidAngleCorrMap = :Red2DPackage:SolidAngleCorrMap
+	Wave SolidAngleMap = :Red2DPackage:SolidAngleMap
 	
 	/// Setup for mask
 	If(!WaveExists(mask_wave))	// if the selected wave does not exist or user did not select a mask wave
@@ -628,8 +629,8 @@ ThreadSafe Static Function CircularAverage(pWave, df1d, mask_wave)
     		else
    				qindex = qScalarIndexMap[i][j] //qScalarIndexMap multiplying q_resolution yiealds the q values
    				count = Iq_count[qindex]	//get the count number of the qindex
-	 	  	 	Iq_hist[qindex][count] = pWave[i][j]*SolidAngleCorrMap[i][j] // Rearrange xy graph to I-q histogram. I is corrected to int per solid angle
-	 	  	 	s2q_hist[qindex][count] = pWave[i][j]*SolidAngleCorrMap[i][j]^2	// err = pWave^0.5 per SolidAngle
+	 	  	 	Iq_hist[qindex][count] = pWave[i][j]/SolidAngleMap[i][j] // Rearrange xy graph to I-q histogram. I is corrected to int per solid angle
+	 	  	 	s2q_hist[qindex][count] = pWave[i][j]/SolidAngleMap[i][j]^2	// err^2 = (pWave^0.5 per SolidAngle)^2
 				Iq_count[qindex] += 1 //calculate the pixel number that corresponds to distance r, considering the mask.
 			endif
 		endfor
