@@ -80,8 +80,9 @@ Function R2D_Display2D()
 	Button button1 title="Hide Mask", fSize=13, size={110,23},pos={200,355},proc=ButtonProcR2D_HideMask
 
 	// Color Range and Table
-	TitleBox title2 title="Adjust Color",  fSize=13, pos={40,415}, frame=0
-	CheckBox cb0 title="log Color", pos={200, 415}, fSize=13, variable=:Red2DPackage:U_ColorLog, proc=R2D_LogColor_CheckProc
+	TitleBox title2 title="Adjust Color",  fSize=13, pos={30,410}, frame=0
+	CheckBox cb0 title="log Color", pos={130, 410}, fSize=13, variable=:Red2DPackage:U_ColorLog, proc=R2D_LogColor_CheckProc
+	Button button5 title="Auto Color", fSize=13, size={90,23},pos={235,405},proc=BP_R2D_AutoColorImage
 	SetVariable setvar0 title="Low",pos={30,445},size={130,25},limits={-inf,+inf, lowstep},fSize=13, value=:Red2DPackage:U_ColorLow, proc=R2D_ColorRange_SetVarProc
 	SetVariable setvar1 title="High",pos={200,445},size={130,25},limits={-inf,+inf, highstep},fSize=13, value=:Red2DPackage:U_ColorHigh, proc=R2D_ColorRange_SetVarProc
 	TitleBox title3 title="Color Table", fSize=13, pos={30,480}, frame=0
@@ -96,7 +97,7 @@ Function R2D_Display2D()
 	Checkbox cb2 title="Export All", fSize=13, pos={220, 550}
 	
 	// Misc
-	GroupBox group0 pos={30,395},size={300,2}
+	GroupBox group0 pos={30,390},size={300,2}
 //	GroupBox group1 pos={30,510},size={300,2}
 //	GroupBox group2 pos={30,505},size={300,2}
 	
@@ -144,6 +145,51 @@ Function ButtonProcR2D_HideMask(ba) : ButtonControl
 				RemoveImage/W=IntensityImage/Z $maskname
 			endfor
 		
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+Function BP_R2D_AutoColorImage(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+
+	switch( ba.eventCode )
+		case 2: // mouse up
+			
+			
+			DoWindow/F IntensityImage
+			If(V_flag == 0)
+				return -1	// image does not exist
+			Endif
+			
+			String ImageFolderPath = R2D_GetImageFolderPath()	// Check if in the image folder
+			If(strlen(ImageFolderPath) == 0)
+				Abort "You may be in a wrong datafolder."
+			Endif
+			String savedDF = GetDataFolder(1)
+			
+			SetDataFolder $ImageFolderPath
+			
+			String TopImageName = StringFromList(0, ImageNameList("IntensityImage", ";"))
+			wave imagew = $TopImageName
+			
+			MatrixOP/FREE/O hh = maxval(imagew)
+			MatrixOP/FREE/O ll = minval(imagew)
+			
+			NVAR low = :Red2DPackage:U_ColorLow
+			NVAR high = :Red2DPackage:U_ColorHigh
+			low = ll[0]
+			high = hh[0]
+			
+			low = 0.1*high	// this makes the image looks better than using real low value
+			
+			R2D_ColorRangeAdjust_worker(low, high)
+		
+			SetDataFolder $savedDF
+			
 			break
 		case -1: // control being killed
 			break
@@ -346,6 +392,8 @@ Function R2D_ColorRange_SetVarProc(sva) : SetVariableControl
 
 	return 0
 End
+
+
 
 Function R2D_LogColor_CheckProc(cba) : CheckBoxControl
 	STRUCT WMCheckboxAction &cba

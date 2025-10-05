@@ -215,6 +215,7 @@ Function R2D_MakeSensitivityButtonProc2D(ba) : ButtonControl
 			R2D_calc_qMap() // calculate solidangle correction map. the function locates in the circular average ipf.
 			
 			MatrixOP/O Sensitivity = Sensitivity/SolidAngleMap
+//			MatrixOP/O Sensitivity = Sensitivity
 			ImageStats Sensitivity
 			Sensitivity /= V_avg
 			Print "A sensitivity correction file was created and stored in Red2Dpackage datafolder."

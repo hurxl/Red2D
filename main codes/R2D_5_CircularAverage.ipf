@@ -586,8 +586,8 @@ Function R2D_calc_qMap()
 	Multithread qVecIndexMap_withOffset = qVecIndexMap[p][q][r] - qvec_min[r]	// subtract qx_min, qy_min, qz_min, from x-layer, y-layer, and z-layer of qvecIndexMap.
 
 	// Solid angle map
-//	Multithread SolidAngleMap = U_PixelSize^2*1E-12/L0^2*1E+9 * (L0/pscalarMap)^3 //Correction factor to convert I/pixel to I/Solid angle. The last 1E+9 converts to nano solid angle.
-	Multithread SolidAngleMap = U_PixelSize^2*1E-12 * MatrixDot(nvec, pvecMap) / pscalarMap^3 * 1E+9 //modified for tilted detectors.
+	Multithread SolidAngleMap = U_PixelSize^2*1E-12/L0^2*1E+9 * (L0/pscalarMap)^3 //Correction factor to convert I/pixel to I/Solid angle. The last 1E+9 converts to nano solid angle.
+//	Multithread SolidAngleMap = U_PixelSize^2*1E-12 * MatrixDot(nvec, pvecMap) / pscalarMap^3 * 1E+9 //modified for tilted detectors.
 	
 	/// Move back to image folder.
 //	SetdataFolder saveDFR
