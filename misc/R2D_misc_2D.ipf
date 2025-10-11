@@ -97,6 +97,10 @@ Function R2D_Sensitivity2D()
 		Abort
 	Endif
 	
+	// Global variables
+	Variable/G :Red2Dpackage:U_sac
+	NVAR U_sac = :Red2Dpackage:U_sac
+	
 	/// create a image list by the name order.
 	/// Current R2D_CreateImageList will create a list of all 2D waves. But I need to remove the _s waves for this update.
 	R2D_CreateImageList(1)
@@ -108,18 +112,23 @@ Function R2D_Sensitivity2D()
 		return -1
 	Endif
 	
+	If(numtype(U_sac) != 0)
+		U_sac = 1
+	Endif
+	
 
 	Killwindow/Z SensitivityCorrectionPanel2D
 	NewPanel/K=1/W=(100,100,550,300) as "Sensitivity correction"
 	RenameWindow $S_name, SensitivityCorrectionPanel2D
 	
-	TitleBox WSPopupTitle2,pos={70,20}, frame=0, fSize=14, title="\\JCSelect a reference image \rto create a correction file for detector sensitivity"
+	TitleBox WSPopupTitle2,pos={25,20}, frame=0, fSize=14, title="\\JCChoose a reference image \rto generate a correction file for detector sensitivity calibration"
 	Button SenseImage_Selector,pos={25,60},size={400,23}, fSize=14
 	MakeButtonIntoWSPopupButton("SensitivityCorrectionPanel2D", "SenseImage_Selector", "MakeSenseWavePopupWaveSelectorNotify", popupWidth = 400, popupHeight = 600, options=PopupWS_OptionFloat)
 	PopupWS_MatchOptions("SensitivityCorrectionPanel2D", "SenseImage_Selector", matchStr = "*", listoptions = "DIMS:2,TEXT:0")
 	PopupWS_SetPopupFont("SensitivityCorrectionPanel2D", "SenseImage_Selector", fontsize = 13)
-	Button bt1,pos={100,105},size={250,23}, fSize=14, proc=R2D_MakeSensitivityButtonProc2D,title="Make a correction file"
-	Button bt0,pos={140,150},size={170,23}, fSize=14, proc=R2D_CorrectSensitivityButtonProc2D,title="Start correction"
+	Button bt1,pos={50,105},size={180,23}, fSize=14, proc=R2D_MakeSensitivityButtonProc2D,title="Create Calibration File"
+	Button bt0,pos={170,150},size={130,23}, fSize=14, proc=R2D_CorrectSensitivityButtonProc2D,title="Start Correction"
+	CheckBox cb0 title="Solid Angle Correction", pos={250, 110}, fSize=13, variable=:Red2Dpackage:U_sac
 
 End
 
@@ -214,8 +223,12 @@ Function R2D_MakeSensitivityButtonProc2D(ba) : ButtonControl
 			Multithread Sensitivity[][] = Sensitivity[p][q] == 0 ? NaN : Sensitivity[p][q]  // convert zero value to NaN to remove these pixels from calculation.
 			R2D_calc_qMap() // calculate solidangle correction map. the function locates in the circular average ipf.
 			
-			MatrixOP/O Sensitivity = Sensitivity/SolidAngleMap
-//			MatrixOP/O Sensitivity = Sensitivity
+			NVAR U_sac = :Red2Dpackage:U_sac
+			
+			If(U_sac == 1)
+				MatrixOP/O Sensitivity = Sensitivity/SolidAngleMap	// solid angle correction
+			Endif
+			
 			ImageStats Sensitivity
 			Sensitivity /= V_avg
 			Print "A sensitivity correction file was created and stored in Red2Dpackage datafolder."

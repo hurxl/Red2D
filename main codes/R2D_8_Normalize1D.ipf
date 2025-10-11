@@ -91,6 +91,7 @@ Function R2D_TimeAndTrans1D()
 		Time_s = str2num(Datasheet[V_value][%Time_s])
 		Trans = str2num(Datasheet[V_value][%Trans])
 		ee = -ln(trans)
+//		Tr_corr = Trans
 		If(waveexists(theta2))
 			If(ee == 0) // when trans = 1, ee = 0. The denominator in the trans correction equation becomes 0.
 				Tr_corr = 1  // To avoid the problem, we directly put the transmission in Tr_thick.

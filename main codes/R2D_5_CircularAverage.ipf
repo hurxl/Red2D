@@ -35,6 +35,7 @@ Function R2D_CircularAveragePanel()
 	Variable/G :Red2Dpackage:U_tiltX, :Red2Dpackage:U_tiltY, :Red2Dpackage:U_tiltZ, :Red2Dpackage:U_SortOrder// U_tiltZ is not in use. It is actuall X2. I use X-Y-X type rotation.
 	String/G :Red2Dpackage:U_MaskName_All_CA, :Red2Dpackage:U_MaskName_Auto
 	Variable/G :Red2Dpackage:U_row_CA
+	Variable/G :Red2Dpackage:U_sac
 	
 	NVAR U_Xmax = :Red2Dpackage:U_Xmax
 	NVAR U_Ymax= :Red2Dpackage:U_Ymax
@@ -50,6 +51,7 @@ Function R2D_CircularAveragePanel()
 	SVAR U_MaskName_All_CA = :Red2Dpackage:U_MaskName_All_CA
 	SVAR U_MaskName_Auto = :Red2Dpackage:U_MaskName_Auto
 	NVAR U_row_CA = :Red2Dpackage:U_row_CA
+	NVAR U_sac = :Red2Dpackage:U_sac
 		
 	U_Xmax=Dimsize(TopImage,0)-1 //Get image size. Minus 1 because Dimsize is size while Xmax means the coordinates.
 	U_Ymax=Dimsize(TopImage,1)-1 //Get image size
@@ -84,6 +86,9 @@ Function R2D_CircularAveragePanel()
 	If(numtype(U_row_CA) != 0)
 		U_row_CA = 0
 	Endif
+	If(numtype(U_sac) != 0)
+		U_sac = 1
+	Endif
 //	SetDataFolder $ImageFolderPath		// move to image folder
 
 	/// Check if panel exist
@@ -104,8 +109,8 @@ Function R2D_CircularAveragePanel()
 	SetVariable setvar5 title="Lambda [A]",pos={15,150},size={200,25},limits={0,inf,0.1},fSize=13, value=:Red2DPackage:U_Lambda, help={"Cu = 1.5418A, Mo = 0.7107A"}
 	SetVariable setvar6 title="Pixel Size [um]",pos={15,175},size={200,25},limits={0,inf,1},fSize=13, value=:Red2DPackage:U_PixelSize, help={"Pilatus = 172um, Eiger = 75um"}
 
-	Button button0 title="Circular Average",size={150,23},pos={45,250}, fstyle=1, proc=ButtonProcCA
-	Button button1 title="Bring Image to Front",size={150,22},pos={45,290}, proc=ButtonProcR2D_BringImageToFront_ca
+	Button button0 title="Circular Average",size={150,23},pos={45,265}, fstyle=1, proc=ButtonProcCA
+	Button button1 title="Bring Image to Front",size={150,22},pos={45,305}, proc=ButtonProcR2D_BringImageToFront_ca
 	
 	R2D_GetImageList_CA("")	// refresh Z_ImageList_CA for the listbox. Z_ImageList_CA is a 2D text wave containing the image and mask lists.
 	ListBox lb listWave=:Red2DPackage:Z_ImageList_CA
@@ -114,6 +119,8 @@ Function R2D_CircularAveragePanel()
 	PopupMenu popup1 title="Set all mask", pos={15,200}, fSize=13, value=R2D_GetMaskList_simple(), proc=Update_MaskName_All_CA
 	// when refresh above popup, the selection number will remain in old one. Therefore, when it exceeds current list, no selection appears.
 	Execute/P/Q "PopupMenu popup1 pos={15,200}"  // a workaround about Igor's know bug for bodywidth option.
+	
+	CheckBox cb0 title="Solid Angle Correction", pos={15, 230}, fSize=13, variable=:Red2Dpackage:U_sac
 	
 //	SetdataFolder saveDFR
 	SetDataFolder $savedDF
@@ -493,24 +500,22 @@ Function InitiateCircularAverage([mask_path])
 	
 End
 
+
+/// *** Calculate q, theta, solid angle map of the scattering image
 /// Use Euler angles to calcualte the theta and q
 Function R2D_calc_qMap()
 
 	/// Check if in the image folder.
-//	If(R2D_Error_ImagesExist() == -1)
-//		Abort
-//	Endif
 	String ImageFolderPath = R2D_GetImageFolderPath()	// Get image datafolder even 1D folder is activated.
 	If(strlen(ImageFolderPath) == 0)
 		Abort "You may be in a wrong datafolder."
 	Endif
 		
 	/// Move to R2D package folder
-//	DFREF saveDFR = GetDataFolderDFR()	// get current datafolder. it could be 1D folder or image folder.
 	SetDataFolder $ImageFolderPath		// set datafolder to image folder
 	SetDataFolder Red2DPackage
 
-	Variable/G U_Xmax, U_Ymax, U_X0, U_Y0, U_SDD, U_Lambda, U_PixelSize, U_tiltX, U_tiltY, U_tiltZ, U_qnum, U_qres, U_qmin
+	Variable/G U_Xmax, U_Ymax, U_X0, U_Y0, U_SDD, U_Lambda, U_PixelSize, U_tiltX, U_tiltY, U_tiltZ, U_qnum, U_qres, U_qmin, U_theta_res, U_L0
 	Variable/G U_qx_index_min, U_qx_index_max, U_qx_index_num
 	Variable/G U_qy_index_min, U_qy_index_max, U_qy_index_num
 	Variable/G U_qz_index_min, U_qz_index_max, U_qz_index_num
@@ -542,11 +547,11 @@ Function R2D_calc_qMap()
 	MatrixOP/FREE/O nvec = RotationMatrix x zvec
 	
 	/// make q Matrix and solidangle correction matrix
-	variable theta_res, L0	
-	theta_res = atan(U_PixelSize*1E-6/U_SDD) //resolution of scattering angle [radian]
-	U_qres = 4*pi/U_Lambda*sin(theta_res/2) //resolution of the magnitude of scattering vector [A]
-	L0 = U_SDD*abs(MatrixDot(zvec, nvec))/MatrixDot(nvec,nvec) //formula to get distance from a point to a plane, using the normal vector.
-	// For detail, see titled detector issue.docx.
+//	variable theta_res, L0	
+	U_theta_res = atan(U_PixelSize*1E-6/U_SDD) // define resolution of scattering angle [radian] using the center pixel
+	U_qres = 4*pi/U_Lambda*sin(U_theta_res/2) // convert theta_res to the resolution of scattering vector [A]
+	U_L0 = U_SDD*abs(MatrixDot(zvec, nvec))/MatrixDot(nvec,nvec) // a formula to get distance from a point to a plane, using the normal vector.
+	// See titled detector issue.docx for detail derivation
 	
 	Make/D/O/N=(U_Xmax+1,U_Ymax+1,3) pvecMap, qvecMap // 2D vector maps; each beam contains the vector values.
 	Make/D/O/N=(U_Xmax+1,U_Ymax+1) qScalarIndexMap, SolidAngleMap	// 2D scalar maps
@@ -586,7 +591,8 @@ Function R2D_calc_qMap()
 	Multithread qVecIndexMap_withOffset = qVecIndexMap[p][q][r] - qvec_min[r]	// subtract qx_min, qy_min, qz_min, from x-layer, y-layer, and z-layer of qvecIndexMap.
 
 	// Solid angle map
-	Multithread SolidAngleMap = U_PixelSize^2*1E-12/L0^2*1E+9 * (L0/pscalarMap)^3 //Correction factor to convert I/pixel to I/Solid angle. The last 1E+9 converts to nano solid angle.
+	Multithread SolidAngleMap = (U_L0/pscalarMap)^3 // Solid angle ratio to the center pixel
+//	Multithread SolidAngleMap = U_PixelSize^2*1E-12/L0^2*1E+9 * (L0/pscalarMap)^3 //Correction factor to convert I/pixel to I/Solid angle. The last 1E+9 converts to nano solid angle.
 //	Multithread SolidAngleMap = U_PixelSize^2*1E-12 * MatrixDot(nvec, pvecMap) / pscalarMap^3 * 1E+9 //modified for tilted detectors.
 	
 	/// Move back to image folder.
@@ -608,6 +614,8 @@ ThreadSafe Static Function CircularAverage(pWave, df1d, mask_wave)
 	Wave qScalarIndexMap = :Red2DPackage:qScalarIndexMap
 	Wave SolidAngleMap = :Red2DPackage:SolidAngleMap
 	
+	NVAR U_sac = :Red2Dpackage:U_sac
+	
 	/// Setup for mask
 	If(!WaveExists(mask_wave))	// if the selected wave does not exist or user did not select a mask wave
 		Duplicate/FREE/O qScalarIndexMap, mask_wave	// manually make a mask wave
@@ -627,11 +635,18 @@ ThreadSafe Static Function CircularAverage(pWave, df1d, mask_wave)
    			if(numtype(pWave[i][j]) == 2 || mask_wave[i][j] == 1)
    				//skip add when the pixel is NaN or mask wave is 1.
     		else
-   				qindex = qScalarIndexMap[i][j] //qScalarIndexMap multiplying q_resolution yiealds the q values
-   				count = Iq_count[qindex]	//get the count number of the qindex
-	 	  	 	Iq_hist[qindex][count] = pWave[i][j]/SolidAngleMap[i][j] // Rearrange xy graph to I-q histogram. I is corrected to int per solid angle
-	 	  	 	s2q_hist[qindex][count] = pWave[i][j]/SolidAngleMap[i][j]^2	// err^2 = (pWave^0.5 per SolidAngle)^2
+   			qindex = qScalarIndexMap[i][j] //qScalarIndexMap multiplying q_resolution yiealds the q values
+   			count = Iq_count[qindex]	//get the count number of the qindex
+   			
+   			if(U_sac)	
+		 	  	 	Iq_hist[qindex][count] = pWave[i][j]/SolidAngleMap[i][j] // Rearrange xy graph to I-q histogram. I is corrected to int per solid angle
+		 	  	 	s2q_hist[qindex][count] = pWave[i][j]/SolidAngleMap[i][j]^2	// err^2 = (pWave^0.5 per SolidAngle)^2
+	 	  	 	else
+	 		  	 	Iq_hist[qindex][count] = pWave[i][j] 	// Rearrange xy graph to I-q histogram. No solid angle correction
+	 	  		 	s2q_hist[qindex][count] = pWave[i][j]	// err^2. No solid angle correction. 	 	
+	 	  		endif
 				Iq_count[qindex] += 1 //calculate the pixel number that corresponds to distance r, considering the mask.
+				
 			endif
 		endfor
 	endfor
