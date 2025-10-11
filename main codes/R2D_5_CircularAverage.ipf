@@ -519,6 +519,14 @@ Function R2D_calc_qMap()
 	Variable/G U_qx_index_min, U_qx_index_max, U_qx_index_num
 	Variable/G U_qy_index_min, U_qy_index_max, U_qy_index_num
 	Variable/G U_qz_index_min, U_qz_index_max, U_qz_index_num
+	
+	If(U_X0 == 0 && U_Y0 == 0)
+		DoAlert 0, "Beam center (X0, Y0) = (0, 0). Proceed anyway?"
+		return -1
+	elseif(numtype(U_X0) == 2 || numtype(U_Y0) == 2 )
+		DoAlert 1, "Beam center is not defined. Please use the Fit Standard or Circular Average panel to set the beam center (X0, Y0), SDD, wavelength, and pixel size."
+		return -1
+	endif
 
 	/// make rotation matrix
 	variable Xrad, Yrad, Zrad
@@ -554,7 +562,7 @@ Function R2D_calc_qMap()
 	// See titled detector issue.docx for detail derivation
 	
 	Make/D/O/N=(U_Xmax+1,U_Ymax+1,3) pvecMap, qvecMap // 2D vector maps; each beam contains the vector values.
-	Make/D/O/N=(U_Xmax+1,U_Ymax+1) qScalarIndexMap, SolidAngleMap	// 2D scalar maps
+	Make/D/O/N=(U_Xmax+1,U_Ymax+1) qScalarIndexMap, t2map, SolidAngleMap, t2map_geo	// 2D scalar maps
 	
 	// pixel vector and scalar map. For detail, see titled detector issue.docx.
 	Multithread pvecMap = (p-U_X0)*avec[r]*U_PixelSize*1E-6 + (q-U_Y0)*bvec[r]*U_PixelSize*1E-6 + U_SDD*zvec[r]
@@ -589,7 +597,21 @@ Function R2D_calc_qMap()
 	Make/O/FREE qvec_min = {U_qx_index_min, U_qy_index_min, U_qz_index_min}
 	Duplicate/O qVecIndexMap, qVecIndexMap_withOffset
 	Multithread qVecIndexMap_withOffset = qVecIndexMap[p][q][r] - qvec_min[r]	// subtract qx_min, qy_min, qz_min, from x-layer, y-layer, and z-layer of qvecIndexMap.
-
+	
+	// 2 theta map
+	t2map = 2*asin(qScalarMap*U_lambda/(4*pi))
+	
+	// 2025-10-11 I have confirmed that t2map and t2map_geo contain are identical at all pixel positions.
+//	variable costheta
+//	variable i, j
+//	for(i=0; i<U_Xmax+1; i++)
+//		for(j=0; j<U_Ymax+1; j++)
+//			MatrixOP/FREE pvec = beam(pvecmap, i, j)	// get beam, the p_vector in the pixel_ij
+//			costheta = MatrixDot(pvec, zvec)/norm(pvec) // calcualte dot product
+//			t2map_geo[i][j] = acos(costheta)	// calculate angle
+//		endfor
+//	endfor
+	
 	// Solid angle map
 	Multithread SolidAngleMap = (U_L0/pscalarMap)^3 // Solid angle ratio to the center pixel
 //	Multithread SolidAngleMap = U_PixelSize^2*1E-12/L0^2*1E+9 * (L0/pscalarMap)^3 //Correction factor to convert I/pixel to I/Solid angle. The last 1E+9 converts to nano solid angle.
