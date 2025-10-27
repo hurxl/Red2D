@@ -7,10 +7,6 @@
 
 Function R2D_CircularAveragePanel()
 	
-	/// Check if in the image folder.
-//	If(R2D_Error_ImagesExist() == -1)
-//		Abort
-//	Endif
 	String ImageFolderPath = R2D_GetImageFolderPath()	// Get image datafolder even 1D folder is activated.
 //			print ImageFolderPath
 	If(strlen(ImageFolderPath) == 0)
@@ -22,14 +18,21 @@ Function R2D_CircularAveragePanel()
 		String simple_imagefolderpath = GetDataFolder(1)		// for display, the default image folder path may contain ::
 		NewDataFolder/O Red2Dpackage	// create an Red2Dpackage folder within the image folder
 	Endif
-//	DFREF saveDFR = GetDataFolderDFR()	// get current datafolder. It could be image folder or 1D folder.
-//	SetDataFolder $ImageFolderPath		// move to image folder
 	
 	String reflist = wavelist("*",";","DIMS:2,TEXT:0") //Get wavelist from current folder limited for 2D waves
 	Wave/T reftw = ListToTextWave(reflist,";") // Create a text wave reference containing reflist
 	Wave TopImage = $reftw[0]
 	
-//	NewDataFolder/O/S Red2DPackage
+	
+	// check if NVAR and SVAR exist, use this section to set default value
+	// if you want to set the default value to zero, you do not need to specify it here.
+	NVAR/Z U_sac = :Red2Dpackage:U_sac
+	If(!NVAR_Exists(U_sac))
+		Variable/G :Red2Dpackage:U_sac
+		NVAR/Z U_sac = :Red2Dpackage:U_sac
+		U_sac = 1
+	Endif
+	
 	Variable/G :Red2Dpackage:U_Xmax, :Red2Dpackage:U_Ymax, :Red2Dpackage:U_X0, :Red2Dpackage:U_Y0
 	Variable/G :Red2Dpackage:U_SDD, :Red2Dpackage:U_Lambda, :Red2Dpackage:U_PixelSize
 	Variable/G :Red2Dpackage:U_tiltX, :Red2Dpackage:U_tiltY, :Red2Dpackage:U_tiltZ, :Red2Dpackage:U_SortOrder// U_tiltZ is not in use. It is actuall X2. I use X-Y-X type rotation.
@@ -56,12 +59,12 @@ Function R2D_CircularAveragePanel()
 	U_Xmax=Dimsize(TopImage,0)-1 //Get image size. Minus 1 because Dimsize is size while Xmax means the coordinates.
 	U_Ymax=Dimsize(TopImage,1)-1 //Get image size
 	
-	If(numtype(U_X0) != 0)
-		U_X0 = 0
-	Endif
-	If(numtype(U_X0) != 0)
-		U_Y0 = 0
-	Endif
+//	If(numtype(U_X0) != 0)
+//		U_X0 = 0
+//	Endif
+//	If(numtype(U_X0) != 0)
+//		U_Y0 = 0
+//	Endif
 	If(U_SDD == 0 || numtype(U_SDD) != 0)
 		U_SDD = 1
 	Endif
@@ -71,25 +74,21 @@ Function R2D_CircularAveragePanel()
 	If(U_PixelSize == 0 || numtype(U_PixelSize) != 0)
 		U_PixelSize = 1
 	Endif
-	If(numtype(U_tiltX) != 0)
-		U_tiltX = 0
-	Endif
-	If(numtype(U_tiltY) != 0)
-		U_tiltY = 0
-	Endif
-	If(numtype(U_tiltZ) != 0)
-		U_tiltZ = 0
-	Endif
+//	If(numtype(U_tiltX) != 0)
+//		U_tiltX = 0
+//	Endif
+//	If(numtype(U_tiltY) != 0)
+//		U_tiltY = 0
+//	Endif
+//	If(numtype(U_tiltZ) != 0)
+//		U_tiltZ = 0
+//	Endif
 	If(U_SortOrder == 0 || numtype(U_SortOrder) != 0)
 		U_SortOrder = 1
 	Endif
-	If(numtype(U_row_CA) != 0)
-		U_row_CA = 0
-	Endif
-	If(numtype(U_sac) != 0)
-		U_sac = 1
-	Endif
-//	SetDataFolder $ImageFolderPath		// move to image folder
+//	If(numtype(U_row_CA) != 0)
+//		U_row_CA = 0
+//	Endif
 
 	/// Check if panel exist
 	DoWindow CircularAverage
@@ -212,6 +211,7 @@ Function R2D_CircularAverageWindowHook(s)
 
 	return hookResult	// If non-zero, we handled event and Igor will ignore it.
 End
+
 
 
 ////////////////////////////////////////////////////////////////////
