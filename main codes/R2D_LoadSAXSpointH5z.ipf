@@ -403,26 +403,30 @@ End
 
 Function R2D_FillDataseetSAXSpoint()
 
-	if(R2D_Error_DatasheetExist1D() < 0 )
+	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet if exists. This func works in 1D and 2D folders.
+	wave/T/Z datasheet = $Datasheet_Path
+	If(!waveExists(datasheet))
+		print "datasheet does not exist. cancel filling."
 		return -1
 	endif
 
-	R2D_FillDataseet_worker("Sample Name", " : ", "\r", "SampleName", "text")
-	R2D_FillDataseet_worker("Measeurment time", " : ", "\r", "Time_s", "number")
-	R2D_FillDataseet_worker("Transmittance", " : ", "\r", "Trans", "number")
-	R2D_FillDataseet_worker("Sample thickness", " : ", "\r", "Thick_cm", "number")
+	R2D_FillDataseet_worker("Sample Name", " : ", "\r", "SampleName", "text", Datasheet_Path)
+	R2D_FillDataseet_worker("Measeurment time", " : ", "\r", "Time_s", "number", Datasheet_Path)
+	R2D_FillDataseet_worker("Transmittance", " : ", "\r", "Trans", "number", Datasheet_Path)
+	R2D_FillDataseet_worker("Sample thickness", " : ", "\r", "Thick_cm", "number", Datasheet_Path)
 
 End
 
-Function R2D_FillDataseet_worker(Key, KeySeparator, ListSeparator, DatasheetColName, format)
+Function R2D_FillDataseet_worker(Key, KeySeparator, ListSeparator, DatasheetColName, format, Datasheet_Path)
 	String Key
 	String KeySeparator
 	String ListSeparator
 	String DatasheetColName
 	String format
+	String Datasheet_Path
 	
-	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet. if in a wrong datafolder, return an error and abort.
-	wave/T/Z datasheet = $Datasheet_Path
+//	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet if exists. This func works in 1D and 2D folders.
+	wave/T datasheet = $Datasheet_Path
 	String imagefolder = GetWavesDataFolder(datasheet,1)+":" // get the full path of the datafolder for datasheet
 
 	String imagename
