@@ -137,6 +137,8 @@ Function R2D_Load_SAXSpoint_hdf(filePath)
 	HDF5LoadData/Q/O/Z/N = detector_number fileID, "/entry/instrument/detector/detector_number" // load detector_number
 	HDF5LoadData/Q/O/Z/N = x_pixel_size fileID, "/entry/instrument/detector/x_pixel_size" // load x_pixel_size
 	HDF5LoadData/Q/O/Z/N = y_pixel_size fileID, "/entry/instrument/detector/y_pixel_size" // load y_pixel_size
+	HDF5LoadData/Q/O/Z/N = detector_x_position fileID, "/entry/instrument/detector/x_translation" // load detector x_position
+	HDF5LoadData/Q/O/Z/N = detector_y_position fileID, "/entry/instrument/detector/height" // load detector y_position
 	
 	
 //	if (V_flag != 0)
@@ -223,7 +225,7 @@ function Red2D_SpliteImageStack()
 	wave SDD
 	wave sample_temperature
 	wave measeurment_time
-	wave averaged_frames
+	wave/Z averaged_frames
 	wave/T sample_position
 	wave/T sample_name
 	wave/T ambient_status
@@ -238,14 +240,17 @@ function Red2D_SpliteImageStack()
 	wave y_pixel_size
 	wave/T AcquisitionStartTime
 	wave ElapsedTime
+	wave detector_x_position
+	wave detector_y_position
 	
 	variable lay = DimSize(imagestack, 2)
 	lay = max(lay,1)	//  Check if there is only one image. 
 
 	variable i
+	variable image_index = 0
 	
 	string namelist = ""
-	string imagename 
+	string imagename
 	
 	for(i=0; i< lay	; i+=1) // Making image wavelist 
 		imagename = ""
@@ -253,20 +258,23 @@ function Red2D_SpliteImageStack()
 		imagename += "_"+"SDD_"+num2str(round(SDD[i]*1000))+"mm"
 		imagename += "_"+sample_position[i]
 		imagename += "_"+num2str(round(sample_temperature[i]))+"C"
-		imagename = R2D_CleanupName(imagename)
 		
-		imagename = CreateDataObjectName($("SDD_"+num2str(round(SDD[i]*1000))+"mm"), imagename, 1, 0, 1) // Make unique name
-		
-		print imagename
+		imagename = R2D_CleanupName(imagename)	
+//		imagename = CreateDataObjectName($("SDD_"+num2str(round(SDD[i]*1000))+"mm"), imagename, 1, 0, 1) // Make unique name
 		
 		namelist += imagename + ";"
 
 	endfor
 	
+
+	// add sequential number if imagenames has duplications
+	string seq_namelist = R2D_AddSequentialNumbers(namelist, 1)		// 1 means remove _0 index if that string is unique
+	
+	
 	if (lay >> 1) //
-		SplitWave/O/SDIM=2/NAME=namelist imagestack //Split 3dwave to 2dwave	
+		SplitWave/O/SDIM=2/NAME=seq_namelist imagestack //Split 3dwave to 2dwave	
 	else
-		duplicate/O imagestack, $(StringFromList(0, namelist))
+		duplicate/O imagestack, $(StringFromList(0, seq_namelist))
 	endif
 
 
@@ -275,28 +283,35 @@ function Red2D_SpliteImageStack()
 	variable startTime, endTime
 	string startTime_str, endTime_str
 	for(i=0; i< lay	; i+=1) // Writing note
-	
+		
+		wave target = $(StringFromList(i, seq_namelist))
+		
 		endTime = ISOToIgorSecs(AcquisitionStartTime[0]) + ElapsedTime[i]
 		startTime = endTime - measeurment_time[i]
 		
-		wnote += "Detector : "+ description[0]+"	 S/N "+detector_number[0]+"\r"
-		wnote += "Pixel size : "+ num2str(x_pixel_size[0]*1e6)+" [µm]"+" × "+ num2str(y_pixel_size[0]*1e6)+" [µm]"+"\r"
-		wnote += "Sample name : "+sample_name[i]+"\r"
-		wnote += "Ambient status : "+ ambient_status[i] + "\r"
-		wnote += "Wavelength : "+num2str(wavelength[i]*1e10)+" [Å]"+"\r"
-		wnote += "SDD : "+num2str(SDD[i])+" [m]"+"\r"
-		wnote += "Sample position : "+sample_position[i]+"\r"
+		wnote += "Detector : " + description[0] + "	 S/N " + detector_number[0]+"\r"
+		wnote += "Pixel size : " + num2str(x_pixel_size[0]*1e6)+" [µm]" //+ " × "+ num2str(y_pixel_size[0]*1e6) + " [µm]"+"\r"
+		wnote += "Sample name : " + sample_name[i]+"\r"
+		wnote += "Ambient status : " + ambient_status[i] + "\r"
+		wnote += "Wavelength : " + num2str(wavelength[i]*1e10)+" [Å]"+"\r"
+		wnote += "SDD : " + num2str(SDD[i])+" [m]"+"\r"
+		wnote += "Sample position : " + sample_position[i]+"\r"
 		wnote += "Start time : "+ IgorSecsToTimeStamp(startTime) + "\r"
 		wnote += "End time : " + IgorSecsToTimeStamp(endTime) + "\r"
-		wnote += "Measeurment time : "+num2str(measeurment_time[i])+" [sec]"+"\r"
-		wnote += "Averaged frames : "+num2str(averaged_frames[i])+"\r"
-		wnote += "Sample temperature : "+num2str(sample_temperature[i])+" [C]"+"\r"
-		wnote += "Sample thickness : "+num2str(Sample_thickness[i]/10)+" [cm]"+"\r"	
-		wnote += "Transmittance : "+num2str(transmittance[i])+"\r"
-		wnote += "flux_entering_sample : "+num2str(flux_entering_sample[i])+" [cts]"+"\r"
-		wnote += "flux_exiting_sample : "+num2str(flux_exiting_sample[i])+" [cts]"+"\r"
+		wnote += "Measeurment time : " + num2str(measeurment_time[i])+" [sec]"+"\r"
+		if(WaveExists(averaged_frames))
+			wnote += "Averaged frames : " + num2str(averaged_frames[i])+"\r"
+		endif
+		wnote += "Sample temperature : " + num2str(sample_temperature[i])+" [C]"+"\r"
+		wnote += "Sample thickness : " + num2str(Sample_thickness[i]/10)+" [cm]"+"\r"	
+		wnote += "Transmittance : " + num2str(transmittance[i]) + "\r"
+		wnote += "flux_entering_sample : " + num2str(flux_entering_sample[i]) + " [cts]"+"\r"
+		wnote += "flux_exiting_sample : " + num2str(flux_exiting_sample[i]) + " [cts]"+"\r"
+		wnote += "detector_x_position : " + num2str(detector_x_position[i]) + " [m]" + "\r"
+		wnote += "detector_y_position : " + num2str(detector_y_position[i]) + " [m]" + "\r"
+		wnote += "Number of pixels in x : " + num2str(DimSize(target,0)) + "\r"
+		wnote += "Number of pixels in y : " + num2str(DimSize(target,1)) + "\r"
 		
-		wave target = $(StringFromList(i, namelist))
 		if (strlen(note(target)) == 0)
 			Note target, wnote
 		endif
@@ -332,14 +347,51 @@ function Red2D_SpliteImageStack()
 
 	endfor
 	
-	String allwlist = wavelist("*",";","DIMS:1")
-	for(i=0; i< ItemsInList(allwlist);i+=1)
-		killwaves/Z $(StringFromList(i, allwlist))
-	endfor
+//	String allwlist = wavelist("*",";","DIMS:1")
+//	for(i=0; i< ItemsInList(allwlist);i+=1)
+//		killwaves/Z $(StringFromList(i, allwlist))
+//	endfor
 	
 	killwaves/Z imagestack
 
 end
+
+Function/S R2D_AddSequentialNumbers(strlist, flag)
+	string strlist
+	variable flag	//	0 to leave _0 as is when there is no _1, 1 to remove this mono _0.
+	
+	wave/T strings_w = ListToTextWave(strlist, ";")
+	FindDuplicates/RT=key_w/FREE strings_w
+
+	variable num_keys = DimSize(key_w, 0)
+	Make/FREE/O/N=(num_keys) count_w = 0
+	
+	// add sequential number
+	variable num_items = itemsinList(strlist)
+	string new_strlist = ""
+	variable i
+	for(i=0; i<num_items; i++)
+		string str = StringFromList(i, strlist)
+		FindValue/TEXT=str/TXOP=4 key_w	// check which key this item string belongs to
+		variable key_index = V_value
+		new_strlist += str + "_" + num2str(count_w[key_index]) + ";"
+		count_w[key_index] += 1 // add count to the count wave with corresponding index of the key
+	endfor
+	
+	// an option to remove _0 if _0 is the only index for the str item
+	if(flag == 1)
+		string key
+		for(key_index=0; key_index<num_keys; key_index++)
+			if(count_w[key_index] == 1)	// count_w[i] == 1 means this key only has one item in the strlist
+				key = key_w[key_index]
+				new_strlist = ReplaceString(key + "_0", new_strlist, key)
+			endif
+		endfor
+	endif
+	
+	return new_strlist
+	
+End
 
 Function ISOToIgorSecs(isoStr)
     String isoStr
@@ -496,4 +548,93 @@ Function/S R2D_ExecuteWindowsShellCommand(uCommand, printCommandInHistory, print
     endif
     
 	return S_value
+End
+
+
+Function R2D_combine_extended_images()
+
+	// load all wave names in current data folder
+	string imglist = wavelist("*", ";", "DIMS:2")
+	
+	// create a list of keys
+	// this function assume the last item in the name, separated by "_", is the sequential number
+	variable num_images = itemsinList(imglist)
+	string basename_list = ""
+	variable i
+	for(i=0; i<num_images; i++)
+		string imagename = StringFromList(i,imglist)
+		variable num_tag = itemsInList(imagename, "_")
+		string basename = RemoveListItem(num_tag-1, imagename, "_")
+		basename = RemoveEnding(basename)	// remove "_"
+		basename_list +=  basename + ";"
+	endfor
+	
+	wave/T basename_w = ListToTextWave(basename_list, ";")
+	FindDuplicates/RT=key_w basename_w	// get key wave
+
+	// combine the images with the same key (basename)
+	// here we have three list (or 1D wave) for image names, imglist, basename_w (or list), key_w
+	// imglist contains sequential number, basename_w does not contain sequential number, key_w is the basename without duplications.
+	variable num_keys = numpnts(key_w)
+	make/N=(num_keys)/O/FREE count_w
+	
+	// get the maximum index of each key
+	for(i=0; i<num_keys; i++)
+		string key = key_w[i]
+		string matched_items = ListMatch(basename_list, key)
+		variable num_matched = itemsInList(matched_items)
+		count_w[i] = num_matched
+	endfor
+	
+	variable name_index	// index regarding all images
+	variable count	// index regarding the same basename
+	for(i=0; i<num_keys; i++)
+		name_index = 0 // reset index
+		count = 0 // reset count
+		make/N=(count_w[i])/FREE/O detector_x_pos_array
+		make/N=(count_w[i])/FREE/O detector_y_pos_array
+		Do
+			FindValue/TEXT=key_w[i]/TXOP=4/S=(name_index) basename_w
+			name_index = V_value
+			
+			if(name_index >= 0)	// if found
+				// get x, y pos of detector
+				imagename = StringFromList(name_index, imglist)
+				wave img = $imagename
+				string wnote = note(img)
+				variable x_pos = Str2num( StringByKey("detector_x_position", wnote, " : ", "\r") )
+				variable y_pos = Str2num( StringByKey("detector_y_position", wnote, " : ", "\r") )
+				variable x_pixelnumber = Str2num( StringByKey("Number of pixels in x", wnote, " : ", "\r") )
+				variable y_pixelnumber = Str2num( StringByKey("Number of pixels in y", wnote, " : ", "\r") )
+				variable pixelsize = Str2num( StringByKey("Pixel size", wnote, " : ", "\r") )
+				detector_x_pos_array[count] = x_pos
+				detector_y_pos_array[count] = y_pos
+//				print imagename + ": x = " + num2str(x_pos) + ", y = " + num2str(y_pos)
+				name_index ++
+				count ++
+			endif
+			
+			if(name_index > num_images - 1 || name_index < 0)
+				break
+			endif
+		While(1)
+		
+		// make an extended blank image
+		variable extended_x_size = WaveMax(detector_x_pos_array)*1E6 - WaveMin(detector_x_pos_array)*1E6 + x_pixelnumber * pixelsize
+		variable extended_y_size = WaveMax(detector_y_pos_array)*1E6 - WaveMin(detector_y_pos_array)*1E6 + y_pixelnumber * pixelsize
+		variable extended_x_numOfpixels = floor(extended_x_size/pixelsize)
+		variable extended_y_numOfpixels = floor(extended_y_size/pixelsize)
+		make/O/N=(extended_x_numOfpixels,extended_y_numOfpixels) extended_image
+		
+		// assign each image to the extended one
+//		extended_image[0][] = 
+		
+	endfor	
+	
+	
+	// get the detector position of each image
+	
+	
+	// 
+
 End
