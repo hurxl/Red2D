@@ -76,6 +76,8 @@ Menu "Red2D"
 		"Convert 32bit integer images to single float (-1 to NaN)", R2D_negative2NaN()
 		"Convert NaN to 1E-30", R2D_NaN2en30()
 		"-"
+		"Create Panorama Image (SAXSpoint)", R2D_SAXSpoint_create_panorama_images()
+		"-"
 		Submenu "2D Operation"
 			"1. Time and Transmission (2D)", R2D_TimeAndTrans2D()
 			"2. Subtract Cell or Air (2D)", R2D_Cellsubtraction2D()

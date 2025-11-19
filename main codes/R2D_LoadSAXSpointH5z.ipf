@@ -290,7 +290,7 @@ function Red2D_SpliteImageStack()
 		startTime = endTime - measeurment_time[i]
 		
 		wnote += "Detector : " + description[0] + "	 S/N " + detector_number[0]+"\r"
-		wnote += "Pixel size : " + num2str(x_pixel_size[0]*1e6)+" [µm]" //+ " × "+ num2str(y_pixel_size[0]*1e6) + " [µm]"+"\r"
+		wnote += "Pixel size : " + num2str(x_pixel_size[0]*1e6)+" [µm]" + "\r" //+ " × "+ num2str(y_pixel_size[0]*1e6) + " [µm]"+"\r"
 		wnote += "Sample name : " + sample_name[i]+"\r"
 		wnote += "Ambient status : " + ambient_status[i] + "\r"
 		wnote += "Wavelength : " + num2str(wavelength[i]*1e10)+" [Å]"+"\r"
@@ -347,10 +347,10 @@ function Red2D_SpliteImageStack()
 
 	endfor
 	
-//	String allwlist = wavelist("*",";","DIMS:1")
-//	for(i=0; i< ItemsInList(allwlist);i+=1)
-//		killwaves/Z $(StringFromList(i, allwlist))
-//	endfor
+	String allwlist = wavelist("*",";","DIMS:1")
+	for(i=0; i< ItemsInList(allwlist);i+=1)
+		killwaves/Z $(StringFromList(i, allwlist))
+	endfor
 	
 	killwaves/Z imagestack
 
@@ -551,13 +551,12 @@ Function/S R2D_ExecuteWindowsShellCommand(uCommand, printCommandInHistory, print
 End
 
 
-Function R2D_combine_extended_images()
+Function R2D_SAXSpoint_create_panorama_images()
 
-	// load all wave names in current data folder
-	string imglist = wavelist("*", ";", "DIMS:2")
+	// load all image names in current data folder -> imglist
+	string imglist = wavelist("*", ";", "DIMS:2,TEXT:0")
 	
-	// create a list of keys
-	// this function assume the last item in the name, separated by "_", is the sequential number
+	// remove sequential ending from the name list -> basename_list
 	variable num_images = itemsinList(imglist)
 	string basename_list = ""
 	variable i
@@ -566,75 +565,113 @@ Function R2D_combine_extended_images()
 		variable num_tag = itemsInList(imagename, "_")
 		string basename = RemoveListItem(num_tag-1, imagename, "_")
 		basename = RemoveEnding(basename)	// remove "_"
-		basename_list +=  basename + ";"
+		basename_list +=  basename + ";"	// create basename list; basename list has the same number of items as imglist.
 	endfor
 	
+	// retrieve unique names -> key_w
 	wave/T basename_w = ListToTextWave(basename_list, ";")
-	FindDuplicates/RT=key_w basename_w	// get key wave
+	FindDuplicates/FREE/RT=key_w basename_w	// get key wave, unique image name wave
 
-	// combine the images with the same key (basename)
-	// here we have three list (or 1D wave) for image names, imglist, basename_w (or list), key_w
-	// imglist contains sequential number, basename_w does not contain sequential number, key_w is the basename without duplications.
+	// get number of seq for each key
 	variable num_keys = numpnts(key_w)
-	make/N=(num_keys)/O/FREE count_w
-	
-	// get the maximum index of each key
+	make/N=(num_keys)/O/FREE seq_count_w	// a wave to store the count number
 	for(i=0; i<num_keys; i++)
 		string key = key_w[i]
 		string matched_items = ListMatch(basename_list, key)
 		variable num_matched = itemsInList(matched_items)
-		count_w[i] = num_matched
+		seq_count_w[i] = num_matched
 	endfor
 	
-	variable name_index	// index regarding all images
-	variable count	// index regarding the same basename
+	// create a folder to store extended images
+	NewDataFolder/O ext_images
+	
+	
+	// combine images for each key
+	variable j
 	for(i=0; i<num_keys; i++)
-		name_index = 0 // reset index
-		count = 0 // reset count
-		make/N=(count_w[i])/FREE/O detector_x_pos_array
-		make/N=(count_w[i])/FREE/O detector_y_pos_array
-		Do
-			FindValue/TEXT=key_w[i]/TXOP=4/S=(name_index) basename_w
-			name_index = V_value
+	
+		//////////////////////////////////////////////////////////////////////////////
+		/// each loop processes all sequential images associated with the same key ///
+		//////////////////////////////////////////////////////////////////////////////
+				
+		variable search_index = 0			// index to start FindValue search. reset at start of new loop
+		variable count = 0					// index of the sequential images with the same key. reset at start of new loop
+		variable numOfseq = seq_count_w[i]	// number of sequential images for this key
+		string workingImgList = ""
+		key = key_w[i]
+		
+		// get detector position of all images in current key (unique name)
+		make/FREE/D/N=(numOfseq)/O detector_x0_positions, detector_y0_positions
+		make/FREE/N=(numOfseq)/O/T workName_w
+		Do	// the imglist may have random order. so, we need to go through all images in the imglist.
+			FindValue/TEXT=key/TXOP=4/S=(search_index) basename_w	// find a image starting with corresponding key (unique name)
+			search_index = V_value
 			
-			if(name_index >= 0)	// if found
-				// get x, y pos of detector
-				imagename = StringFromList(name_index, imglist)
+			if(search_index >= 0)	// if found
+				// get its detector x, y positions
+				imagename = StringFromList(search_index, imglist)
 				wave img = $imagename
 				string wnote = note(img)
-				variable x_pos = Str2num( StringByKey("detector_x_position", wnote, " : ", "\r") )
-				variable y_pos = Str2num( StringByKey("detector_y_position", wnote, " : ", "\r") )
-				variable x_pixelnumber = Str2num( StringByKey("Number of pixels in x", wnote, " : ", "\r") )
-				variable y_pixelnumber = Str2num( StringByKey("Number of pixels in y", wnote, " : ", "\r") )
+				detector_x0_positions[count] = Str2num( StringByKey("detector_x_position", wnote, " : ", "\r") )
+				detector_y0_positions[count] = Str2num( StringByKey("detector_y_position", wnote, " : ", "\r") )
+				workName_w[count] = imagename
+				variable numOfpixels_x = Str2num( StringByKey("Number of pixels in x", wnote, " : ", "\r") )
+				variable numOfpixels_y = Str2num( StringByKey("Number of pixels in y", wnote, " : ", "\r") )
 				variable pixelsize = Str2num( StringByKey("Pixel size", wnote, " : ", "\r") )
-				detector_x_pos_array[count] = x_pos
-				detector_y_pos_array[count] = y_pos
+				
 //				print imagename + ": x = " + num2str(x_pos) + ", y = " + num2str(y_pos)
-				name_index ++
+				search_index ++
 				count ++
 			endif
 			
-			if(name_index > num_images - 1 || name_index < 0)
+			if(search_index > num_images - 1 || search_index < 0)	// if image not found, or the 
 				break
 			endif
 		While(1)
 		
-		// make an extended blank image
-		variable extended_x_size = WaveMax(detector_x_pos_array)*1E6 - WaveMin(detector_x_pos_array)*1E6 + x_pixelnumber * pixelsize
-		variable extended_y_size = WaveMax(detector_y_pos_array)*1E6 - WaveMin(detector_y_pos_array)*1E6 + y_pixelnumber * pixelsize
-		variable extended_x_numOfpixels = floor(extended_x_size/pixelsize)
-		variable extended_y_numOfpixels = floor(extended_y_size/pixelsize)
-		make/O/N=(extended_x_numOfpixels,extended_y_numOfpixels) extended_image
+		// assign x0, y0 index of each image in the extended image corrdinates
+		make/D/N=(numOfseq)/O detector_x0_indcies, detector_y0_indcies
+		variable ref_x0 = WaveMin(detector_x0_positions)		// reference x0 and y0 is set to the top-left corner of the top-left image
+		variable ref_y0 = WaveMax(detector_y0_positions)	
+		detector_x0_indcies = floor( abs( (detector_x0_positions[p] - ref_x0)*1E6/pixelsize ) )
+		detector_y0_indcies = floor( abs( (detector_y0_positions[p] - ref_y0)*1E6/pixelsize ) )
 		
-		// assign each image to the extended one
-//		extended_image[0][] = 
+		// create a blank extended image
+		variable extended_numOfpixels_x = waveMax(detector_x0_indcies) + numOfpixels_x
+		variable extended_numOfpixels_y = waveMax(detector_y0_indcies) + numOfpixels_y
+//		MatrixOP/O/FREE extended_image = const(extended_numOfpixels_x, extended_numOfpixels_y, 0)
+//		MatrixOP/O/FREE overlap_count_map = const(extended_numOfpixels_x, extended_numOfpixels_y, 0)	// create an count map filled with zero. This is used to mark overlaped pixels.
+		Make/FREE/O/N=(extended_numOfpixels_x, extended_numOfpixels_y) extended_image, overlap_count_map
+		Multithread extended_image = 0
+		Multithread overlap_count_map = 0
+		
+		// assign each image to the extended image
+		for(j=0; j<numOfseq; j++)
+			// get image name and x0 y0 index of this image
+			wave img_w = $workName_w[j]
+			variable new_x0_index = detector_x0_indcies[j]
+			variable new_y0_index = detector_y0_indcies[j]
+			variable new_xend_index = detector_x0_indcies[j] + numOfpixels_x - 1
+			variable new_yend_index = detector_y0_indcies[j] + numOfpixels_y - 1
+			extended_image[new_x0_index, new_xend_index][new_y0_index, new_yend_index] += img_w[p-new_x0_index][q-new_y0_index]
+			overlap_count_map[new_x0_index, new_xend_index][new_y0_index, new_yend_index] += 1
+		endfor
+		extended_image /= overlap_count_map
+		
+		string newName = ":ext_images:" +  key + "_ext"
+		duplicate/O extended_image, $newName
+		
+		// modify wave note
+		wnote = ReplaceStringByKey("detector_x_position", wnote, "NaN", " : ", "\r")
+		wnote = ReplaceStringByKey("detector_y_position", wnote, "NaN", " : ", "\r")
+		wnote = ReplaceStringByKey("Number of pixels in x", wnote, num2str(extended_numOfpixels_x), " : ", "\r")
+		wnote = ReplaceStringByKey("Number of pixels in y", wnote, num2str(extended_numOfpixels_y), " : ", "\r")
+		Note $newName, wnote
+		
+		// repeat
 		
 	endfor	
 	
+	SetDataFolder ext_images
 	
-	// get the detector position of each image
-	
-	
-	// 
-
 End
