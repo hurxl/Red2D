@@ -624,7 +624,8 @@ Function R2D_calc_qMap()
 End
 
 /// Circular average
-ThreadSafe Static Function CircularAverage(pWave, df1d, mask_wave)
+//ThreadSafe Static Function CircularAverage(pWave, df1d, mask_wave)
+Static Function CircularAverage(pWave, df1d, mask_wave)
 	Wave pWave
 	string df1d
 	wave/Z mask_wave
@@ -646,7 +647,7 @@ ThreadSafe Static Function CircularAverage(pWave, df1d, mask_wave)
 	Endif
 
 	/// Create a histogram of I vs q
-	variable cir_pix_num = 2*Xmax + 2*Ymax	// a square must be larger than a circle inside that
+	variable cir_pix_num = 8*Xmax + 8*Ymax	// a square must be larger than a circle inside that. 2025-11-19 not enough and increaset from 2 to 3.
 	make/FREE/D/O/N=(qnum, cir_pix_num) Iq_hist, s2q_hist	// make a histogram of intensity vs q and error vs q	
 	make/FREE/D/O/N=(qnum) Iq_count = 0	// make a counter wave to remember the number of added pixels in each column of the histogram
 	
