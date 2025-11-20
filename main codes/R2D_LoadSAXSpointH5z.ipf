@@ -630,7 +630,7 @@ Function R2D_SAXSpoint_create_panorama_images()
 		While(1)
 		
 		// assign x0, y0 index of each image in the extended image corrdinates
-		make/D/N=(numOfseq)/O detector_x0_indcies, detector_y0_indcies
+		make/FREE/D/N=(numOfseq)/O detector_x0_indcies, detector_y0_indcies
 		variable ref_x0 = WaveMin(detector_x0_positions)		// reference x0 and y0 is set to the top-left corner of the top-left image
 		variable ref_y0 = WaveMax(detector_y0_positions)	
 		detector_x0_indcies = floor( abs( (detector_x0_positions[p] - ref_x0)*1E6/pixelsize ) )
