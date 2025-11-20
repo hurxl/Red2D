@@ -677,6 +677,11 @@ Function FitStdRings()
 	Variable/G U_X0, U_Y0, U_SDD
 	Wave ringID_conc, ringX_conc, ringY_conc, radiusX_corr_conc, radiusY_corr_conc, centerX_corr_conc, centerY_corr_conc
 	
+	// check if ringID_conc exists,
+	If(!WaveExists(ringID_conc))
+		Abort "No Points to fit."	
+	Endif
+	
 	/// Do fit
 	Duplicate/O ringID_conc, Dummy, FitErrors
 	Dummy = 0; FitErrors = 0
