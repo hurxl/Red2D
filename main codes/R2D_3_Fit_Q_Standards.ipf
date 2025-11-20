@@ -77,7 +77,7 @@ Function R2D_CreStdFitPanel()
 	/// Check if panel exist
 	DoWindow Fit_Q_Standards
 	If(V_flag == 0)
-		NewPanel/K=1/N=Fit_Q_Standards/W=(400, 300, 630, 810)
+		NewPanel/K=1/N=Fit_Q_Standards/W=(400, 300, 630, 850)
 	Else
 		DoWindow/F Fit_Q_Standards
 	Endif
@@ -102,6 +102,7 @@ Function R2D_CreStdFitPanel()
 	Button button0 title="Get Points on Rings",size={150,23},pos={40,380},proc=ButtonProcGetPtOnRings
 	Button button1 title="Fit Rings",size={150,23},pos={40,420},proc=ButtonProcRingFit
 	Button button2 title="Refresh",size={150,23},pos={40,460},proc=ButtonProcRefreshRingFit
+	Button button3 title="Quick Beam Center",size={150,23},pos={40,500},proc=ButtonProcQuickBeamCenter
 	
 	PopupMenu popup1 title="Mask", pos={15,310}, fSize=13, bodyWidth=165, value=R2D_GetMaskList_simple(), proc=Update_Mask_FitStd
 	// R2D_GetMaskList_simple is located in the Circular Average Proc.
@@ -221,6 +222,24 @@ Function ButtonProcRingFit(ba) : ButtonControl
 		case 2: // mouse up
 
 			FitStdRings()
+
+			break
+		case -1: // control being killed
+			break
+	endswitch
+	return 0
+End
+
+
+Function ButtonProcQuickBeamCenter(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+	switch( ba.eventCode )
+		case 2: // mouse up
+
+			R2D_GetBeamCenter_SelectedImage()
+			
+			NVAR margin = :Red2DPackage:U_margin
+			DrawStdRings(margin)
 
 			break
 		case -1: // control being killed
@@ -682,6 +701,22 @@ Function FitStdRings()
 	DoWindow/H
 End
 
+
+Function R2D_GetBeamCenter_SelectedImage()
+
+	String TopImageName = ImageNameList("IntensityImage", ";")
+	TopImageName = StringFromList(0, TopImageName)
+	TopImageName = ReplaceString("'", TopImageName, "") // delete 'name' from the name. Otherwise igor does not function.
+	Wave TopImage = $TopImageName
+	ImageStats TopImage
+	
+	NVAR X0 = :Red2DPackage:U_X0
+	NVAR Y0 = :Red2DPackage:U_Y0
+	
+	X0 = V_maxRowLoc
+	Y0 = V_maxColLoc
+	
+End
 
 
 
