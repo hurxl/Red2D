@@ -679,6 +679,7 @@ Function FitStdRings()
 	
 	// check if ringID_conc exists,
 	If(!WaveExists(ringID_conc))
+		SetDataFolder saveDFR
 		Abort "No Points to fit."	
 	Endif
 	
