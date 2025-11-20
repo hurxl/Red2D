@@ -134,10 +134,15 @@ Function R2D_CreateOrShowDatasheet(type)
 	/// Create a table window for new datasheet if the table does not exist.
 	String ParentFolderName = ParseFilePath(0, GetWavesDataFolder(datasheet, 1), ":", 1, 1) // Get the datafolder name of parent directory
 	String DataSheetTableName = "Datasheet_" + ParentFolderName
-	DoWindow/F $DataSheetTableName   // /F means 'bring to front if it exists'
-	If (V_flag == 0) // window does not exist
+//	DoWindow $DataSheetTableName   // /F means 'bring to front if it exists'
+//	// 2025-11-20 a datasheet with the table name , but from a different folder, may exist. To avoid confusion, kill the table with the same name first.
+//	If (V_flag == 0) // window does not exist
+//		Edit/K=1/N=$DataSheetTableName Datasheet.ld
+//	else	// if window exists
+		KillWindow $DataSheetTableName
 		Edit/K=1/N=$DataSheetTableName Datasheet.ld
-	Endif
+		DoWindow/F $DataSheetTableName
+//	Endif
 	
 End
 
