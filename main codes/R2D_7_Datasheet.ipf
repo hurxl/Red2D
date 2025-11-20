@@ -107,6 +107,12 @@ Function R2D_CreateOrShowDatasheet(type)
 		Endif
 		
 	Elseif(type == 2) // update existing
+	
+		If(!WaveExists($Datasheet_Path))  // check if old datasheet exist
+			Print "Datasheet does not exist. Stop updating."
+			return -1
+		Endif
+		
 		Duplicate/O/T/FREE $Datasheet_Path, old_datasheet  // store the old datasheet
 		Make/FREE/T/O/N=(DimSize(old_datasheet, 0)) old_imagenames = old_datasheet[p][%ImageName]  // create a temp wave to store the image name in old sheet
 		
