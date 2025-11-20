@@ -145,7 +145,7 @@ Function R2D_CreateOrShowDatasheet(type)
 //	If (V_flag == 0) // window does not exist
 //		Edit/K=1/N=$DataSheetTableName Datasheet.ld
 //	else	// if window exists
-		KillWindow $DataSheetTableName
+		KillWindow/Z $DataSheetTableName
 		Edit/K=1/N=$DataSheetTableName Datasheet.ld
 		DoWindow/F $DataSheetTableName
 //	Endif
