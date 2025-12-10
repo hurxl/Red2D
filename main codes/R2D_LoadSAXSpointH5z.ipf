@@ -361,7 +361,11 @@ Function/S R2D_AddSequentialNumbers(strlist, flag)
 	variable flag	//	0 to leave _0 as is when there is no _1, 1 to remove this mono _0.
 	
 	wave/T strings_w = ListToTextWave(strlist, ";")
-	FindDuplicates/RT=key_w/FREE strings_w
+	if(DimSize(strings_w,0) <= 1)
+		Duplicate/T/FREE/O strings_w, key_w
+	else
+		FindDuplicates/RT=key_w/FREE strings_w
+	endif
 
 	variable num_keys = DimSize(key_w, 0)
 	Make/FREE/O/N=(num_keys) count_w = 0
