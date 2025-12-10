@@ -286,6 +286,8 @@ Function ListBoxProcShow2D(lba) : ListBoxControl
 				Show2D(row)
 				
 				String ImageNote_content = note($ImageList[row]) // Get selected Imagename by using the flag row.
+				ImageNote_content = ReplaceString("\r\n", ImageNote_content, "\r")
+				ImageNote_content = ReplaceString("\n", ImageNote_content, "\r")
 				wave/T tempnote = ListToTextWave(ImageNote_content, "\r")
 				Duplicate/O/T tempnote, :Red2DPackage:ImageNote
 
