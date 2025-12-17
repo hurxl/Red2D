@@ -184,7 +184,7 @@ Function BP_R2D_AutoColorImage(ba) : ButtonControl
 			low = ll[0]
 			high = hh[0]
 			
-			low = 0.1*high	// this makes the image looks better than using real low value
+			low = 0.1*high	// this makes the image looks better than using real low value, modofied to 0.01 2025-12-16
 			
 			R2D_ColorRangeAdjust_worker(low, high)
 		
@@ -770,3 +770,35 @@ Function R2D_convertWavenote2tiffTag(w)
 	endfor
 
 End
+
+// 2025-12-16 Not implemented yet. this works well.
+//Function Get95PercentThreshold(wImage)
+//    Wave wImage
+//    
+//    // 1. Use MatrixOP to flatten the 2D image into 1D and remove any NaNs
+//    // zapNaNs returns a single column (N x 1) wave of valid data.
+//    MatrixOP/O populationWave = zapNaNs(wImage)
+//    
+//    // 2. Sort the population from Low to High
+//    // (This is a standard Igor operation, as MatrixOP lacks a sorter)
+//    Sort populationWave, populationWave
+//    
+//    // 3. Find the index corresponding to the 95th percentile
+//    Variable nPoints = numpnts(populationWave)
+//    Variable index95 = floor(nPoints * 0.94)
+//    
+//    // Ensure we don't exceed bounds (if 100%)
+//    if(index95 >= nPoints)
+//        index95 = nPoints - 1
+//    endif
+//    
+//    // 4. Retrieve the threshold value
+//    Variable thresholdVal = populationWave[index95]
+//    
+//    Print "95% Threshold (Low Intensity Side):", thresholdVal
+//    
+//    // Clean up the temporary wave
+//    KillWaves/Z populationWave
+//    
+//    return thresholdVal
+//End
