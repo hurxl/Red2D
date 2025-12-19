@@ -176,15 +176,17 @@ Function BP_R2D_AutoColorImage(ba) : ButtonControl
 			String TopImageName = StringFromList(0, ImageNameList("IntensityImage", ";"))
 			wave imagew = $TopImageName
 			
-			MatrixOP/FREE/O hh = maxval(imagew)
-			MatrixOP/FREE/O ll = minval(imagew)
-			
 			NVAR low = :Red2DPackage:U_ColorLow
 			NVAR high = :Red2DPackage:U_ColorHigh
-			low = ll[0]
-			high = hh[0]
 			
-			low = 0.1*high	// this makes the image looks better than using real low value, modofied to 0.01 2025-12-16
+			high = R2D_GetImagePopulationThreshold(imagew, 0.99)	// get 99% of pixels from low intensity
+			low = 0.01*high
+				
+//			MatrixOP/FREE/O hh = maxval(imagew)
+//			MatrixOP/FREE/O ll = minval(imagew)
+//			low = ll[0]
+//			high = hh[0]
+//			low = 0.01*high	// this makes the image looks better than using real low value, modofied to 0.01 2025-12-16
 			
 			R2D_ColorRangeAdjust_worker(low, high)
 		
@@ -771,34 +773,51 @@ Function R2D_convertWavenote2tiffTag(w)
 
 End
 
-// 2025-12-16 Not implemented yet. this works well.
-//Function Get95PercentThreshold(wImage)
-//    Wave wImage
-//    
-//    // 1. Use MatrixOP to flatten the 2D image into 1D and remove any NaNs
-//    // zapNaNs returns a single column (N x 1) wave of valid data.
-//    MatrixOP/O populationWave = zapNaNs(wImage)
-//    
-//    // 2. Sort the population from Low to High
-//    // (This is a standard Igor operation, as MatrixOP lacks a sorter)
-//    Sort populationWave, populationWave
-//    
-//    // 3. Find the index corresponding to the 95th percentile
-//    Variable nPoints = numpnts(populationWave)
-//    Variable index95 = floor(nPoints * 0.94)
-//    
-//    // Ensure we don't exceed bounds (if 100%)
-//    if(index95 >= nPoints)
-//        index95 = nPoints - 1
-//    endif
-//    
-//    // 4. Retrieve the threshold value
-//    Variable thresholdVal = populationWave[index95]
-//    
-//    Print "95% Threshold (Low Intensity Side):", thresholdVal
-//    
-//    // Clean up the temporary wave
-//    KillWaves/Z populationWave
-//    
-//    return thresholdVal
-//End
+
+Function R2D_GetImagePopulationThreshold(wImage, thresh)
+    Wave wImage
+    Variable thresh
+
+    // 1. Get stats to determine histogram range
+    ImageStats/M=1 wImage
+    Variable maxVal = V_max
+    
+    // Safety check: Return NaN if max is invalid or <= 0
+    if (numtype(maxVal) != 0 || maxVal <= 0)
+        return NaN
+    endif
+    
+    // 2. Set up Histogram Parameters (5000 bins)
+    Variable nBins = 500000
+    Variable binWidth = maxVal / nBins
+    
+    Make/FREE/O/N=(nBins) wHist
+    
+    // 3. Compute Histogram (Range: 0 to Max)
+    // NaNs are automatically ignored. Zeros fall into Bin 0.
+    Histogram/B={0, binWidth, nBins} wImage, wHist
+    
+    // 4. Remove Zeros from Histogram Wave
+    wHist[0] = 0 // Explicitly zero out the bin containing the 0s
+    
+    // 5. Calculate Valid Population
+    Variable totalPopulation = sum(wHist)
+    Variable targetIndex = totalPopulation * thresh
+    
+    Variable currentCount = 0
+    Variable i
+    Variable thresholdVal = NaN
+    
+    // 6. Find threshold by accumulating counts
+    for(i = 1; i < nBins; i += 1)
+        currentCount += wHist[i]
+        if(currentCount >= targetIndex)
+            thresholdVal = i * binWidth 
+            break
+        endif
+    endfor
+    
+//    Print "95% Threshold (Fast Hist):", thresholdVal
+    return thresholdVal
+    
+End
