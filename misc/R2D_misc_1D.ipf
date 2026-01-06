@@ -190,6 +190,9 @@ Function ButtonProc_CombineWavesOfdifferentSDD(ba) : ButtonControl //Combine wav
 			String long_errPath = RemoveEnding(LongSDDIntPath, "_i") + "_s"
 			String mid_errpath = RemoveEnding(midSDDIntPath, "_i") + "_s"
 			String short_errPath = RemoveEnding(ShortSDDIntPath, "_i") + "_s"
+			String long_2tpath = RemoveEnding(LongSDDIntPath, "_i") + "_2t"
+			String mid_2tpath = RemoveEnding(midSDDIntPath, "_i") + "_2t"
+			String short_2tpath = RemoveEnding(ShortSDDIntPath, "_i") + "_2t"
 			
 			Wave/Z I_long = $LongSDDIntPath
 			Wave/Z I_mid = $midSDDIntPath
@@ -200,6 +203,9 @@ Function ButtonProc_CombineWavesOfdifferentSDD(ba) : ButtonControl //Combine wav
 			Wave/Z s_long = $long_errPath
 			Wave/Z s_mid = $mid_errPath
 			Wave/Z s_short = $short_errPath
+			Wave/Z t2_long = $long_2tpath
+			Wave/Z t2_mid = $mid_2tpath
+			Wave/Z t2_short = $short_2tpath
 			
 			NVAR qindex_0 = root:Red2Dpackage:U_qindex_0
 			NVAR qindex_1 = root:Red2Dpackage:U_qindex_1
@@ -214,6 +220,7 @@ Function ButtonProc_CombineWavesOfdifferentSDD(ba) : ButtonControl //Combine wav
 			String Output_i_path = "root:SDD_combined:" + ModOutputName + "_i"
 			String Output_q_path = "root:SDD_combined:" + ModOutputName + "_q"
 			String Output_s_path = "root:SDD_combined:" + ModOutputName + "_s"
+			String Output_2t_path = "root:SDD_combined:" + ModOutputName + "_2t"
 			
 			//Trim and concatenate waves 
 			//Int
@@ -234,12 +241,17 @@ Function ButtonProc_CombineWavesOfdifferentSDD(ba) : ButtonControl //Combine wav
 				Concatenate/O {ref_I_long, ref_I_mid}, $Output_i_path
 			Endif
 			
-			//q
+			//q and 2t
 			If(WaveExists(I_short))
 				Duplicate/FREE/O/R=[,qindex_0] q_long ref_q_long
 				Duplicate/FREE/O/R=[qindex_1,qindex_2] q_mid ref_q_mid
 				Duplicate/FREE/O/R=[qindex_3,] q_short ref_q_short
 				Concatenate/O {ref_q_long, ref_q_mid, ref_q_short}, $Output_q_path
+				
+				Duplicate/FREE/O/R=[,qindex_0] t2_long ref_t2_long
+				Duplicate/FREE/O/R=[qindex_1,qindex_2] t2_mid ref_t2_mid
+				Duplicate/FREE/O/R=[qindex_3,] t2_short ref_t2_short
+				Concatenate/O {ref_t2_long, ref_t2_mid, ref_t2_short}, $Output_2t_path
 			Else
 				Duplicate/FREE/O/R=[,qindex_0] q_long ref_q_long
 				Duplicate/FREE/O/R=[qindex_1,] q_mid ref_q_mid
