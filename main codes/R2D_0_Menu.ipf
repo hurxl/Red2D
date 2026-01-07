@@ -92,7 +92,7 @@ Menu "Red2D"
 			"Add 2D Images", R2D_Add2DImages(0)
 		End
 		"-"
-		"\\M0Logarithmic 1D resampling/binning", R2D_LogSpace1D()
+		"\\M0Resampling/Binning 1D", R2D_Resample1D()
 		"\\M0Shorten 1D (irreversible!)", R2D_Shorten1D()
 		"-"
 		"SDD Combiner", R2D_SDDCombineranel()

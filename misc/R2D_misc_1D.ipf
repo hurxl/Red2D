@@ -700,7 +700,7 @@ End
 //
 //End
 
-Function R2D_LogSpace1D()
+Function R2D_Resample1D()
 
 	// error check
 	If(R2D_Error_1Dexist() == -1)
@@ -710,29 +710,29 @@ Function R2D_LogSpace1D()
 	// Prompt
 	String mode = StrVarOrDefault("::Red2Dpackage:U_mode", "Resample")
 	Variable numLogPnts = NumVarOrDefault("::Red2Dpackage:U_numLogPnts",100)
-	Variable qloglow = NumVarOrDefault("::Red2Dpackage:U_qloglow",0.001)
-	Variable qloghigh = NumVarOrDefault("::Red2Dpackage:U_qloghigh",1)
+	Variable qResampleLow = NumVarOrDefault("::Red2Dpackage:U_qResamplelow",0.001)
+	Variable qResampleHigh = NumVarOrDefault("::Red2Dpackage:U_qResampleHigh",1)
 	
-	Prompt mode, "Resample mode",popup,"Resample;Bin"
-	Prompt numLogPnts, "Enetr the number of points of new log-spaced waves"
-	Prompt qloglow, "Enetr lowest q (Å-1)"
-	Prompt qloghigh, "Enetr highest q (Å-1)"
-	DoPrompt "Resample info" mode, numLogPnts, qloglow, qloghigh
+	Prompt mode, "Resample mode",popup,"LinearInterpolate;LinearBin;LogInterpolate;LogBin"
+	Prompt numLogPnts, "Enetr the number of points of the new resampled waves"
+	Prompt qResampleLow, "Enetr lowest q (Å-1)"
+	Prompt qResampleHigh, "Enetr highest q (Å-1)"
+	DoPrompt "Resample info" mode, numLogPnts, qResampleLow, qResampleHigh
 	if(V_Flag)
 		Print "User canceled"
 		Abort
-	Elseif(qloglow >= qloghigh)
+	Elseif(qResampleLow >= qResampleHigh)
 		Print "Lowest q should be smaller than the highest q"
 		Abort "Somthing wrong in the low and high q values."
 	endif
 	
 	String/G ::Red2Dpackage:U_mode = mode
 	Variable/G ::Red2Dpackage:U_numLogPnts = numLogPnts
-	Variable/G ::Red2Dpackage:U_qloglow = qloglow
-	Variable/G ::Red2Dpackage:U_qloghigh = qloghigh
+	Variable/G ::Red2Dpackage:U_qResamplelow = qResampleLow
+	Variable/G ::Red2Dpackage:U_qResampleHigh = qResampleHigh
 	
 	// Create a new datafolder to save log-spaced data
-	String NewDFpath = "::Log" + mode + "_" + GetDataFolder(0)
+	String NewDFpath = "::" + mode + "_" + GetDataFolder(0)
 	NewDataFolder/O $NewDFpath
 	
 	// get basename list
@@ -742,31 +742,53 @@ Function R2D_LogSpace1D()
 
 	Variable i
 	String basename
-	String q_newpath, i_newpath, s_newpath
 	for(i=0; i<numOfwave; i++)
 		basename = StringFromList(i, basename_list)
-		if(stringmatch(mode, "Resample"))
-			R2D_LogResample(basename, numLogPnts, qloglow, qloghigh)
-		elseif(stringmatch(mode, "Bin"))
-			R2D_LogBin(basename, numLogPnts, qloglow, qloghigh)
+		if(stringmatch(mode, "LogInterpolate"))
+			R2D_LogInterpolate(basename, numLogPnts, qResampleLow, qResampleHigh)
+		elseif(stringmatch(mode, "LogBin"))
+			R2D_LogBin(basename, numLogPnts, qResampleLow, qResampleHigh)
+		elseif(stringmatch(mode, "LinearBin"))
+			R2D_LinearBin(basename, numLogPnts, qResampleLow, qResampleHigh)		
 		else
 			print i
 			break
 		endif
-		wave qw_log
-		wave iw_log
-		wave/Z sw_log
+
+//			wave qw_log
+//			wave iw_log
+//			wave/Z sw_log
+//			wave/Z t2w_log	
+		
+		if(stringmatch(mode, "LogBin") || stringmatch(mode, "LogInterpolate"))
+			wave qw = qw_log
+			wave iw = iw_log
+			wave/Z sw = sw_log
+			wave/Z t2w = t2w_log
+		else
+			wave qw = qw_lin
+			wave iw = iw_lin
+			wave/Z sw = sw_lin
+			wave/Z t2w = t2w_lin
+		endif
+		
+		String q_newpath, i_newpath, s_newpath, t2_newpath
 		q_newpath = NewDFpath + ":" + basename + "_q"
 		i_newpath = NewDFpath + ":" + basename + "_i"
 		s_newpath = NewDFpath + ":" + basename + "_s"
-		Duplicate/O/D qw_log, $q_newpath
-		Duplicate/O/D iw_log, $i_newpath
-		if(waveExists(sw_log))
-			Duplicate/O/D sw_log, $s_newpath
+		t2_newpath = NewDFpath + ":" + basename + "_2t"
+		Duplicate/O/D qw, $q_newpath
+		Duplicate/O/D iw, $i_newpath
+		if(waveExists(sw))
+			Duplicate/O/D sw, $s_newpath
 		endif
+		if(waveExists(t2w))
+			Duplicate/O/D t2w, $t2_newpath
+		endif
+		
 	endfor
 	
-	KillWaves/Z qw_log, iw_log, sw_log
+	KillWaves/Z qw, iw, sw, t2w
 	
 End
 
@@ -782,26 +804,27 @@ Function/S R2D_LogBin(basename, numPoints, low, high)
 	wave qw = $(basename + "_q")
 	wave iw = $(basename + "_i")
 	wave sw = $(basename + "_s")
+	wave/Z t2w = $(basename + "_2t")	// 2 theta wave may not exist
 	
 	// create new log-spaced q wave
-	Make/O/N=(numPoints) qw_log, iw_log, sw_log // new q wave to store log spaced q values
+	Make/O/N=(numPoints) qw_log, iw_log, sw_log, t2w_log // new q wave to store log spaced q values
 	qw_log = NaN
 	iw_log = NaN
 	sw_log = NaN
 	qw_log = low*(high/low)^(p/(numPoints-1))	// make log-spaced q wave
 	
-	//how to calculate log-spaced wave
-	//low, high
-	//numPoints
-	//delta = [log(high)-log(low)]/numPoints = [log(high/low)]/numPoints
-	//log(qw_log) = log(low) + delta*i
-	//qw_log = 10^(log(low) + delta*i) = low * 10^(delta*i) 
-	//= low * 10^([log(high/low)]/numPoints*i)
-	//= low * {10^(log(high/low)}^(i/numPoints)
-	//= low * {high/low}^(i/numPoints)
-	//log(qw_log) = log(low) + i/numPoints*log(high/low)
-	// bin the data points in range of ith point± detla/2
-	// logdelta = 1/numPoints*log(high/low)
+	// create new log-spaced 2theta wave if original 2theta wave exists
+	// instead of remapping 2theta, I decided to calcualte 2theta from log-mapped q wave
+	// this process does not induce estimation error in 2theta.
+	variable lambda	
+	if(WaveExists(t2w))
+		Make/O/N=(numPoints) t2w_log = NaN
+		Duplicate/FREE/O qw, temp_lambda_wave
+		temp_lambda_wave = 4*pi/qw * sin(t2w/180*pi/2)
+		lambda = mean(temp_lambda_wave)
+		t2w_log = 2*asin(qw_log/4/pi	* lambda)	 /pi*180	// q = 4*pi/lambda * sin(theta/2)
+	endif
+	
 	
 	variable numPoints_original = numpnts(qw)
 	variable logdelta = 1/(numPoints-1)*log(high/low)
@@ -876,7 +899,111 @@ Function/S R2D_LogBin(basename, numPoints, low, high)
 
 End
 
-Function/S R2D_LogResample(basename, numPoints, low, high)
+Function/S R2D_LinearBin(basename, numPoints, low, high)
+	string basename		// basename of target waves
+	variable numPoints		// number of points in new wave
+	variable low		// lowest value of x axis (qmin)
+	variable high	// highest value of x axis (qmax)
+	
+	// get q wave and corresponding i, s waves
+	wave qw = $(basename + "_q")
+	wave iw = $(basename + "_i")
+	wave sw = $(basename + "_s")
+	wave/Z t2w = $(basename + "_2t")	// 2 theta wave may not exist
+	
+	// create new lin-spaced q wave
+	Make/O/N=(numPoints) qw_lin, iw_lin, sw_lin, t2w_lin // new q wave to store lin spaced q values
+	qw_lin = NaN
+	iw_lin = NaN
+	sw_lin = NaN
+	qw_lin = low + p * (high - low) / (numPoints-1)	// make lin-spaced q wave
+	
+	// create new lin-spaced 2theta wave if original 2theta wave exists
+	// instead of remapping 2theta, I decided to calcualte 2theta from lin-mapped q wave
+	// this process does not induce estimation error in 2theta.
+	variable lambda	
+	if(WaveExists(t2w))
+		Make/O/N=(numPoints) t2w_lin = NaN
+		Duplicate/FREE/O qw, temp_lambda_wave
+		temp_lambda_wave = 4*pi/qw * sin(t2w/180*pi/2)
+		lambda = mean(temp_lambda_wave)
+		t2w_lin = 2*asin(qw_lin/4/pi	* lambda)	 /pi*180	// q = 4*pi/lambda * sin(theta/2)
+	endif
+	
+	variable numPoints_original = numpnts(qw)
+	variable lindelta = (high - low) / (numPoints-1)
+	variable i	// index of orignal q wave
+	variable j	// index of new log spaced q wave
+	variable k	// index for running average inside jth q-region
+	variable iavg	// memory for intensity average in jth q-region
+	for(i=0; i<numPoints_original; i++)
+		if(i == 0)	// initialize everything
+			j = 0
+			k = 0
+			iavg = 0
+		endif
+
+		if(j >= numPoints)		// prevent out of range error
+			break
+		endif
+		
+		if(qw[i] >= low && qw[i] <= high)	// within limits
+			if(qw[i] >= qw_lin[j] - lindelta/2 && qw[i] < qw_lin[j] + lindelta/2)	// if qw[i] is within the range, add it, then check qw[i+1]
+				if(numtype(iw[i]) == 0)		// not NaN or inf
+					k++	// increase local index
+					iavg = (iavg*(k-1) + iw[i])/k	// running average
+				endif
+			elseif(qw[i] >= qw_lin[j] + lindelta/2)	// if qw[i] is over the high-limit of jth q-region, summarize jth region
+				if(k > 0)
+					iw_lin[j] = iavg	// input average intensity in the jth region to qw_lin
+				endif
+				j++	// go to j+1 region
+				k = 0	// reset count
+				iavg = 0 // reset intensity memory
+				i--	// step back 1 point for i to check it again in j+1 region
+			endif
+		elseif(qw[i] > high && k > 0)		// for last region. If there are non-input intensity memory
+			iw_lin[j] = iavg	// input average intensity in the jth region to qw_lin
+			j++	// go to j+1 region	
+		endif
+	endfor
+	
+	variable savg	// memory for standard deviation of the average in jth q-region
+	for(i=0; i<numPoints_original; i++)
+		if(i == 0)	// initialize everything
+			j = 0
+			k = 0
+			savg = 0
+		endif
+
+		if(j >= numPoints)		// prevent out of range error
+			break
+		endif
+		
+		if(qw[i] >= low && qw[i] <= high)	// within limits
+			if(qw[i] >= qw_lin[j] - lindelta/2 && qw[i] < qw_lin[j] + lindelta/2)	// if qw[i] is within the range, add it, then check qw[i+1]
+				if(numtype(sw[i]) == 0)		// not NaN or inf
+					k++	// increase local index
+					savg = sqrt((savg*(k-1))^2 + (sw[i])^2)/k	// running average
+				endif
+			elseif(qw[i] >= qw_lin[j] + lindelta/2)	// if qw[i] is over the high-limit of jth q-region, summarize jth region
+				if(k > 0)
+					sw_lin[j] = savg	// input average intensity in the jth region to qw_log
+				endif
+				j++	// go to j+1 region
+				k = 0	// reset count
+				savg = 0 // reset intensity memory
+				i--	// step back 1 point for i to check it again in j+1 region
+			endif
+		elseif(qw[i] > high && k > 0)		// for last region. If there are non-input intensity memory
+			sw_lin[j] = savg	// input average intensity in the jth region to qw_log
+			j++	// go to j+1 region	
+		endif
+	endfor	
+
+End
+
+Function/S R2D_LogInterpolate(basename, numPoints, low, high)
 	string basename		// basename of target waves
 	variable numPoints		// number of points in new wave
 	variable low		// lowest value of x axis (qmin)
