@@ -4,7 +4,7 @@
 // *************************
 // *** Combine multiple 1D profiles with different SDDs.
 // *************************
-Function R2D_SDDCombineranel() // Create a panel to combine waves of different SDD
+Function R2D_SDDCombinerpanel() // Create a panel to combine waves of different SDD
 	
 	KillWindow/Z SDD_Combiner
 	NewPanel/K=1/N=SDD_Combiner/W=(200,200,790,500)
@@ -170,143 +170,7 @@ Function ButtonProc_CombineWavesOfdifferentSDD(ba) : ButtonControl //Combine wav
 	switch( ba.eventCode )
 		case 2: // mouse up
 			
-			// Bring the window to front
-			Dowindow/F CombineTest
-			
-			If(DatafolderExists("root:Red2Dpackage")==0)
-				NewDataFolder root:Red2Dpackage
-			Endif
-			If(DatafolderExists("root:SDD_combined")==0)
-				NewDataFolder root:SDD_combined
-			Endif
-			
-			//Get references of int, q and err waves
-			SVAR LongSDDIntPath = root:Red2Dpackage:U_LongSDDIntPath
-			SVAR midSDDIntPath = root:Red2Dpackage:U_midSDDIntPath
-			SVAR ShortSDDIntPath = root:Red2Dpackage:U_ShortSDDIntPath
-			String long_qpath = RemoveEnding(LongSDDIntPath, "_i") + "_q"
-			String mid_qpath = RemoveEnding(midSDDIntPath, "_i") + "_q"
-			String short_qpath = RemoveEnding(ShortSDDIntPath, "_i") + "_q"
-			String long_errPath = RemoveEnding(LongSDDIntPath, "_i") + "_s"
-			String mid_errpath = RemoveEnding(midSDDIntPath, "_i") + "_s"
-			String short_errPath = RemoveEnding(ShortSDDIntPath, "_i") + "_s"
-			String long_2tpath = RemoveEnding(LongSDDIntPath, "_i") + "_2t"
-			String mid_2tpath = RemoveEnding(midSDDIntPath, "_i") + "_2t"
-			String short_2tpath = RemoveEnding(ShortSDDIntPath, "_i") + "_2t"
-			
-			Wave/Z I_long = $LongSDDIntPath
-			Wave/Z I_mid = $midSDDIntPath
-			Wave/Z I_short = $ShortSDDIntPath
-			Wave/Z q_long = $long_qpath
-			Wave/Z q_mid = $mid_qpath
-			Wave/Z q_short = $short_qpath
-			Wave/Z s_long = $long_errPath
-			Wave/Z s_mid = $mid_errPath
-			Wave/Z s_short = $short_errPath
-			Wave/Z t2_long = $long_2tpath
-			Wave/Z t2_mid = $mid_2tpath
-			Wave/Z t2_short = $short_2tpath
-			
-			NVAR qindex_0 = root:Red2Dpackage:U_qindex_0
-			NVAR qindex_1 = root:Red2Dpackage:U_qindex_1
-			NVAR qindex_2 = root:Red2Dpackage:U_qindex_2
-			NVAR qindex_3 = root:Red2Dpackage:U_qindex_3			
-			NVAR prefactor_l = root:Red2Dpackage:U_prefactor_l
-			NVAR prefactor_m = root:Red2Dpackage:U_prefactor_m
-			NVAR prefactor_s = root:Red2Dpackage:U_prefactor_s
-			SVAR OutputName = root:Red2Dpackage:U_OutputName
-			
-			string ModOutputName = CleanupName(OutputName, 0)
-			String Output_i_path = "root:SDD_combined:" + ModOutputName + "_i"
-			String Output_q_path = "root:SDD_combined:" + ModOutputName + "_q"
-			String Output_s_path = "root:SDD_combined:" + ModOutputName + "_s"
-			String Output_2t_path = "root:SDD_combined:" + ModOutputName + "_2t"
-			
-			//Trim and concatenate waves 
-			//Int
-
-			If(WaveExists(I_short))
-				Duplicate/FREE/O/R=[,qindex_0] I_long ref_I_long
-				Duplicate/FREE/O/R=[qindex_1,qindex_2] I_mid ref_I_mid
-				Duplicate/FREE/O/R=[qindex_3,] I_short ref_I_short
-				ref_I_long *= prefactor_l
-				ref_I_mid *= prefactor_m
-				ref_I_short *= prefactor_s
-				Concatenate/O {ref_I_long, ref_I_mid, ref_I_short}, $Output_i_path
-			Else
-				Duplicate/FREE/O/R=[,qindex_0] I_long ref_I_long
-				Duplicate/FREE/O/R=[qindex_1,] I_mid ref_I_mid
-				ref_I_long *= prefactor_l
-				ref_I_mid *= prefactor_m
-				Concatenate/O {ref_I_long, ref_I_mid}, $Output_i_path
-			Endif
-			
-			//q and 2t
-			If(WaveExists(I_short))
-				Duplicate/FREE/O/R=[,qindex_0] q_long ref_q_long
-				Duplicate/FREE/O/R=[qindex_1,qindex_2] q_mid ref_q_mid
-				Duplicate/FREE/O/R=[qindex_3,] q_short ref_q_short
-				Concatenate/O {ref_q_long, ref_q_mid, ref_q_short}, $Output_q_path
-				
-				Duplicate/FREE/O/R=[,qindex_0] t2_long ref_t2_long
-				Duplicate/FREE/O/R=[qindex_1,qindex_2] t2_mid ref_t2_mid
-				Duplicate/FREE/O/R=[qindex_3,] t2_short ref_t2_short
-				Concatenate/O {ref_t2_long, ref_t2_mid, ref_t2_short}, $Output_2t_path
-			Else
-				Duplicate/FREE/O/R=[,qindex_0] q_long ref_q_long
-				Duplicate/FREE/O/R=[qindex_1,] q_mid ref_q_mid
-				Concatenate/O {ref_q_long, ref_q_mid}, $Output_q_path
-
-				Duplicate/FREE/O/R=[,qindex_0] t2_long ref_t2_long
-				Duplicate/FREE/O/R=[qindex_1,] t2_mid ref_t2_mid
-				Concatenate/O {ref_t2_long, ref_t2_mid}, $Output_2t_path
-			Endif
-				
-			//err
-			If(WaveExists(I_short))
-				Duplicate/FREE/O/R=[,qindex_0] s_long ref_s_long
-				Duplicate/FREE/O/R=[qindex_1,qindex_2] s_mid ref_s_mid
-				Duplicate/FREE/O/R=[qindex_3,] s_short ref_s_short
-				ref_s_long *= prefactor_l
-				ref_s_mid *= prefactor_m
-				ref_s_short *= prefactor_s
-				Concatenate/O {ref_s_long, ref_s_mid, ref_s_short}, $Output_s_path
-			Else
-				Duplicate/FREE/O/R=[,qindex_0] s_long ref_s_long
-				Duplicate/FREE/O/R=[qindex_1,] s_mid ref_s_mid
-				ref_s_long *= prefactor_l
-				ref_s_mid *= prefactor_m
-				Concatenate/O {ref_s_long, ref_s_mid}, $Output_s_path
-			Endif
-			
-			//Check if trace already exist. Then append to graph if trace does not exist
-			String TraceLst = TraceNameList("CombineTest",";",1)
-			Variable NumTraces = itemsInList(TraceLst)
-			variable i, ext
-			String TraceName, TracePath
-			For(i=0; i<NumTraces; i++)
-				TraceName = StringFromList(i, TraceLst)
-				TracePath = GetWavesDataFolder(TraceNameToWaveRef("CombineTest",TraceName),2)
-				If(StringMatch(Output_i_path, TracePath) == 1)
-					ext ++
-				Endif
-			Endfor
-
-			If(ext == 0)
-				//Append combined waves
-				AppendToGraph/W=CombineTest $Output_i_path vs $Output_q_path
-				//Add error bars
-				TraceLst = TraceNameList("CombineTest",";",1)
-				NumTraces = itemsInList(TraceLst)
-				TraceName = StringFromList(NumTraces-1, TraceLst)
-				If(WaveExists($Output_s_path)==0)
-					Print "No error bar wave for " + TraceName
-				Else
-					ErrorBars $TraceName SHADE= {0,0,(0,0,0,0),(0,0,0,0)},wave=($Output_s_path,$Output_s_path)
-				Endif
-			Endif
-				
-			ModifyGraph rgb($TraceName)=(16385,65535,65535)
+			CombineWavesOfdifferentSDD()
 			
 			break
 		case -1: // control being killed
@@ -314,6 +178,146 @@ Function ButtonProc_CombineWavesOfdifferentSDD(ba) : ButtonControl //Combine wav
 	endswitch
 
 	return 0
+End
+
+Static Function CombineWavesOfdifferentSDD()
+		// Bring the window to front
+		Dowindow/F CombineTest
+		
+		If(DatafolderExists("root:Red2Dpackage")==0)
+			NewDataFolder root:Red2Dpackage
+		Endif
+		If(DatafolderExists("root:SDD_combined")==0)
+			NewDataFolder root:SDD_combined
+		Endif
+		
+		//Get references of int, q and err waves
+		SVAR LongSDDIntPath = root:Red2Dpackage:U_LongSDDIntPath
+		SVAR midSDDIntPath = root:Red2Dpackage:U_midSDDIntPath
+		SVAR ShortSDDIntPath = root:Red2Dpackage:U_ShortSDDIntPath
+		String long_qpath = RemoveEnding(LongSDDIntPath, "_i") + "_q"
+		String mid_qpath = RemoveEnding(midSDDIntPath, "_i") + "_q"
+		String short_qpath = RemoveEnding(ShortSDDIntPath, "_i") + "_q"
+		String long_errPath = RemoveEnding(LongSDDIntPath, "_i") + "_s"
+		String mid_errpath = RemoveEnding(midSDDIntPath, "_i") + "_s"
+		String short_errPath = RemoveEnding(ShortSDDIntPath, "_i") + "_s"
+		String long_2tpath = RemoveEnding(LongSDDIntPath, "_i") + "_2t"
+		String mid_2tpath = RemoveEnding(midSDDIntPath, "_i") + "_2t"
+		String short_2tpath = RemoveEnding(ShortSDDIntPath, "_i") + "_2t"
+		
+		Wave/Z I_long = $LongSDDIntPath
+		Wave/Z I_mid = $midSDDIntPath
+		Wave/Z I_short = $ShortSDDIntPath
+		Wave/Z q_long = $long_qpath
+		Wave/Z q_mid = $mid_qpath
+		Wave/Z q_short = $short_qpath
+		Wave/Z s_long = $long_errPath
+		Wave/Z s_mid = $mid_errPath
+		Wave/Z s_short = $short_errPath
+		Wave/Z t2_long = $long_2tpath
+		Wave/Z t2_mid = $mid_2tpath
+		Wave/Z t2_short = $short_2tpath
+		
+		NVAR qindex_0 = root:Red2Dpackage:U_qindex_0
+		NVAR qindex_1 = root:Red2Dpackage:U_qindex_1
+		NVAR qindex_2 = root:Red2Dpackage:U_qindex_2
+		NVAR qindex_3 = root:Red2Dpackage:U_qindex_3			
+		NVAR prefactor_l = root:Red2Dpackage:U_prefactor_l
+		NVAR prefactor_m = root:Red2Dpackage:U_prefactor_m
+		NVAR prefactor_s = root:Red2Dpackage:U_prefactor_s
+		SVAR OutputName = root:Red2Dpackage:U_OutputName
+		
+		string ModOutputName = CleanupName(OutputName, 0)
+		String Output_i_path = "root:SDD_combined:" + ModOutputName + "_i"
+		String Output_q_path = "root:SDD_combined:" + ModOutputName + "_q"
+		String Output_s_path = "root:SDD_combined:" + ModOutputName + "_s"
+		String Output_2t_path = "root:SDD_combined:" + ModOutputName + "_2t"
+		
+		//Trim and concatenate waves 
+		//Int
+
+		If(WaveExists(I_short))
+			Duplicate/FREE/O/R=[,qindex_0] I_long ref_I_long
+			Duplicate/FREE/O/R=[qindex_1,qindex_2] I_mid ref_I_mid
+			Duplicate/FREE/O/R=[qindex_3,] I_short ref_I_short
+			ref_I_long *= prefactor_l
+			ref_I_mid *= prefactor_m
+			ref_I_short *= prefactor_s
+			Concatenate/O {ref_I_long, ref_I_mid, ref_I_short}, $Output_i_path
+		Else
+			Duplicate/FREE/O/R=[,qindex_0] I_long ref_I_long
+			Duplicate/FREE/O/R=[qindex_1,] I_mid ref_I_mid
+			ref_I_long *= prefactor_l
+			ref_I_mid *= prefactor_m
+			Concatenate/O {ref_I_long, ref_I_mid}, $Output_i_path
+		Endif
+		
+		//q and 2t
+		If(WaveExists(I_short))
+			Duplicate/FREE/O/R=[,qindex_0] q_long ref_q_long
+			Duplicate/FREE/O/R=[qindex_1,qindex_2] q_mid ref_q_mid
+			Duplicate/FREE/O/R=[qindex_3,] q_short ref_q_short
+			Concatenate/O {ref_q_long, ref_q_mid, ref_q_short}, $Output_q_path
+			
+			Duplicate/FREE/O/R=[,qindex_0] t2_long ref_t2_long
+			Duplicate/FREE/O/R=[qindex_1,qindex_2] t2_mid ref_t2_mid
+			Duplicate/FREE/O/R=[qindex_3,] t2_short ref_t2_short
+			Concatenate/O {ref_t2_long, ref_t2_mid, ref_t2_short}, $Output_2t_path
+		Else
+			Duplicate/FREE/O/R=[,qindex_0] q_long ref_q_long
+			Duplicate/FREE/O/R=[qindex_1,] q_mid ref_q_mid
+			Concatenate/O {ref_q_long, ref_q_mid}, $Output_q_path
+
+			Duplicate/FREE/O/R=[,qindex_0] t2_long ref_t2_long
+			Duplicate/FREE/O/R=[qindex_1,] t2_mid ref_t2_mid
+			Concatenate/O {ref_t2_long, ref_t2_mid}, $Output_2t_path
+		Endif
+			
+		//err
+		If(WaveExists(I_short))
+			Duplicate/FREE/O/R=[,qindex_0] s_long ref_s_long
+			Duplicate/FREE/O/R=[qindex_1,qindex_2] s_mid ref_s_mid
+			Duplicate/FREE/O/R=[qindex_3,] s_short ref_s_short
+			ref_s_long *= prefactor_l
+			ref_s_mid *= prefactor_m
+			ref_s_short *= prefactor_s
+			Concatenate/O {ref_s_long, ref_s_mid, ref_s_short}, $Output_s_path
+		Else
+			Duplicate/FREE/O/R=[,qindex_0] s_long ref_s_long
+			Duplicate/FREE/O/R=[qindex_1,] s_mid ref_s_mid
+			ref_s_long *= prefactor_l
+			ref_s_mid *= prefactor_m
+			Concatenate/O {ref_s_long, ref_s_mid}, $Output_s_path
+		Endif
+		
+		//Check if trace already exist. Then append to graph if trace does not exist
+		String TraceLst = TraceNameList("CombineTest",";",1)
+		Variable NumTraces = itemsInList(TraceLst)
+		variable i, ext
+		String TraceName, TracePath
+		For(i=0; i<NumTraces; i++)
+			TraceName = StringFromList(i, TraceLst)
+			TracePath = GetWavesDataFolder(TraceNameToWaveRef("CombineTest",TraceName),2)
+			If(StringMatch(Output_i_path, TracePath) == 1)
+				ext ++
+			Endif
+		Endfor
+
+		If(ext == 0)
+			//Append combined waves
+			AppendToGraph/W=CombineTest $Output_i_path vs $Output_q_path
+			//Add error bars
+			TraceLst = TraceNameList("CombineTest",";",1)
+			NumTraces = itemsInList(TraceLst)
+			TraceName = StringFromList(NumTraces-1, TraceLst)
+			If(WaveExists($Output_s_path)==0)
+				Print "No error bar wave for " + TraceName
+			Else
+				ErrorBars $TraceName SHADE= {0,0,(0,0,0,0),(0,0,0,0)},wave=($Output_s_path,$Output_s_path)
+			Endif
+		Endif
+			
+		ModifyGraph rgb($TraceName)=(16385,65535,65535)
 End
 
 Function VarProcYMultiply(sva) : SetVariableControl //Set Y multiplier

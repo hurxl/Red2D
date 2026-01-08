@@ -95,7 +95,7 @@ Menu "Red2D"
 		"\\M0Resampling/Binning 1D", R2D_Resample1D()
 		"\\M0Shorten 1D (irreversible!)", R2D_Shorten1D()
 		"-"
-		"SDD Combiner", R2D_SDDCombineranel()
+		"SDD Combiner", R2D_SDDCombinerpanel()
 		"-"
 		"Total count (Accept ROI)", R2d_TotalCount()
 		"Get beam center", R2D_GetBeamCenter()
