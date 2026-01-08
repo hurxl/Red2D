@@ -256,6 +256,10 @@ Function ButtonProc_CombineWavesOfdifferentSDD(ba) : ButtonControl //Combine wav
 				Duplicate/FREE/O/R=[,qindex_0] q_long ref_q_long
 				Duplicate/FREE/O/R=[qindex_1,] q_mid ref_q_mid
 				Concatenate/O {ref_q_long, ref_q_mid}, $Output_q_path
+
+				Duplicate/FREE/O/R=[,qindex_0] t2_long ref_t2_long
+				Duplicate/FREE/O/R=[qindex_1,] t2_mid ref_t2_mid
+				Concatenate/O {ref_t2_long, ref_t2_mid}, $Output_2t_path
 			Endif
 				
 			//err
@@ -429,56 +433,52 @@ Static Function UpdateCursor(WindowName)
 	//Get trace name and the selected q index
 	String TraNamLst = TraceNameList("", ";", 1)
 	Variable NumTraces = ItemsInList(TraNamLst)
-	String TraceName_long
-	String TraceName_mid
-	String TraceName_short
-	If(WaveExists(I_short))
-		TraceName_long = StringFromList(NumTraces-3, TraNamLst)
-		TraceName_mid = StringFromList(NumTraces-2, TraNamLst)
-		TraceName_short = StringFromList(NumTraces-1, TraNamLst)
-	Else
-		TraceName_long = StringFromList(NumTraces-2, TraNamLst)
-		TraceName_mid = StringFromList(NumTraces-1, TraNamLst)
-	Endif
-	
+	String TraceName_long = GetTraceNameFromWave(WindowName, I_long)
+	String TraceName_mid = GetTraceNameFromWave(WindowName, I_mid)
+	String TraceName_short = GetTraceNameFromWave(WindowName, I_short)
 	
 	// Long and middle
 	//Use cursor to set q index and value of mid SDD
-	qindex_0 = U_Cursorlong	// get value from panel
-	Cursor/P/W=$WindowName A $TraceName_long qindex_0		// set cursor
-	Variable qval_long = q_long[qindex_0]	// get q value
-	
-	if(numtype(qval_long) == 2)
-		return -1
-	endif
-	
-	//Find nearest q index of long SDD
-	Variable qTol = qval_long*0.00001
-	FindValue/V=(qval_long) /T=(qTol) q_mid
-	Variable i
-	For(i=0; i<1000; i++)
-		If(V_value==-1)
-			qTol*=(i+1)
-			FindValue/V=(qval_long) /T=(qTol) q_mid 
+	if(strlen(TraceName_long) > 0 && strlen(TraceName_mid) > 0)
+		qindex_0 = U_Cursorlong	// get value from panel
+		if(qindex_0 > numpnts(q_long)-1)
+			return -1
+		endif
+		Cursor/P/W=$WindowName A $TraceName_long qindex_0		// set cursor
+		Variable qval_long = q_long[qindex_0]	// get q value
+		
+		if(numtype(qval_long) == 2)
+			return -1
+		endif
+		
+		//Find nearest q index of long SDD
+		Variable qTol = qval_long*0.00001
+		FindValue/V=(qval_long) /T=(qTol) q_mid
+		Variable i
+		For(i=0; i<1000; i++)
+			If(V_value==-1)
+				qTol*=(i+1)
+				FindValue/V=(qval_long) /T=(qTol) q_mid 
+			Endif
+		Endfor
+		
+		If(V_value == -1) //No nearest value found
+			Abort "Nearst q value was not found."
+		Else
+			qindex_1 = V_value
 		Endif
-	Endfor
-	
-	If(V_value == -1) //No nearest value found
-		Abort "Nearst q value was not found."
-	Else
-		qindex_1 = V_value
+		
+		Do
+			qindex_1 +=1
+			if(q_long[qindex_0] < q_mid[qindex_1])
+				break
+			Endif
+		While(1)
+		
+		Cursor/W=$WindowName B $TraceName_mid qindex_1
 	Endif
-	
-	Do
-		qindex_1 +=1
-		if(q_long[qindex_0] < q_mid[qindex_1])
-			break
-		Endif
-	While(1)
-	
-	Cursor/W=$WindowName B $TraceName_mid qindex_1
 			
-	If(WaveExists(I_short))
+	If(strlen(TraceName_mid) > 0 && strlen(TraceName_short) > 0)
 		// Middle and short
 		//Use cursor to set q index and value of mid SDD
 		qindex_2 = U_Cursormid	// get value from panel
@@ -518,6 +518,32 @@ Static Function UpdateCursor(WindowName)
 	Cursor /M/C=(0,0,60000)/S=1 B
 	Cursor /M/C=(60000,0,0)/S=1 C
 	Cursor /M/C=(0,0,60000)/S=1 D
+End
+
+Static Function/S GetTraceNameFromWave(graphName, targetWave)
+    String graphName // Name of the graph, use "" for top graph
+    Wave targetWave  // The wave object you are looking for
+    
+    // 1. Get list of all traces in the graph
+    String traceList = TraceNameList(graphName, ";", 1)
+    Variable i
+    Variable numTraces = ItemsInList(traceList)
+    
+    // 2. Loop through every trace
+    for(i = 0; i < numTraces; i += 1)
+        String currentTraceName = StringFromList(i, traceList)
+        
+        // 3. Get the wave reference for this trace
+        Wave wRef = TraceNameToWaveRef(graphName, currentTraceName)
+        
+        // 4. Compare references (Igor Pro 7+)
+        // If you are using Igor 6, compare full paths instead.
+        if(WaveRefsEqual(wRef, targetWave))
+            return currentTraceName // Found it! Return the trace name.
+        endif
+    endfor
+    
+    return "" // Wave is not in this graph
 End
 
 // *************************
