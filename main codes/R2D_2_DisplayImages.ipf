@@ -18,7 +18,7 @@ Function R2D_Display2D()
 	/// Check if panel exist
 	DoWindow Display2D
 	If(V_flag == 0)
-		NewPanel/K=1/N=Display2D/W=(800,100,1557,680)
+		NewPanel/K=1/N=Display2D/W=(800,100,1557,730)
 		SetWindow Display2D, hook(Display2D) = R2D_DisplayImagesWindowHook	
 	Else
 		DoWindow/F Display2D
@@ -32,12 +32,17 @@ Function R2D_Display2D()
 		SortOrder = 1
 	Endif
 	
+	// Create a datafolder for custom LUT
+	NewDataFolder/O root:Packages:ColorTables
+
+	
 	// Color range
 	Variable/G :Red2DPackage:U_ColorLow
 	Variable/G :Red2DPackage:U_ColorLowStep
 	Variable/G :Red2DPackage:U_ColorHigh
 	Variable/G :Red2DPackage:U_ColorHighStep
-	Variable/G :Red2DPackage:U_ColorLog
+	Variable/G :Red2DPackage:U_LogColor
+	Variable/G :Red2DPackage:U_reverseColor
 	NVAR lowstep = :Red2DPackage:U_ColorLowStep
 	NVAR highstep = :Red2DPackage:U_ColorHighStep
 	if(numtype(lowstep)==2)
@@ -47,12 +52,26 @@ Function R2D_Display2D()
 		highstep = 0
 	endif
 	
-	// Color table
-	String/G :Red2DPackage:U_ColorTable
-	SVAR ColorTable = :Red2DPackage:U_ColorTable
-	If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
-		ColorTable = "Turbo" 
+	// Built-in Color table
+	String/G :Red2DPackage:U_BuiltinColorTable
+	SVAR BuiltinColorTable = :Red2DPackage:U_BuiltinColorTable
+	If (Strlen(BuiltinColorTable) == 0) // Use Turbo when a is not selected.
+		BuiltinColorTable = "Turbo" 
 	endif
+	
+	// Custom Color table
+	String/G :Red2DPackage:U_CustomColorTable
+	SVAR CustomColorTable = :Red2DPackage:U_CustomColorTable
+	If (Strlen(CustomColorTable) == 0) // Use Turbo when a is not selected.
+		CustomColorTable = "" 
+	endif
+	
+	// Effective Color table
+	String/G :Red2DPackage:U_ColorTable
+//	SVAR ColorTable = :Red2DPackage:U_ColorTable
+//	If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
+//		ColorTable = "Turbo" 
+//	endif
 	
 	// Create an image list
 	R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
@@ -64,7 +83,7 @@ Function R2D_Display2D()
 	
 	//Create listbox named ImageList and make it follows ListBoxProc
 	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,320}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
-	ListBox lb2 listWave=ImageNote, mode=0, frame=4, size={400,550}, pos={355,25}, fSize=13, proc=R2D_ListBoxProc_Display2D_Note
+	ListBox lb2 listWave=ImageNote, mode=0, frame=4, size={400,600}, pos={355,25}, fSize=13, proc=R2D_ListBoxProc_Display2D_Note
 
 	TitleBox title0 title=simple_imagefolderpath,  fSize=14, pos={6,5}, frame=0
 	TitleBox title1 title="Note",  fSize=14, pos={515,5}, frame=0
@@ -80,29 +99,39 @@ Function R2D_Display2D()
 	Button button1 title="Hide Mask", fSize=13, size={110,23},pos={200,355},proc=ButtonProcR2D_HideMask
 
 	// Color Range and Table
-	TitleBox title2 title="Adjust Color",  fSize=13, pos={30,410}, frame=0
-	CheckBox cb0 title="log Color", pos={130, 410}, fSize=13, variable=:Red2DPackage:U_ColorLog, proc=R2D_LogColor_CheckProc
-	Button button5 title="Auto Color", fSize=13, size={90,23},pos={235,405},proc=BP_R2D_AutoColorImage
+//	TitleBox title2 title="Adjust Color",  fSize=13, pos={30,410}, frame=0
 	SetVariable setvar0 title="Low",pos={30,445},size={130,25},limits={-inf,+inf, lowstep},fSize=13, value=:Red2DPackage:U_ColorLow, proc=R2D_ColorRange_SetVarProc
 	SetVariable setvar1 title="High",pos={200,445},size={130,25},limits={-inf,+inf, highstep},fSize=13, value=:Red2DPackage:U_ColorHigh, proc=R2D_ColorRange_SetVarProc
-	TitleBox title3 title="Color Table", fSize=13, pos={30,480}, frame=0
-	PopupMenu popup1,mode=(WhichListItem(ColorTable, CTabList(),";")+1),value=#"\"*COLORTABLEPOPNONAMES*\"", pos={132,478},size={200,20},proc=Red2D_ColorTableMenu
+	CheckBox cb0 title="log Color", pos={150, 410}, fSize=13, variable=:Red2DPackage:U_LogColor, proc=R2D_LogColor_CheckProc
+	CheckBox cb4 title="Reverse Color", pos={30, 410}, fSize=13, variable=:Red2DPackage:U_reverseColor, proc=R2D_ReverseColor_CheckProc
+	Button button5 title="Auto Color", fSize=13, size={90,23},pos={235,405},proc=BP_R2D_AutoColorImage
+
+	TitleBox title3 title="Built-in Color", fSize=13, pos={30,484}, frame=0
+	PopupMenu popup1, mode=(WhichListItem(BuiltinColorTable, CTabList(),";")+1), value=#"\"*COLORTABLEPOPNONAMES*\"", pos={132,482}, size={200,20}, proc=R2D_SelectBuiltinColor_PopProc
+
+	TitleBox title4 title="Custom LUT", fSize=13, pos={30,518}, frame=0
+	PopupMenu popup2, mode=(WhichListItem(CustomColorTable, R2D_RecursiveGetLUTList(root:Packages:ColorTables, 2, 1),";")+1)
+	PopupMenu popup2, value=R2D_RecursiveGetLUTList(root:Packages:ColorTables, 2, 1)
+	PopupMenu popup2, pos={132,515},size={200,20}, proc=R2D_SelectCustomColor_PopProc
+	Checkbox cb3, title="", fSize=13, pos={110, 517}, proc=R2D_CustomColor_CheckProc
+	
 
 	// Save Image
-	TitleBox title4 title="Export as", fSize=13, pos={30,520}, frame=0
-	Button button2 title="JPEG", fSize=13, size={50,23},pos={120,515},proc=ButtonProcR2D_SaveImageAsJPEG
-	Button button3 title="PDF", fSize=13, size={50,23},pos={180,515},proc=ButtonProcR2D_SaveImageAsPDF
-	Button button4 title="TIFF", fSize=13, size={50,23},pos={240,515},proc=ButtonProcR2D_SaveImageAsTIFF
-	Checkbox cb1 title="Use Sample Name", fSize=13, pos={50, 550}
-	Checkbox cb2 title="Export All", fSize=13, pos={220, 550}
+	TitleBox title5 title="Export as", fSize=13, pos={30,560}, frame=0
+	Button button2 title="JPEG", fSize=13, size={50,23},pos={120,555},proc=ButtonProcR2D_SaveImageAsJPEG
+	Button button3 title="PDF", fSize=13, size={50,23},pos={180,555},proc=ButtonProcR2D_SaveImageAsPDF
+	Button button4 title="TIFF", fSize=13, size={50,23},pos={240,555},proc=ButtonProcR2D_SaveImageAsTIFF
+	Checkbox cb1 title="Use Sample Name", fSize=13, pos={50, 590}
+	Checkbox cb2 title="Export All", fSize=13, pos={220, 590}
 	
 	// Misc
-	GroupBox group0 pos={30,390},size={300,2}
+	GroupBox group0 pos={30,391},size={300,2}
 //	GroupBox group1 pos={30,510},size={300,2}
 //	GroupBox group2 pos={30,505},size={300,2}
 	
 	SetDataFolder $savedDF
 End
+
 
 // *** Action
 Function ButtonProcR2D_BringImageToFront(ba) : ButtonControl
@@ -188,7 +217,8 @@ Function BP_R2D_AutoColorImage(ba) : ButtonControl
 //			high = hh[0]
 //			low = 0.01*high	// this makes the image looks better than using real low value, modofied to 0.01 2025-12-16
 			
-			R2D_ColorRangeAdjust_worker(low, high)
+			R2D_ApplyColorTable()
+//			R2D_ColorRangeAdjust_worker("", low, high)
 		
 			SetDataFolder $savedDF
 			
@@ -386,7 +416,8 @@ Function R2D_ColorRange_SetVarProc(sva) : SetVariableControl
 			
 			DoWindow IntensityImage
 			If(V_flag != 0)
-				R2D_ColorRangeAdjust_worker(low, high)
+				R2D_ApplyColorTable()
+//				R2D_ColorRangeAdjust_worker("", low, high)
 			Endif
 			
 			break
@@ -396,7 +427,6 @@ Function R2D_ColorRange_SetVarProc(sva) : SetVariableControl
 
 	return 0
 End
-
 
 
 Function R2D_LogColor_CheckProc(cba) : CheckBoxControl
@@ -405,8 +435,11 @@ Function R2D_LogColor_CheckProc(cba) : CheckBoxControl
 	switch( cba.eventCode )
 		case 2: // mouse up
 			Variable checked = cba.checked
-			Variable LogColor = checked
-			ModifyImage ''#0 log=LogColor
+			
+			NVAR LogColor = :Red2DPackage:U_LogColor
+			LogColor = checked
+//			ModifyImage ''#0 log=LogColor
+			R2D_ApplyColorTable()	
 			
 			break
 		case -1: // control being killed
@@ -416,8 +449,82 @@ Function R2D_LogColor_CheckProc(cba) : CheckBoxControl
 	return 0
 End
 
+Function R2D_ReverseColor_CheckProc(cba) : CheckBoxControl
+	STRUCT WMCheckboxAction &cba
 
-Function Red2D_ColorTableMenu(pa) : PopupMenuControl
+	switch( cba.eventCode )
+		case 2: // mouse up
+			Variable checked = cba.checked
+			NVAR reverseColor = :Red2DPackage:U_reverseColor
+			reverseColor = checked
+//			ModifyImage ''#0 log=LogColor
+			R2D_ApplyColorTable()	
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+Function R2D_CustomColor_CheckProc(cba) : CheckBoxControl
+	STRUCT WMCheckboxAction &cba
+
+	switch( cba.eventCode )
+		case 2: // mouse up
+			Variable checked = cba.checked
+			
+			ControlInfo/W=Display2D cb3		// use custom color?
+			If(V_Value == 0)	// use built-in color
+				SVAR BuiltinColorTable = :Red2DPackage:U_BuiltinColorTable
+				SVAR ColorTable = :Red2DPackage:U_ColorTable
+				ColorTable = BuiltinColorTable
+				R2D_ApplyColorTable()	
+			else	// use custom color
+				SVAR CustomColorTable = :Red2DPackage:U_CustomColorTable
+				SVAR ColorTable = :Red2DPackage:U_ColorTable
+				ColorTable = "root:Packages:ColorTables:" + CustomColorTable	// custom color wave needs full path
+				R2D_ApplyColorTable()							
+			endif
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+Function R2D_SelectBuiltinColor_PopProc(pa) : PopupMenuControl
+	STRUCT WMPopupAction &pa
+
+	switch( pa.eventCode )
+		case 2: // mouse up
+			Variable popNum = pa.popNum
+			String popStr = pa.popStr
+
+			String/G :Red2DPackage:U_BuiltinColorTable
+			SVAR BuiltinColorTable = :Red2DPackage:U_BuiltinColorTable
+			BuiltinColorTable = popStr
+			
+			ControlInfo/W=Display2D cb3		// use custom color?
+			If(V_Value == 0)	// use built-in color
+				String/G :Red2DPackage:U_ColorTable
+				SVAR ColorTable = :Red2DPackage:U_ColorTable
+				ColorTable = BuiltinColorTable
+				R2D_ApplyColorTable()			
+			endif
+			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+Function R2D_SelectCustomColor_PopProc(pa) : PopupMenuControl
 	STRUCT WMPopupAction &pa
 
 	switch( pa.eventCode )
@@ -425,15 +532,17 @@ Function Red2D_ColorTableMenu(pa) : PopupMenuControl
 			Variable popNum = pa.popNum
 			String popStr = pa.popStr
 			
-			SVAR ColorTable = :Red2DPackage:U_ColorTable
-			ColorTable = popStr
-			NVAR low = :Red2DPackage:U_ColorLow
-			NVAR high = :Red2DPackage:U_ColorHigh
+			String/G :Red2DPackage:U_CustomColorTable
+			SVAR CustomColorTable = :Red2DPackage:U_CustomColorTable
+			CustomColorTable = popStr
 			
-			DoWindow IntensityImage
-			If(V_flag != 0)
-				R2D_ColorRangeAdjust_worker(low, high)
-			Endif
+			ControlInfo/W=Display2D cb3		// use custom color?
+			If(V_Value == 1)	// use custom color
+				String/G :Red2DPackage:U_ColorTable
+				SVAR ColorTable = :Red2DPackage:U_ColorTable
+				ColorTable = "root:Packages:ColorTables:" + CustomColorTable		// custom color wave needs full path
+				R2D_ApplyColorTable()		
+			endif
 			
 			break
 		case -1: // control being killed
@@ -442,6 +551,22 @@ Function Red2D_ColorTableMenu(pa) : PopupMenuControl
 
 	return 0
 End
+
+Function R2D_ApplyColorTable()
+
+			SVAR ColorTable = :Red2DPackage:U_ColorTable	// get effective color table name
+			NVAR LogColor = :Red2DPackage:U_LogColor
+			NVAR reverseColor = :Red2DPackage:U_reverseColor
+			NVAR low = :Red2DPackage:U_ColorLow
+			NVAR high = :Red2DPackage:U_ColorHigh
+			
+			DoWindow IntensityImage
+			If(V_flag != 0)
+				R2D_ColorRangeAdjust_worker(ColorTable, low, high, LogColor, reverseColor)
+			Endif
+
+End
+
 
 Function R2D_ListBoxProc_Display2D_Note(lba) : ListBoxControl
 	STRUCT WMListboxAction &lba
@@ -462,6 +587,166 @@ Function R2D_ListBoxProc_Display2D_Note(lba) : ListBoxControl
 	return 0
 
 End
+
+// Recursive function with Depth Limit and Output Mode
+// Parameters:
+//   dfr:      The starting data folder reference (e.g., root:)
+//   mode:     0 = Full Path, 1 = Name Only
+//   maxLevel: 0 = Current folder only
+//             1 = Go 1 folder deep
+//            -1 = Infinite recursion (All folders)
+Function/S R2D_RecursiveGetLUTList(dfr, mode, maxLevel, [rootPath])
+    DFREF dfr
+    Variable mode
+    Variable maxLevel
+    String rootPath 
+    
+    String startPath
+    if (ParamIsDefault(rootPath))
+        startPath = GetDataFolder(1, dfr)
+    else
+        startPath = rootPath
+    endif
+
+    String list = ""
+    String currentPath = GetDataFolder(1, dfr)
+    Variable i
+    String thisName
+    String fullPath, relPath
+    
+    // --- PART 1: Process Waves in Current Folder ---
+    Variable numWaves = CountObjectsDFR(dfr, 1) 
+    
+    For (i = 0; i < numWaves; i += 1)
+        thisName = GetIndexedObjNameDFR(dfr, 1, i)
+        
+        // ★重要: ここで名前を安全な形に変換します
+        String safeName = PossiblyQuoteName(thisName)
+        
+        // 参照を作るときは元の名前($thisName)を使います
+        Wave w = dfr:$thisName
+        
+        if (WaveDims(w) == 2 && WaveType(w, 1) == 1)
+            
+            if (mode == 1)
+                // mode 1: 安全な名前だけを出力
+                list += safeName + ";"
+            elseif (mode == 2)
+                // mode 2: パス結合時も safeName を使う
+                fullPath = currentPath + safeName
+                relPath = ReplaceString(startPath, fullPath, "") 
+                list += relPath + ";"
+            else
+                // mode 0: フルパス結合時も safeName を使う
+                list += currentPath + safeName + ";"
+            endif
+            
+        endif
+    EndFor
+    
+    // --- PART 2: Check Depth Limit ---
+    if (maxLevel == 0)
+        return list
+    endif
+    
+    Variable nextLevel
+    if (maxLevel < 0)
+        nextLevel = -1 
+    else
+        nextLevel = maxLevel - 1 
+    endif
+    
+    // --- PART 3: Recurse into Subfolders ---
+    Variable numFolders = CountObjectsDFR(dfr, 4) 
+    String subFolderName
+    
+    For (i = 0; i < numFolders; i += 1)
+        subFolderName = GetIndexedObjNameDFR(dfr, 4, i)
+        DFREF subDF = dfr:$subFolderName
+        
+        // 再帰処理
+        list += R2D_RecursiveGetLUTList(subDF, mode, nextLevel, rootPath=startPath)
+    EndFor
+    
+    return list
+End
+
+//Function/S R2D_RecursiveGetLUTList(dfr, mode, maxLevel, [rootPath])
+//    DFREF dfr
+//    Variable mode
+//    Variable maxLevel
+//    String rootPath // 再帰処理用に「最初のパス」を記憶する変数
+//    
+//    // --- 0. 開始パスの特定 ---
+//    // 最初の呼び出し（ユーザーからの呼び出し）では rootPath は省略されているため、
+//    // 現在の dfr を「基準パス (startPath)」として設定します。
+//    String startPath
+//    if (ParamIsDefault(rootPath))
+//        startPath = GetDataFolder(1, dfr)
+//    else
+//        startPath = rootPath
+//    endif
+//
+//    String list = ""
+//    String currentPath = GetDataFolder(1, dfr)
+//    Variable i
+//    String thisName
+//    String fullPath, relPath
+//    
+//    // --- PART 1: Process Waves in Current Folder ---
+//    Variable numWaves = CountObjectsDFR(dfr, 1) 
+//    
+//    For (i = 0; i < numWaves; i += 1)
+//        thisName = GetIndexedObjNameDFR(dfr, 1, i)
+//        
+//        Wave w = dfr:$thisName
+//        
+//        if (WaveDims(w) == 2 && WaveType(w, 1) == 1)
+//            
+//            if (mode == 1)
+//                // mode 1: ウェーブ名のみ
+//                list += thisName + ";"
+//            elseif (mode == 2)
+//                // mode 2: 相対パス (基準パス以降のみ)
+//                fullPath = currentPath + thisName
+//                // フルパスから基準パス(startPath)を削除して相対化
+//                relPath = ReplaceString(startPath, fullPath, "") 
+//                list += relPath + ";"
+//            else
+//                // mode 0: フルパス
+//                list += currentPath + thisName + ";"
+//            endif
+//            
+//        endif
+//    EndFor
+//    
+//    // --- PART 2: Check Depth Limit ---
+//    if (maxLevel == 0)
+//        return list
+//    endif
+//    
+//    Variable nextLevel
+//    if (maxLevel < 0)
+//        nextLevel = -1 
+//    else
+//        nextLevel = maxLevel - 1 
+//    endif
+//    
+//    // --- PART 3: Recurse into Subfolders ---
+//    Variable numFolders = CountObjectsDFR(dfr, 4) 
+//    String subFolderName
+//    
+//    For (i = 0; i < numFolders; i += 1)
+//        subFolderName = GetIndexedObjNameDFR(dfr, 4, i)
+//        DFREF subDF = dfr:$subFolderName
+//        
+//        // 再帰呼び出し: 
+//        // ここで現在の startPath を第4引数として渡し、基準位置を維持します
+//        list += R2D_RecursiveGetLUTList(subDF, mode, nextLevel, rootPath=startPath)
+//    EndFor
+//    
+//    return list
+//End
 
 static Function R2D_Display2D_WaveListRightClick(row, listwave)
 	variable row
@@ -535,35 +820,36 @@ Static Function Show2D(row)
 
 	NVAR low = :Red2DPackage:U_ColorLow
 	NVAR high = :Red2DPackage:U_ColorHigh
-	NVAR ColorLog = :Red2DPackage:U_ColorLog
-	SVAR ColorTable = :Red2DPackage:U_ColorTable
+//	NVAR LogColor = :Red2DPackage:U_LogColor
+//	SVAR ColorTable = :Red2DPackage:U_ColorTable
 
-	If(row>NumInList-1) // Check if selected row in range. If out of range do nothing.
-		// Do nothing.
-	Else
+	If(row < NumInList) // Check if selected row in range. If out of range do nothing.
+//		// Do nothing.
+//	Else
 	
-	If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
-		ColorTable = "Turbo" 
-	endif
+//		If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
+//			ColorTable = "Turbo" 
+//		endif
 		String SelImageName = ImageList[row] // Get selected Imagename by using the flag row.
 		
 		DoWindow IntensityImage // Check if there is a window named 2DImageWindow. Exist returns 1 else 0.	
 		If(V_flag == 0) // Create a new image window with name as 2DImageWindow if not exists.
 			NewImage/K=1/N=IntensityImage $SelImageName
-//			ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,ColdWarm,0},log=1
-			if(numtype(low) == 2 || numtype(high) == 2 || numtype(ColorLog) == 2)
-				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,$ColorTable,0},log=1
-				low = 1
-				high = wavemax($SelImageName)
-				ColorLog = 1
-			elseif(low == 0 && high == 0)
-				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,$ColorTable,0},log=1
-				low = 1
-				high = wavemax($SelImageName)
-				ColorLog = 1
-			else
-				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {low,high,$ColorTable,0},log=ColorLog
-			endif
+			R2D_ApplyColorTable()	
+////			ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,ColdWarm,0},log=1
+//			if(numtype(low) == 2 || numtype(high) == 2 || numtype(LogColor) == 2)
+//				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,$ColorTable,0},log=1
+//				low = 1
+//				high = wavemax($SelImageName)
+//				LogColor = 1
+//			elseif(low == 0 && high == 0)
+//				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,$ColorTable,0},log=1
+//				low = 1
+//				high = wavemax($SelImageName)
+//				LogColor = 1
+//			else
+//				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {low,high,$ColorTable,0},log=LogColor
+//			endif
 		Else // Replace selected images on the window named 2DImageWindow.
 			String OldImage = ImageNameList("IntensityImage",";") // Get existing ImageName in the window ImageGraph
 			ReplaceWave/W=IntensityImage image = $(StringFromList(0,OldImage)), $(SelImageName) //Replace images. image is a flag here	
@@ -711,17 +997,26 @@ Function R2D_SavePIC_worker(WinNameStr, WhichName, extension, [pathName])
 
 End
 
-Function R2D_ColorRangeAdjust_worker(low, high, [tarWinName])
+Function R2D_ColorRangeAdjust_worker(LUT, low, high, LogColor, reverseColor, [tarWinName])
+	String LUT
 	variable low
 	variable high
+	variable LogColor
+	variable reverseColor
 	string tarWinName
-	SVAR ColorTable = :Red2DPackage:U_ColorTable
+	
+	If(stringmatch(LUT, "*:*"))	// custom made look up table
+		If(!WaveExists($LUT))		// if the custom color wave does not exist
+			printf "Selected Color Wave does not exists: %s\r", LUT
+			return -1
+		Endif
+	Endif
 	
 	If(ParamIsDefault(tarWinName))
-		ModifyImage ''#0 ctab= {low,high,$ColorTable,0}
+		ModifyImage ''#0 ctab= {low,high,$LUT,reverseColor}, log=LogColor
 	Else
 		If(Strlen(WinList(tarWinName, ";","WIN:1"))>0)
-			ModifyImage/W=tarWinName ''#0 ctab= {low,high,$ColorTable,0}
+			ModifyImage/W=tarWinName ''#0 ctab= {low,high,$LUT,reverseColor}, log=LogColor
 		Endif
 	Endif
 
