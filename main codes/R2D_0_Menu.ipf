@@ -68,17 +68,11 @@ Menu "Red2D"
 	End
 	
 	Submenu "Misc"
+		"Get beam center", R2D_GetBeamCenter()
+		"Total count (Accept ROI)", R2d_TotalCount()
 		"Auto Process", R2D_AutoProcess_panel()
 		"-"
-		"Convert Coordinates of 2D Images", R2D_2DImageConverterPanel()
-		"Make Masked 2D Images", R2D_MakeMaskedImages()
-		"Sensitivity correction 2D", R2D_Sensitivity2D()
-		"Convert 32bit integer images to single float (-1 to NaN)", R2D_negative2NaN()
-		"Convert NaN to 1E-30", R2D_NaN2en30()
-		"-"
-		"Create Panorama Image (SAXSpoint)", R2D_SAXSpoint_create_panorama_images()
-		"-"
-		Submenu "2D Operation"
+		Submenu "2D Normalizatoin"
 			"1. Time and Transmission (2D)", R2D_TimeAndTrans2D()
 			"2. Subtract Cell or Air (2D)", R2D_Cellsubtraction2D()
 			"3. Thicknes Correction (2D)", R2D_ThickCorr2D()
@@ -87,25 +81,33 @@ Menu "Red2D"
 			"-"
 			"Time only (2D)" , R2D_Time2D()
 			"Trans only (2D)" , R2D_Trans2D()
-			"-"
-			"Rebuild 2D from 1D", R2D_rebuild2D_panel()
-			"Add 2D Images", R2D_Add2DImages(0)
+			"Sensitivity correction 2D", R2D_Sensitivity2D()
 		End
+		Submenu "2D UTILITIES"
+			"Add 2D Images", R2D_Add2DImages(0)
+			"Rebuild 2D from 1D", R2D_rebuild2D_panel()
+			"Make Masked 2D Images", R2D_MakeMaskedImages()
+			"Convert Coordinates of 2D Images", R2D_2DImageConverterPanel()
+			"Create Panorama Image (SAXSpoint)", R2D_SAXSpoint_create_panorama_images()
+			"-"
+			"Convert 32bit integer images to single float (-1 to NaN)", R2D_negative2NaN()
+			"Convert NaN to 1E-30", R2D_NaN2en30()
+		End
+		"-"
+		Submenu "1D UTILITIES"
+		"SDD Combiner", R2D_SDDCombinerpanel()
 		"-"
 		"\\M0Resampling/Binning 1D", R2D_Resample1D()
 		"\\M0Shorten 1D (irreversible!)", R2D_Shorten1D()
 		"-"
-		"SDD Combiner", R2D_SDDCombinerpanel()
-		"-"
-		"Total count (Accept ROI)", R2d_TotalCount()
-		"Get beam center", R2D_GetBeamCenter()
-		"-"
 		"Simple Circular Average", R2D_CircularAveragePanel_simple()
 		"Display I vs p", R2D_Display1D(0,2)
 		"Append I vs p", R2D_Display1D(1,2)
+		End
+
 		"-"
 		
-		Submenu "Analysis"
+		Submenu "Data Analysis"
 			"Runland Streak Analysis", R2D_RulandStreakAnalysis()
 			"Cylinder Simulator", Red2D_Rotate_Rod_panel()
 			"-"
