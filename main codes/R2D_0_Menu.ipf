@@ -68,10 +68,6 @@ Menu "Red2D"
 	End
 	
 	Submenu "Misc"
-		"Get beam center", R2D_GetBeamCenter()
-		"Total count (Accept ROI)", R2d_TotalCount()
-		"Auto Process", R2D_AutoProcess_panel()
-		"-"
 		Submenu "2D Normalizatoin"
 			"1. Time and Transmission (2D)", R2D_TimeAndTrans2D()
 			"2. Subtract Cell or Air (2D)", R2D_Cellsubtraction2D()
@@ -83,18 +79,24 @@ Menu "Red2D"
 			"Trans only (2D)" , R2D_Trans2D()
 			"Sensitivity correction 2D", R2D_Sensitivity2D()
 		End
-		Submenu "2D UTILITIES"
+		Submenu "2D Utilities"
+			"Get beam center", R2D_GetBeamCenter()
+			"Total count (Accept ROI)", R2d_TotalCount()
+			"-"
 			"Add 2D Images", R2D_Add2DImages(0)
-			"Rebuild 2D from 1D", R2D_rebuild2D_panel()
-			"Make Masked 2D Images", R2D_MakeMaskedImages()
+			"Embed Mask to Images", R2D_MakeMaskedImages()
+			"-"
 			"Convert Coordinates of 2D Images", R2D_2DImageConverterPanel()
 			"Create Panorama Image (SAXSpoint)", R2D_SAXSpoint_create_panorama_images()
+			"-"
+			"Rebuild 2D from 1D profiles", R2D_rebuild2D_panel()
 			"-"
 			"Convert 32bit integer images to single float (-1 to NaN)", R2D_negative2NaN()
 			"Convert NaN to 1E-30", R2D_NaN2en30()
 		End
+		
 		"-"
-		Submenu "1D UTILITIES"
+		Submenu "1D Utilities"
 		"SDD Combiner", R2D_SDDCombinerpanel()
 		"-"
 		"\\M0Resampling/Binning 1D", R2D_Resample1D()
@@ -104,7 +106,6 @@ Menu "Red2D"
 		"Display I vs p", R2D_Display1D(0,2)
 		"Append I vs p", R2D_Display1D(1,2)
 		End
-
 		"-"
 		
 		Submenu "Data Analysis"
@@ -125,6 +126,9 @@ Menu "Red2D"
 			"Load SANS GC calibration curve (NIST SRM3600)", LoadGC_NIST("SANS")
 			"Load SANS GC calibration curve (AlfaAesar)", LoadGC_AlfaAesar("SANS")
 		End
+		
+		"-"
+		"Auto Process", R2D_AutoProcess_panel()
 		
 	End
 
