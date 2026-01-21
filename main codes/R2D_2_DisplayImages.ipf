@@ -65,7 +65,7 @@ Function R2D_Display2D()
 	// Custom Color table
 	SVAR CustomColorTable = :Red2DPackage:U_CustomColorTable
 	If (Strlen(CustomColorTable) == 0) // Use Turbo when a is not selected.
-		CustomColorTable = "" 
+		CustomColorTable = "_None_" 
 	endif
 	
 	// Effective Color table
@@ -261,16 +261,27 @@ End
 Function BP_R2D_AutoColorImage(ba) : ButtonControl
 	STRUCT WMButtonAction &ba
 
+	// Check if in the image folder.
+	String ImageFolderPath = R2D_GetImageFolderPath()
+	If(strlen(ImageFolderPath) == 0)
+		Abort "You may be in a wrong datafolder."
+	Endif
+	DFREF saveDFR = GetDataFolderDFR()
+
 	switch( ba.eventCode )
 		case 2: // mouse up
-		
+			
 			DoWindow/F IntensityImage
 			If(V_flag == 0)
 				return -1	// image does not exist
 			Endif
 			
+			SetDataFolder $ImageFolderPath	
+			
 			R2D_AutoColorImage_worker()
 			R2D_ApplyColorTable()
+			
+			SetDataFolder saveDFR
 			
 			break
 		case -1: // control being killed
@@ -506,11 +517,19 @@ End
 Function PopProc_R2D_SelectBuiltinColor(pa) : PopupMenuControl
 	STRUCT WMPopupAction &pa
 
+	// Check if in the image folder.
+	String ImageFolderPath = R2D_GetImageFolderPath()
+	If(strlen(ImageFolderPath) == 0)
+		Abort "You may be in a wrong datafolder."
+	Endif
+	DFREF saveDFR = GetDataFolderDFR()
+
 	switch( pa.eventCode )
 		case 2: // mouse up
 			Variable popNum = pa.popNum
 			String popStr = pa.popStr
-
+			
+			SetDataFolder $ImageFolderPath	
 			String/G :Red2DPackage:U_BuiltinColorTable
 			SVAR BuiltinColorTable = :Red2DPackage:U_BuiltinColorTable
 			BuiltinColorTable = popStr
@@ -522,6 +541,7 @@ Function PopProc_R2D_SelectBuiltinColor(pa) : PopupMenuControl
 				ColorTable = BuiltinColorTable
 				R2D_ApplyColorTable()			
 			endif
+			SetDataFolder saveDFR
 			
 			break
 		case -1: // control being killed
@@ -534,11 +554,19 @@ End
 Function PopProc_R2D_SelectCustomColor(pa) : PopupMenuControl
 	STRUCT WMPopupAction &pa
 
+	// Check if in the image folder.
+	String ImageFolderPath = R2D_GetImageFolderPath()
+	If(strlen(ImageFolderPath) == 0)
+		Abort "You may be in a wrong datafolder."
+	Endif
+	DFREF saveDFR = GetDataFolderDFR()
+
 	switch( pa.eventCode )
 		case 2: // mouse up
 			Variable popNum = pa.popNum
 			String popStr = pa.popStr
 			
+			SetDataFolder $ImageFolderPath	
 			String/G :Red2DPackage:U_CustomColorTable
 			SVAR CustomColorTable = :Red2DPackage:U_CustomColorTable
 			CustomColorTable = popStr
@@ -550,6 +578,7 @@ Function PopProc_R2D_SelectCustomColor(pa) : PopupMenuControl
 				ColorTable = "root:Packages:ColorTables:" + CustomColorTable		// custom color wave needs full path
 				R2D_ApplyColorTable()		
 			endif
+			SetDataFolder saveDFR
 			
 			break
 		case -1: // control being killed
@@ -589,259 +618,7 @@ Function PopProc_Diplay2D_SortOrder(pa) : PopupMenuControl
 	return 0
 End
 
-Function R2D_ApplyColorTable()
 
-	SVAR ColorTable = :Red2DPackage:U_ColorTable	// get effective color table name
-	NVAR LogColor = :Red2DPackage:U_LogColor
-	NVAR reverseColor = :Red2DPackage:U_reverseColor
-	NVAR low = :Red2DPackage:U_ColorLow
-	NVAR high = :Red2DPackage:U_ColorHigh
-	
-	DoWindow IntensityImage
-	If(V_flag == 0)
-		Print "IntensityImage window does not exist."
-		return -1
-	Endif
-	
-	If(strlen(ColorTable) == 0)
-		ColorTable = "Turbo"
-	Endif
-	
-	If(low == 0 && high == 0)	// initial values
-		R2D_AutoColorImage_worker()
-	endif
-	
-	If(stringmatch(ColorTable, "*:*"))	// custom made look up table
-		If(!WaveExists($ColorTable))		// if the custom color wave does not exist
-			printf "Selected Color Wave does not exists: %s\r", ColorTable
-			return -1
-		Endif
-	Endif
-
-	ModifyImage/W=IntensityImage ''#0 ctab= {low,high,$ColorTable,reverseColor}, log=LogColor
-
-End
-
-// Recursive function with Depth Limit and Output Mode
-// Parameters:
-//   dfr:      The starting data folder reference (e.g., root:)
-//   mode:     0 = Full Path, 1 = Name Only
-//   maxLevel: 0 = Current folder only
-//             1 = Go 1 folder deep
-//            -1 = Infinite recursion (All folders)
-Function/S R2D_RecursiveGetColorTableList(dfr, mode, maxLevel, [rootPath])
-    DFREF dfr
-    Variable mode
-    Variable maxLevel
-    String rootPath 
-    
-    String startPath
-    if (ParamIsDefault(rootPath))
-        startPath = GetDataFolder(1, dfr)
-    else
-        startPath = rootPath
-    endif
-
-    String list = ""
-    String currentPath = GetDataFolder(1, dfr)
-    Variable i
-    String thisName
-    String fullPath, relPath
-    
-    // --- PART 1: Process Waves in Current Folder ---
-    Variable numWaves = CountObjectsDFR(dfr, 1) 
-    
-    For (i = 0; i < numWaves; i += 1)
-        thisName = GetIndexedObjNameDFR(dfr, 1, i)
-        
-        // ★重要: ここで名前を安全な形に変換します
-        String safeName = PossiblyQuoteName(thisName)
-        
-        // 参照を作るときは元の名前($thisName)を使います
-        Wave w = dfr:$thisName
-        
-        if (WaveDims(w) == 2 && WaveType(w, 1) == 1)
-            
-            if (mode == 1)
-                // mode 1: 安全な名前だけを出力
-                list += safeName + ";"
-            elseif (mode == 2)
-                // mode 2: パス結合時も safeName を使う
-                fullPath = currentPath + safeName
-                relPath = ReplaceString(startPath, fullPath, "") 
-                list += relPath + ";"
-            else
-                // mode 0: フルパス結合時も safeName を使う
-                list += currentPath + safeName + ";"
-            endif
-            
-        endif
-    EndFor
-    
-    // --- PART 2: Check Depth Limit ---
-    if (maxLevel == 0)
-        return list
-    endif
-    
-    Variable nextLevel
-    if (maxLevel < 0)
-        nextLevel = -1 
-    else
-        nextLevel = maxLevel - 1 
-    endif
-    
-    // --- PART 3: Recurse into Subfolders ---
-    Variable numFolders = CountObjectsDFR(dfr, 4) 
-    String subFolderName
-    
-    For (i = 0; i < numFolders; i += 1)
-        subFolderName = GetIndexedObjNameDFR(dfr, 4, i)
-        DFREF subDF = dfr:$subFolderName
-        
-        // 再帰処理
-        list += R2D_RecursiveGetColorTableList(subDF, mode, nextLevel, rootPath=startPath)
-    EndFor
-    
-    return list
-End
-
-//Function/S R2D_RecursiveGetColorTableList(dfr, mode, maxLevel, [rootPath])
-//    DFREF dfr
-//    Variable mode
-//    Variable maxLevel
-//    String rootPath // 再帰処理用に「最初のパス」を記憶する変数
-//    
-//    // --- 0. 開始パスの特定 ---
-//    // 最初の呼び出し（ユーザーからの呼び出し）では rootPath は省略されているため、
-//    // 現在の dfr を「基準パス (startPath)」として設定します。
-//    String startPath
-//    if (ParamIsDefault(rootPath))
-//        startPath = GetDataFolder(1, dfr)
-//    else
-//        startPath = rootPath
-//    endif
-//
-//    String list = ""
-//    String currentPath = GetDataFolder(1, dfr)
-//    Variable i
-//    String thisName
-//    String fullPath, relPath
-//    
-//    // --- PART 1: Process Waves in Current Folder ---
-//    Variable numWaves = CountObjectsDFR(dfr, 1) 
-//    
-//    For (i = 0; i < numWaves; i += 1)
-//        thisName = GetIndexedObjNameDFR(dfr, 1, i)
-//        
-//        Wave w = dfr:$thisName
-//        
-//        if (WaveDims(w) == 2 && WaveType(w, 1) == 1)
-//            
-//            if (mode == 1)
-//                // mode 1: ウェーブ名のみ
-//                list += thisName + ";"
-//            elseif (mode == 2)
-//                // mode 2: 相対パス (基準パス以降のみ)
-//                fullPath = currentPath + thisName
-//                // フルパスから基準パス(startPath)を削除して相対化
-//                relPath = ReplaceString(startPath, fullPath, "") 
-//                list += relPath + ";"
-//            else
-//                // mode 0: フルパス
-//                list += currentPath + thisName + ";"
-//            endif
-//            
-//        endif
-//    EndFor
-//    
-//    // --- PART 2: Check Depth Limit ---
-//    if (maxLevel == 0)
-//        return list
-//    endif
-//    
-//    Variable nextLevel
-//    if (maxLevel < 0)
-//        nextLevel = -1 
-//    else
-//        nextLevel = maxLevel - 1 
-//    endif
-//    
-//    // --- PART 3: Recurse into Subfolders ---
-//    Variable numFolders = CountObjectsDFR(dfr, 4) 
-//    String subFolderName
-//    
-//    For (i = 0; i < numFolders; i += 1)
-//        subFolderName = GetIndexedObjNameDFR(dfr, 4, i)
-//        DFREF subDF = dfr:$subFolderName
-//        
-//        // 再帰呼び出し: 
-//        // ここで現在の startPath を第4引数として渡し、基準位置を維持します
-//        list += R2D_RecursiveGetColorTableList(subDF, mode, nextLevel, rootPath=startPath)
-//    EndFor
-//    
-//    return list
-//End
-
-Function R2D_Display2D_WaveListRightClick(row, listwave)
-	variable row
-	wave/T listwave
-
-	String popupItems = ""
-	popupItems += "Copy;"
-	PopupContextualMenu popupItems
-	
-	string tocopy = ""
-	string s
-	strswitch (S_selection)
-		case "Copy":
-			tocopy = listWave[row]
-			break
-	endswitch
-	
-	PutScrapText tocopy
-	
-	return 0
-End
-
-Function R2D_Display2D_NoteRightClick(row, listwave)
-	variable row
-	wave/T listwave
-
-	String popupItems = ""
-	popupItems += "Copy Value;Copy Number;Copy Row;Copy Entire Note;"
-	PopupContextualMenu popupItems
-
-	string tocopy = ""
-	string s
-	strswitch (S_selection)
-		case "Copy Value":
-			s = StringFromList(1, listWave[row], ":")
-			s = TrimString(s)
-			s = ReplaceString("\"",s,"")
-			tocopy = s
-			break
-		case "Copy Number":	
-			s = StringFromList(1, listWave[row], ":")
-			s = TrimString(s)
-			s = ReplaceString("\"",s,"")
-			variable val = str2num(s)	// remove non-numeric characters
-			s = num2str(val)
-			tocopy = s
-			break
-		case "Copy Row":
-			tocopy = listWave[row]
-			break
-		case "Copy Entire Note":
-			for(s: listWave)
-				tocopy += s + "\r"
-			endfor			
-			break
-	endswitch
-	
-	PutScrapText tocopy
-	
-	return 0
-End
 
 
 // *** Main Code
@@ -996,6 +773,204 @@ Function R2D_SavePIC_worker(WinNameStr, WhichName, extension, [pathName])
 
 End
 
+Function R2D_ApplyColorTable()
+
+	SVAR ColorTable = :Red2DPackage:U_ColorTable	// get effective color table name
+	NVAR LogColor = :Red2DPackage:U_LogColor
+	NVAR reverseColor = :Red2DPackage:U_reverseColor
+	NVAR low = :Red2DPackage:U_ColorLow
+	NVAR high = :Red2DPackage:U_ColorHigh
+	
+	DoWindow IntensityImage
+	If(V_flag == 0)
+		Print "IntensityImage window does not exist."
+		return -1
+	Endif
+	
+	If(strlen(ColorTable) == 0)
+		ColorTable = "Turbo"
+	Endif
+	
+	If(low == 0 && high == 0)	// initial values
+		R2D_AutoColorImage_worker()
+	endif
+	
+	If(stringmatch(ColorTable, "*:*"))	// custom made look up table
+		If(!WaveExists($ColorTable))		// if the custom color wave does not exist
+			printf "Selected Color Wave does not exists: %s\r", ColorTable
+			return -1
+		Endif
+	Endif
+
+	ModifyImage/W=IntensityImage ''#0 ctab= {low,high,$ColorTable,reverseColor}, log=LogColor
+
+End
+
+Function R2D_AutoColorImage_worker()
+	String ImageFolderPath = R2D_GetImageFolderPath()	// Check if in the image folder
+	If(strlen(ImageFolderPath) == 0)
+		Abort "You may be in a wrong datafolder."
+	Endif
+	String savedDF = GetDataFolder(1)
+	
+	SetDataFolder $ImageFolderPath
+	
+	String TopImageName = StringFromList(0, ImageNameList("IntensityImage", ";"))
+	wave imagew = $TopImageName
+	
+	NVAR low = :Red2DPackage:U_ColorLow
+	NVAR high = :Red2DPackage:U_ColorHigh
+	
+	high = R2D_GetImagePopulationThreshold(imagew, 0.99)	// get 99% of pixels from low intensity
+	low = 0.01*high
+	
+	SetDataFolder $savedDF
+End
+
+// Recursive function with Depth Limit and Output Mode
+// Parameters:
+//   dfr:      The starting data folder reference (e.g., root:)
+//   mode:     0 = Full Path, 1 = Name Only
+//   maxLevel: 0 = Current folder only
+//             1 = Go 1 folder deep
+//            -1 = Infinite recursion (All folders)
+Function/S R2D_RecursiveGetColorTableList(dfr, mode, maxLevel, [rootPath])
+    DFREF dfr
+    Variable mode
+    Variable maxLevel
+    String rootPath 
+    
+    String startPath
+    if (ParamIsDefault(rootPath))
+        startPath = GetDataFolder(1, dfr)
+    else
+        startPath = rootPath
+    endif
+
+    String list = ""
+    String currentPath = GetDataFolder(1, dfr)
+    Variable i
+    String thisName
+    String fullPath, relPath
+    
+    // --- PART 1: Process Waves in Current Folder ---
+    Variable numWaves = CountObjectsDFR(dfr, 1) 
+    
+    For (i = 0; i < numWaves; i += 1)
+        thisName = GetIndexedObjNameDFR(dfr, 1, i)
+        
+        // ★重要: ここで名前を安全な形に変換します
+        String safeName = PossiblyQuoteName(thisName)
+        
+        // 参照を作るときは元の名前($thisName)を使います
+        Wave w = dfr:$thisName
+        
+        if (WaveDims(w) == 2 && WaveType(w, 1) == 1)
+            
+            if (mode == 1)
+                // mode 1: 安全な名前だけを出力
+                list += safeName + ";"
+            elseif (mode == 2)
+                // mode 2: パス結合時も safeName を使う
+                fullPath = currentPath + safeName
+                relPath = ReplaceString(startPath, fullPath, "") 
+                list += relPath + ";"
+            else
+                // mode 0: フルパス結合時も safeName を使う
+                list += currentPath + safeName + ";"
+            endif
+            
+        endif
+    EndFor
+    
+    // --- PART 2: Check Depth Limit ---
+    if (maxLevel == 0)
+        return list
+    endif
+    
+    Variable nextLevel
+    if (maxLevel < 0)
+        nextLevel = -1 
+    else
+        nextLevel = maxLevel - 1 
+    endif
+    
+    // --- PART 3: Recurse into Subfolders ---
+    Variable numFolders = CountObjectsDFR(dfr, 4) 
+    String subFolderName
+    
+    For (i = 0; i < numFolders; i += 1)
+        subFolderName = GetIndexedObjNameDFR(dfr, 4, i)
+        DFREF subDF = dfr:$subFolderName
+        
+        // 再帰処理
+        list += R2D_RecursiveGetColorTableList(subDF, mode, nextLevel, rootPath=startPath)
+    EndFor
+    
+    return list
+End
+
+Function R2D_Display2D_WaveListRightClick(row, listwave)
+	variable row
+	wave/T listwave
+
+	String popupItems = ""
+	popupItems += "Copy;"
+	PopupContextualMenu popupItems
+	
+	string tocopy = ""
+	string s
+	strswitch (S_selection)
+		case "Copy":
+			tocopy = listWave[row]
+			break
+	endswitch
+	
+	PutScrapText tocopy
+	
+	return 0
+End
+
+Function R2D_Display2D_NoteRightClick(row, listwave)
+	variable row
+	wave/T listwave
+
+	String popupItems = ""
+	popupItems += "Copy Value;Copy Number;Copy Row;Copy Entire Note;"
+	PopupContextualMenu popupItems
+
+	string tocopy = ""
+	string s
+	strswitch (S_selection)
+		case "Copy Value":
+			s = StringFromList(1, listWave[row], ":")
+			s = TrimString(s)
+			s = ReplaceString("\"",s,"")
+			tocopy = s
+			break
+		case "Copy Number":	
+			s = StringFromList(1, listWave[row], ":")
+			s = TrimString(s)
+			s = ReplaceString("\"",s,"")
+			variable val = str2num(s)	// remove non-numeric characters
+			s = num2str(val)
+			tocopy = s
+			break
+		case "Copy Row":
+			tocopy = listWave[row]
+			break
+		case "Copy Entire Note":
+			for(s: listWave)
+				tocopy += s + "\r"
+			endfor			
+			break
+	endswitch
+	
+	PutScrapText tocopy
+	
+	return 0
+End
+
 //Function R2D_ColorRangeAdjust_worker(LUT, low, high, LogColor, reverseColor, [tarWinName])
 //	String LUT
 //	variable low
@@ -1021,26 +996,7 @@ End
 //
 //End
 
-Function R2D_AutoColorImage_worker()
-	String ImageFolderPath = R2D_GetImageFolderPath()	// Check if in the image folder
-	If(strlen(ImageFolderPath) == 0)
-		Abort "You may be in a wrong datafolder."
-	Endif
-	String savedDF = GetDataFolder(1)
-	
-	SetDataFolder $ImageFolderPath
-	
-	String TopImageName = StringFromList(0, ImageNameList("IntensityImage", ";"))
-	wave imagew = $TopImageName
-	
-	NVAR low = :Red2DPackage:U_ColorLow
-	NVAR high = :Red2DPackage:U_ColorHigh
-	
-	high = R2D_GetImagePopulationThreshold(imagew, 0.99)	// get 99% of pixels from low intensity
-	low = 0.01*high
-	
-	SetDataFolder $savedDF
-End
+
 
 // *** MISC
 Function/S R2D_GetImageFolderPath()
