@@ -413,13 +413,22 @@ End
 Function CheckProc_R2D_LogColor(cba) : CheckBoxControl
 	STRUCT WMCheckboxAction &cba
 
+	// Check if in the image folder.
+	String ImageFolderPath = R2D_GetImageFolderPath()
+	If(strlen(ImageFolderPath) == 0)
+		Abort "You may be in a wrong datafolder."
+	Endif
+	DFREF saveDFR = GetDataFolderDFR()
+
 	switch( cba.eventCode )
 		case 2: // mouse up
 			Variable checked = cba.checked
-			
+
+			SetDataFolder $ImageFolderPath			
 			NVAR LogColor = :Red2DPackage:U_LogColor
 			LogColor = checked
 			R2D_ApplyColorTable()	
+			SetDataFolder saveDFR
 			
 			break
 		case -1: // control being killed
@@ -432,12 +441,22 @@ End
 Function CheckProc_R2D_ReverseColor(cba) : CheckBoxControl
 	STRUCT WMCheckboxAction &cba
 
+	// Check if in the image folder.
+	String ImageFolderPath = R2D_GetImageFolderPath()
+	If(strlen(ImageFolderPath) == 0)
+		Abort "You may be in a wrong datafolder."
+	Endif
+	DFREF saveDFR = GetDataFolderDFR()
+
 	switch( cba.eventCode )
 		case 2: // mouse up
 			Variable checked = cba.checked
+			
+			SetDataFolder $ImageFolderPath	
 			NVAR reverseColor = :Red2DPackage:U_reverseColor
 			reverseColor = checked
 			R2D_ApplyColorTable()	
+			SetDataFolder saveDFR
 			
 			break
 		case -1: // control being killed
@@ -450,10 +469,18 @@ End
 Function CheckProc_R2D_CustomColor(cba) : CheckBoxControl
 	STRUCT WMCheckboxAction &cba
 
+	// Check if in the image folder.
+	String ImageFolderPath = R2D_GetImageFolderPath()
+	If(strlen(ImageFolderPath) == 0)
+		Abort "You may be in a wrong datafolder."
+	Endif
+	DFREF saveDFR = GetDataFolderDFR()
+
 	switch( cba.eventCode )
 		case 2: // mouse up
 			Variable checked = cba.checked
 			
+			SetDataFolder $ImageFolderPath	
 			ControlInfo/W=Display2D cb3		// use custom color?
 			If(V_Value == 0)	// use built-in color
 				SVAR BuiltinColorTable = :Red2DPackage:U_BuiltinColorTable
@@ -466,37 +493,8 @@ Function CheckProc_R2D_CustomColor(cba) : CheckBoxControl
 				ColorTable = "root:Packages:ColorTables:" + CustomColorTable	// custom color wave needs full path
 				R2D_ApplyColorTable()							
 			endif
+			SetDataFolder saveDFR
 			
-			break
-		case -1: // control being killed
-			break
-	endswitch
-
-	return 0
-End
-
-Function PopProc_Diplay2D_SortOrder(pa) : PopupMenuControl
-	STRUCT WMPopupAction &pa
-
-	switch( pa.eventCode )
-		case 2: // mouse up
-			Variable popNum = pa.popNum
-			String popStr = pa.popStr
-//			Print popNum
-			
-			String ImageFolderPath = R2D_GetImageFolderPath()
-			If(strlen(ImageFolderPath) == 0)
-				Abort "You may be in a wrong datafolder."
-			Endif
-			String savedDF = GetDataFolder(1)
-			SetDataFolder $ImageFolderPath
-			
-			NVAR SortOrder = :Red2DPackage:U_SortOrder
-			SortOrder = popNum
-			R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
-			
-			SetDataFolder $savedDF
-
 			break
 		case -1: // control being killed
 			break
@@ -553,6 +551,36 @@ Function PopProc_R2D_SelectCustomColor(pa) : PopupMenuControl
 				R2D_ApplyColorTable()		
 			endif
 			
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+Function PopProc_Diplay2D_SortOrder(pa) : PopupMenuControl
+	STRUCT WMPopupAction &pa
+
+	switch( pa.eventCode )
+		case 2: // mouse up
+			Variable popNum = pa.popNum
+			String popStr = pa.popStr
+//			Print popNum
+			
+			String ImageFolderPath = R2D_GetImageFolderPath()
+			If(strlen(ImageFolderPath) == 0)
+				Abort "You may be in a wrong datafolder."
+			Endif
+			String savedDF = GetDataFolder(1)
+			SetDataFolder $ImageFolderPath
+			
+			NVAR SortOrder = :Red2DPackage:U_SortOrder
+			SortOrder = popNum
+			R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
+			
+			SetDataFolder $savedDF
+
 			break
 		case -1: // control being killed
 			break
