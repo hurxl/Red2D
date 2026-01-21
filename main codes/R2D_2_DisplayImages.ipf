@@ -18,12 +18,11 @@ Function R2D_Display2D()
 	/// Check if panel exist
 	DoWindow Display2D
 	If(V_flag == 0)
-		NewPanel/K=1/N=Display2D/W=(800,100,1557,730)
+		NewPanel/K=1/N=Display2D/W=(800,100,1557,740)
 		SetWindow Display2D, hook(Display2D) = R2D_DisplayImagesWindowHook	
 	Else
 		DoWindow/F Display2D
 	Endif
-	
 	
 	// Create a popupmenu to select the order of ImageList and then create the Imagelist
 	Variable/G :Red2Dpackage:U_SortOrder
@@ -35,7 +34,6 @@ Function R2D_Display2D()
 	// Create a datafolder for custom LUT
 	NewDataFolder/O root:Packages:ColorTables
 
-	
 	// Color table
 	String/G :Red2DPackage:U_ColorTable
 	String/G :Red2DPackage:U_BuiltinColorTable
@@ -65,14 +63,8 @@ Function R2D_Display2D()
 	// Custom Color table
 	SVAR CustomColorTable = :Red2DPackage:U_CustomColorTable
 	If (Strlen(CustomColorTable) == 0) // Use Turbo when a is not selected.
-		CustomColorTable = "_None_" 
+		CustomColorTable = "None" 
 	endif
-	
-	// Effective Color table
-//	SVAR ColorTable = :Red2DPackage:U_ColorTable
-//	If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
-//		ColorTable = "Turbo" 
-//	endif
 	
 	// Create an image list
 	R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
@@ -111,19 +103,49 @@ Function R2D_Display2D()
 	PopupMenu popup1, mode=(WhichListItem(BuiltinColorTable, CTabList(),";")+1), value=#"\"*COLORTABLEPOPNONAMES*\"", pos={132,482}, size={200,20}, proc=PopProc_R2D_SelectBuiltinColor
 
 	TitleBox title4 title="Custom LUT", fSize=13, pos={30,518}, frame=0
-	PopupMenu popup2, mode=(WhichListItem(CustomColorTable, R2D_RecursiveGetColorTableList(root:Packages:ColorTables, 2, 1),";")+1)
 	PopupMenu popup2, value=R2D_RecursiveGetColorTableList(root:Packages:ColorTables, 2, 1)
+	PopupMenu popup2, mode=( max( WhichListItem(CustomColorTable, R2D_RecursiveGetColorTableList(root:Packages:ColorTables, 2, 1),";")+1, 1) )
 	PopupMenu popup2, pos={132,515},size={200,20}, proc=PopProc_R2D_SelectCustomColor
 	Checkbox cb3, title="", fSize=13, pos={110, 517}, proc=CheckProc_R2D_CustomColor
-	
 
+// *** NEW CODE START: Color Table Preview Bar ***
+    // 1. Create the dummy ramp wave
+    Make/O/N=(100,1) :Red2DPackage:U_ColorPreviewRamp = x
+    
+    // 2. Check if the subwindow already exists using WinType (Safe for subwindows)
+    String subWinPath = "Display2D#ColorPreviewGraph"
+    
+    if (WinType(subWinPath) == 0)
+        // If it doesn't exist, create it
+        Display/W=(136, 538, 312, 550)/HOST=Display2D/N=ColorPreviewGraph
+        AppendImage :Red2DPackage:U_ColorPreviewRamp
+        
+        // Remove axes/labels and disable tooltips (UIControl=128)
+        ModifyGraph margin=1, noLabel=2, axThick=0, standOff=0
+        ModifyGraph UIControl=128 
+        
+        // Return focus to the main panel so subsequent controls aren't added to this graph
+        SetActiveSubwindow ##
+    endif
+    
+    // 3. Always update the preview content to match the current variable
+    //    (This ensures the bar is correct even if you just re-ran the function)
+    If (Strlen(CustomColorTable) > 0 && StringMatch(CustomColorTable, "None") == 0)
+        String fullPathToTable = "root:Packages:ColorTables:" + CustomColorTable
+        if(WaveExists($fullPathToTable))
+            // Use $subWinPath to safely target the subwindow
+            ModifyImage/W=$subWinPath U_ColorPreviewRamp ctab= {*,*, $fullPathToTable, 0}
+        endif
+    Endif
+    // *** NEW CODE END ***
+    
 	// Save Image
-	TitleBox title5 title="Export as", fSize=13, pos={30,560}, frame=0
-	Button button2 title="JPEG", fSize=13, size={50,23},pos={120,555},proc=BP_R2D_SaveImageAsJPEG
-	Button button3 title="PDF", fSize=13, size={50,23},pos={180,555},proc=BP_R2D_SaveImageAsPDF
-	Button button4 title="TIFF", fSize=13, size={50,23},pos={240,555},proc=BP_R2D_SaveImageAsTIFF
-	Checkbox cb1 title="Use Sample Name", fSize=13, pos={50, 590}
-	Checkbox cb2 title="Export All", fSize=13, pos={220, 590}
+	TitleBox title5 title="Export as", fSize=13, pos={30,570}, frame=0
+	Button button2 title="JPEG", fSize=13, size={50,23},pos={120,565},proc=BP_R2D_SaveImageAsJPEG
+	Button button3 title="PDF", fSize=13, size={50,23},pos={180,565},proc=BP_R2D_SaveImageAsPDF
+	Button button4 title="TIFF", fSize=13, size={50,23},pos={240,565},proc=BP_R2D_SaveImageAsTIFF
+	Checkbox cb1 title="Use Sample Name", fSize=13, pos={50, 600}
+	Checkbox cb2 title="Export All", fSize=13, pos={220, 600}
 	
 	// Misc
 	GroupBox group0 pos={30,391},size={300,2}
@@ -131,6 +153,7 @@ Function R2D_Display2D()
 //	GroupBox group2 pos={30,505},size={300,2}
 	
 	SetDataFolder $savedDF
+	
 End
 
 
@@ -579,6 +602,21 @@ Function PopProc_R2D_SelectCustomColor(pa) : PopupMenuControl
 				R2D_ApplyColorTable()		
 			endif
 			SetDataFolder saveDFR
+
+			// *** Update the Preview Bar ***
+			String fullPath = "Display2D#ColorPreviewGraph"
+			String customTablePath = "root:Packages:ColorTables:" + popStr
+			
+			// WinType returns non-zero if the window exists
+			// (1=Graph, 2=Table, 7=Panel, etc.)
+			if (WinType(fullPath) != 0)
+			    
+			    if (WaveExists($customTablePath))
+			        // We still use the $fullPath variable for ModifyImage
+			        ModifyImage/W=$fullPath U_ColorPreviewRamp ctab={*,*, $customTablePath, 0}
+			    endif
+			    
+			endif
 			
 			break
 		case -1: // control being killed
@@ -906,6 +944,10 @@ Function/S R2D_RecursiveGetColorTableList(dfr, mode, maxLevel, [rootPath])
         // 再帰処理
         list += R2D_RecursiveGetColorTableList(subDF, mode, nextLevel, rootPath=startPath)
     EndFor
+    
+    if(strlen(list) == 0)
+    	list = "None"
+    endif
     
     return list
 End
