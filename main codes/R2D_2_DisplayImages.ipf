@@ -108,7 +108,6 @@ Function R2D_Display2D()
 	PopupMenu popup2, pos={132,515},size={200,20}, proc=PopProc_R2D_SelectCustomColor
 	Checkbox cb3, title="", fSize=13, pos={110, 517}, proc=CheckProc_R2D_CustomColor
 
-// *** NEW CODE START: Color Table Preview Bar ***
     // 1. Create the dummy ramp wave
     Make/O/N=(100,1) :Red2DPackage:U_ColorPreviewRamp = x
     
@@ -137,7 +136,6 @@ Function R2D_Display2D()
             ModifyImage/W=$subWinPath U_ColorPreviewRamp ctab= {*,*, $fullPathToTable, 0}
         endif
     Endif
-    // *** NEW CODE END ***
     
 	// Save Image
 	TitleBox title5 title="Export as", fSize=13, pos={30,570}, frame=0
