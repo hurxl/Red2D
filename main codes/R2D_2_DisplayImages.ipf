@@ -36,13 +36,17 @@ Function R2D_Display2D()
 	NewDataFolder/O root:Packages:ColorTables
 
 	
-	// Color range
+	// Color table
+	String/G :Red2DPackage:U_ColorTable
+	String/G :Red2DPackage:U_BuiltinColorTable
+	String/G :Red2DPackage:U_CustomColorTable
 	Variable/G :Red2DPackage:U_ColorLow
 	Variable/G :Red2DPackage:U_ColorLowStep
 	Variable/G :Red2DPackage:U_ColorHigh
 	Variable/G :Red2DPackage:U_ColorHighStep
 	Variable/G :Red2DPackage:U_LogColor
 	Variable/G :Red2DPackage:U_reverseColor
+	
 	NVAR lowstep = :Red2DPackage:U_ColorLowStep
 	NVAR highstep = :Red2DPackage:U_ColorHighStep
 	if(numtype(lowstep)==2)
@@ -53,25 +57,22 @@ Function R2D_Display2D()
 	endif
 	
 	// Built-in Color table
-	String/G :Red2DPackage:U_BuiltinColorTable
 	SVAR BuiltinColorTable = :Red2DPackage:U_BuiltinColorTable
 	If (Strlen(BuiltinColorTable) == 0) // Use Turbo when a is not selected.
 		BuiltinColorTable = "Turbo" 
 	endif
 	
 	// Custom Color table
-	String/G :Red2DPackage:U_CustomColorTable
 	SVAR CustomColorTable = :Red2DPackage:U_CustomColorTable
 	If (Strlen(CustomColorTable) == 0) // Use Turbo when a is not selected.
 		CustomColorTable = "" 
 	endif
 	
 	// Effective Color table
-	String/G :Red2DPackage:U_ColorTable
-	SVAR ColorTable = :Red2DPackage:U_ColorTable
-	If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
-		ColorTable = "Turbo" 
-	endif
+//	SVAR ColorTable = :Red2DPackage:U_ColorTable
+//	If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
+//		ColorTable = "Turbo" 
+//	endif
 	
 	// Create an image list
 	R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
@@ -82,7 +83,7 @@ Function R2D_Display2D()
 	endif
 	
 	//Create listbox named ImageList and make it follows ListBoxProc
-	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,320}, pos={5,25}, fSize=13, proc=ListBoxProcShow2D
+	ListBox lb listWave=ImageList, mode=1, frame=4, size={350,320}, pos={5,25}, fSize=13, proc=ListBoxProc_Show2D
 	ListBox lb2 listWave=ImageNote, mode=0, frame=4, size={400,600}, pos={355,25}, fSize=13, proc=R2D_ListBoxProc_Display2D_Note
 
 	TitleBox title0 title=simple_imagefolderpath,  fSize=14, pos={6,5}, frame=0
@@ -134,6 +135,60 @@ End
 
 
 // *** Action
+Function ListBoxProc_Show2D(lba) : ListBoxControl
+	STRUCT WMListboxAction &lba
+
+	Variable row = lba.row
+	Variable col = lba.col
+	WAVE/T/Z listWave = lba.listWave
+	WAVE/Z selWave = lba.selWave
+
+	switch( lba.eventCode )
+		case 1: // Mouse down
+			if (lba.eventMod & 0x10)// Right-click?
+				R2D_Display2D_WaveListRightClick(row, listwave)
+			endif
+			break
+	
+		case 4: // cell selection
+			Variable numOfrows = DimSize(listWave,0)
+			If(row < numOfrows)
+				/// Check if in the image folder.
+				String ImageFolderPath = R2D_GetImageFolderPath()
+				If(strlen(ImageFolderPath) == 0)
+					Abort "You may be in a wrong datafolder."
+				Endif
+				String savedDF = GetDataFolder(1)
+				SetDataFolder $ImageFolderPath
+				
+				wave/T ImageList = :Red2DPackage:ImageList
+				If(!WaveExists(ImageList))
+					Abort "Imagelist does not exist. You may be in a wrong datafolder."
+				Endif
+				String currImageListPath = GetWavesDataFolder(ImageList, 2)
+				String listboxImageListPath = GetWavesDataFolder(listWave, 2)
+				If(cmpstr(currImageListPath, listboxImageListPath) != 0)
+					R2D_Display2D()
+					Abort "We refreshed the listbox. Try again."
+				Endif
+			
+				Show2D(row)
+				
+				String ImageNote_content = note($ImageList[row]) // Get selected Imagename by using the flag row.
+				ImageNote_content = ReplaceString("\r\n", ImageNote_content, "\r")
+				ImageNote_content = ReplaceString("\n", ImageNote_content, "\r")
+				wave/T tempnote = ListToTextWave(ImageNote_content, "\r")
+				Duplicate/O/T tempnote, :Red2DPackage:ImageNote
+
+				SetDataFolder $savedDF
+
+			Endif
+			break
+	endswitch
+
+	return 0
+End
+
 Function ButtonProcR2D_BringImageToFront(ba) : ButtonControl
 	STRUCT WMButtonAction &ba
 
@@ -273,60 +328,6 @@ Function ButtonProcR2D_SaveImageAsTIFF(ba) : ButtonControl
 	return 0
 End
 
-Function ListBoxProcShow2D(lba) : ListBoxControl
-	STRUCT WMListboxAction &lba
-
-	Variable row = lba.row
-	Variable col = lba.col
-	WAVE/T/Z listWave = lba.listWave
-	WAVE/Z selWave = lba.selWave
-
-	switch( lba.eventCode )
-		case 1: // Mouse down
-			if (lba.eventMod & 0x10)// Right-click?
-				R2D_Display2D_WaveListRightClick(row, listwave)
-			endif
-			break
-	
-		case 4: // cell selection
-			Variable numOfrows = DimSize(listWave,0)
-			If(row < numOfrows)
-				/// Check if in the image folder.
-				String ImageFolderPath = R2D_GetImageFolderPath()
-				If(strlen(ImageFolderPath) == 0)
-					Abort "You may be in a wrong datafolder."
-				Endif
-				String savedDF = GetDataFolder(1)
-				SetDataFolder $ImageFolderPath
-				
-				wave/T ImageList = :Red2DPackage:ImageList
-				If(!WaveExists(ImageList))
-					Abort "Imagelist does not exist. You may be in a wrong datafolder."
-				Endif
-				String currImageListPath = GetWavesDataFolder(ImageList, 2)
-				String listboxImageListPath = GetWavesDataFolder(listWave, 2)
-				If(cmpstr(currImageListPath, listboxImageListPath) != 0)
-					R2D_Display2D()
-					Abort "We refreshed the listbox. Try again."
-				Endif
-			
-				Show2D(row)
-				
-				String ImageNote_content = note($ImageList[row]) // Get selected Imagename by using the flag row.
-				ImageNote_content = ReplaceString("\r\n", ImageNote_content, "\r")
-				ImageNote_content = ReplaceString("\n", ImageNote_content, "\r")
-				wave/T tempnote = ListToTextWave(ImageNote_content, "\r")
-				Duplicate/O/T tempnote, :Red2DPackage:ImageNote
-
-				SetDataFolder $savedDF
-
-			Endif
-			break
-	endswitch
-
-	return 0
-End
-
 Function PopMenuProc_Diplay2D_SortOrder(pa) : PopupMenuControl
 	STRUCT WMPopupAction &pa
 
@@ -412,7 +413,7 @@ Function R2D_ColorRange_SetVarProc(sva) : SetVariableControl
 			DoWindow IntensityImage
 			If(V_flag != 0)
 				R2D_ApplyColorTable()
-//				R2D_ColorRangeAdjust_worker("", low, high)
+
 			Endif
 			
 			break
@@ -433,7 +434,6 @@ Function R2D_LogColor_CheckProc(cba) : CheckBoxControl
 			
 			NVAR LogColor = :Red2DPackage:U_LogColor
 			LogColor = checked
-//			ModifyImage ''#0 log=LogColor
 			R2D_ApplyColorTable()	
 			
 			break
@@ -452,7 +452,6 @@ Function R2D_ReverseColor_CheckProc(cba) : CheckBoxControl
 			Variable checked = cba.checked
 			NVAR reverseColor = :Red2DPackage:U_reverseColor
 			reverseColor = checked
-//			ModifyImage ''#0 log=LogColor
 			R2D_ApplyColorTable()	
 			
 			break
