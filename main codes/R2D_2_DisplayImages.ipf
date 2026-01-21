@@ -68,10 +68,10 @@ Function R2D_Display2D()
 	
 	// Effective Color table
 	String/G :Red2DPackage:U_ColorTable
-//	SVAR ColorTable = :Red2DPackage:U_ColorTable
-//	If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
-//		ColorTable = "Turbo" 
-//	endif
+	SVAR ColorTable = :Red2DPackage:U_ColorTable
+	If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
+		ColorTable = "Turbo" 
+	endif
 	
 	// Create an image list
 	R2D_CreateImageList(SortOrder)  // 1 for name, 2 for date created
