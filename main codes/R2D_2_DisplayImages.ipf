@@ -210,17 +210,12 @@ Function BP_R2D_AutoColorImage(ba) : ButtonControl
 			
 			high = R2D_GetImagePopulationThreshold(imagew, 0.99)	// get 99% of pixels from low intensity
 			low = 0.01*high
-				
-//			MatrixOP/FREE/O hh = maxval(imagew)
-//			MatrixOP/FREE/O ll = minval(imagew)
-//			low = ll[0]
-//			high = hh[0]
-//			low = 0.01*high	// this makes the image looks better than using real low value, modofied to 0.01 2025-12-16
+			
+			SetDataFolder $savedDF
 			
 			R2D_ApplyColorTable()
-//			R2D_ColorRangeAdjust_worker("", low, high)
 		
-			SetDataFolder $savedDF
+			
 			
 			break
 		case -1: // control being killed
@@ -818,54 +813,21 @@ Static Function Show2D(row)
 	wave/T ImageList = :Red2DPackage:ImageList // create a wave referece to a text wave "Z_ImageList"
 	Variable NumInList = DimSize(ImageList,0) // Get items number in Imagelist
 
-	NVAR low = :Red2DPackage:U_ColorLow
-	NVAR high = :Red2DPackage:U_ColorHigh
-//	NVAR LogColor = :Red2DPackage:U_LogColor
-//	SVAR ColorTable = :Red2DPackage:U_ColorTable
 
 	If(row < NumInList) // Check if selected row in range. If out of range do nothing.
 //		// Do nothing.
-//	Else
-	
-//		If (Strlen(ColorTable) == 0) // Use Turbo when a is not selected.
-//			ColorTable = "Turbo" 
-//		endif
+
 		String SelImageName = ImageList[row] // Get selected Imagename by using the flag row.
 		
 		DoWindow IntensityImage // Check if there is a window named 2DImageWindow. Exist returns 1 else 0.	
 		If(V_flag == 0) // Create a new image window with name as 2DImageWindow if not exists.
 			NewImage/K=1/N=IntensityImage $SelImageName
 			R2D_ApplyColorTable()	
-////			ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,ColdWarm,0},log=1
-//			if(numtype(low) == 2 || numtype(high) == 2 || numtype(LogColor) == 2)
-//				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,$ColorTable,0},log=1
-//				low = 1
-//				high = wavemax($SelImageName)
-//				LogColor = 1
-//			elseif(low == 0 && high == 0)
-//				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {1,*,$ColorTable,0},log=1
-//				low = 1
-//				high = wavemax($SelImageName)
-//				LogColor = 1
-//			else
-//				ModifyImage/W=IntensityImage $(SelImageName)	 ctab= {low,high,$ColorTable,0},log=LogColor
-//			endif
+
 		Else // Replace selected images on the window named 2DImageWindow.
 			String OldImage = ImageNameList("IntensityImage",";") // Get existing ImageName in the window ImageGraph
 			ReplaceWave/W=IntensityImage image = $(StringFromList(0,OldImage)), $(SelImageName) //Replace images. image is a flag here	
 		Endif
-				
-//		//Set cursor properties.
-//		Cursor /M/C=(65535,65535,65535)/S=1 A
-//		Cursor /M/C=(65535,65535,65535)/S=1 B
-//		Cursor /M/C=(65535,65535,65535)/S=1 C
-//		Cursor /M/C=(65535,65535,65535)/S=1 D
-//		Cursor /M/C=(65535,65535,65535)/S=1 E
-//		Cursor /M/C=(65535,65535,65535)/S=1 F
-//		Cursor /M/C=(65535,65535,65535)/S=1 G
-//		Cursor /M/C=(65535,65535,65535)/S=1 H
-//		Cursor /M/C=(65535,65535,65535)/S=1 I
-//		Cursor /M/C=(65535,65535,65535)/S=2 J
 		
 		DoWindow/F Display2D
 				
