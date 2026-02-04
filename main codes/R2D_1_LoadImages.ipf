@@ -2,7 +2,7 @@
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
 /////////////////////////////////
-//////LOAD SELECTED IMAGES///////
+// *** LOAD SELECTED IMAGES
 /////////////////////////////////
 Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 	string extension	// only supports tiff and edf for now. 2023-04-08
@@ -42,7 +42,7 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 		
 		// set filefilters
 		if(cmpstr(extension, ".tif") == 0)	// pf, rigaku, anton paar
-			fileFilters = "Data Files (*.tif):.tif;"
+			fileFilters = "Data Files (*.tif, *.tiff):.tif,.tiff;"
 		elseif(cmpstr(extension, ".edf") == 0)	// xenocs
 			fileFilters = "Data Files (*.edf):.edf;"
 		elseif(cmpstr(extension, ".asc") == 0)
@@ -145,7 +145,8 @@ Static Function LoadTIFF(filepath, overwrite)
 	
 	// Load the tiff image with overwrite flag
 	If(overwrite == 1) // if overwrite is enabled, 
-		ImageLoad/T=tiff/Q/O/RAT/N=$ImageName filepath
+//		ImageLoad/T=tiff/Q/O/RAT/N=$ImageName filepath
+		ImageLoad/T=tiff/Q/LTMD/O/N=$ImageName filepath
 	Elseif(overwrite == 0) // if overwrite is disabled
 		SVAR ImageList = :Red2DPackage:U_ImageList
 		string resultStr = ListMatch(ImageList, ImageName) // check if the image is new
@@ -166,13 +167,21 @@ Static Function LoadTIFF(filepath, overwrite)
 		// Append tag to the wavenote
 		header = "" // initialize header
 		wave/T tiftag = :Tag0:T_Tags // get tag
-		header += FindByKeyInTiffTag("DATETIME", tiftag) + "\r"
-		header += FindByKeyInTiffTag("ARTIST", tiftag) + "\r"
-		header += FindByKeyInTiffTag("MODEL", tiftag) + "\r"
-		header += FindByKeyInTiffTag("SOFTWARE", tiftag) + "\r"
-		header += FindByKeyInTiffTag("IMAGEDESCRIPTION", tiftag) + "\r"
-//		header += FindByKeyInTiffTag("Sample name", tiftag) + "\r"
-		header = ReplaceString("\r\n", header, "\r")	// cleanup whitespace
+		variable tag_size = DimSize(tiftag,0)
+		variable i
+		for(i=0; i<tag_size; i++)
+			string toWrite = ReplaceString("\r", tiftag[i], "")
+			toWrite = ReplaceString("\n", tiftag[i], "")
+			header += toWrite + "\r"
+		endfor
+		
+//		header += FindByKeyInTiffTag("DATETIME", tiftag) + "\r"
+//		header += FindByKeyInTiffTag("ARTIST", tiftag) + "\r"
+//		header += FindByKeyInTiffTag("MODEL", tiftag) + "\r"
+//		header += FindByKeyInTiffTag("SOFTWARE", tiftag) + "\r"
+//		header += FindByKeyInTiffTag("IMAGEDESCRIPTION", tiftag) + "\r"
+////		header += FindByKeyInTiffTag("Sample name", tiftag) + "\r"
+//		header = ReplaceString("\r\n", header, "\r")	// cleanup whitespace
 		Note/K ImageWave, header  // note the wave with the header
 		KillDataFolder/Z :Tag0
 		
@@ -182,24 +191,24 @@ Static Function LoadTIFF(filepath, overwrite)
 End
 
 // load tiff tag by key
-Static Function/S FindByKeyInTiffTag(key, tiftag)
-	string key
-	wave/T tiftag
-	
-	variable rowsInTag = DimSize(tiftag,0)
-	variable col, row
-	string buffer = ""
-
-	FindValue/TEXT=key tiftag
-	if(V_value != -1)
-		col=floor(V_value/rowsInTag)
-		row=V_value-col*rowsInTag
-		sprintf buffer, "%s", tiftag[row][%Value]
-	Endif
-	
-	return buffer
-
-End
+//Static Function/S FindByKeyInTiffTag(key, tiftag)
+//	string key
+//	wave/T tiftag
+//	
+//	variable rowsInTag = DimSize(tiftag,0)
+//	variable col, row
+//	string buffer = ""
+//
+//	FindValue/TEXT=key tiftag
+//	if(V_value != -1)
+//		col=floor(V_value/rowsInTag)
+//		row=V_value-col*rowsInTag
+//		sprintf buffer, "%s", tiftag[row][%Value]
+//	Endif
+//	
+//	return buffer
+//
+//End
 
 // load edf
 Static Function LoadEDF(filepath, overwrite)
@@ -431,7 +440,7 @@ End
 
 
 ////////////////////////
-// ONLY FOR auto process 2023-04-08.
+// *** ONLY FOR auto process 2023-04-08.
 ////////////////////////
 
 /// LOAD IMAGES IN ALL SUBFOLDERS
