@@ -673,6 +673,7 @@ Function R2D_Show2D(row)
 		If(V_flag == 0) // Create a new image window with name as 2DImageWindow if not exists.
 			NewImage/K=1/N=IntensityImage $SelImageName
 			R2D_ApplyColorTable()	
+			Doupdate	// in user function, adding doupdate will delay graphics udpate before doupdate appears.
 
 		Else // Replace selected images on the window named 2DImageWindow.
 			String OldImage = ImageNameList("IntensityImage",";") // Get existing ImageName in the window ImageGraph
