@@ -645,13 +645,13 @@ Function R2D_Resample1D()
 	for(i=0; i<numOfwave; i++)
 		basename = StringFromList(i, basename_list)
 		if(stringmatch(mode, "LogInterpolate"))
-			R2D_LogInterpolate(basename, numLogPnts, qResampleLow, qResampleHigh)
+			R2D_LogInterpolate1D(basename, numLogPnts, qResampleLow, qResampleHigh)
 		elseif(stringmatch(mode, "LinearInterpolate"))
-			R2D_LinearInterpolate(basename, numLogPnts, qResampleLow, qResampleHigh)
+			R2D_LinearInterpolate1D(basename, numLogPnts, qResampleLow, qResampleHigh)
 		elseif(stringmatch(mode, "LogBin"))
-			R2D_LogBin(basename, numLogPnts, qResampleLow, qResampleHigh)
+			R2D_LogBin1D(basename, numLogPnts, qResampleLow, qResampleHigh)
 		elseif(stringmatch(mode, "LinearBin"))
-			R2D_LinearBin(basename, numLogPnts, qResampleLow, qResampleHigh)		
+			R2D_LinearBin1D(basename, numLogPnts, qResampleLow, qResampleHigh)		
 		else
 			print i
 			break
@@ -694,9 +694,9 @@ Function R2D_Resample1D()
 	
 End
 
-// 2024-12-08 R2D_LogBin does not support 2 theta wave because it is difficult to calcualte 2theta from q without lambda.
+// 2024-12-08 R2D_LogBin1D does not support 2 theta wave because it is difficult to calcualte 2theta from q without lambda.
 // Finding q-index can create 2 theta wave but it is not easy to write the code. I do not expect much demand for this feature. So, I decided not implement it for now.
-Function/S R2D_LogBin(basename, numPoints, low, high)
+Function/S R2D_LogBin1D(basename, numPoints, low, high)
 	string basename		// basename of target waves
 	variable numPoints		// number of points in new wave
 	variable low		// lowest value of x axis (qmin)
@@ -803,7 +803,7 @@ Function/S R2D_LogBin(basename, numPoints, low, high)
 
 End
 
-Function/S R2D_LinearBin(basename, numPoints, low, high)
+Function/S R2D_LinearBin1D(basename, numPoints, low, high)
 	string basename		// basename of target waves
 	variable numPoints		// number of points in new wave
 	variable low		// lowest value of x axis (qmin)
@@ -909,7 +909,7 @@ Function/S R2D_LinearBin(basename, numPoints, low, high)
 
 End
 
-Function/S R2D_LogInterpolate(basename, numPoints, low, high)
+Function/S R2D_LogInterpolate1D(basename, numPoints, low, high)
 	string basename		// basename of target waves
 	variable numPoints		// number of points in new wave
 	variable low		// lowest value of x axis (qmin)
@@ -970,7 +970,7 @@ Function/S R2D_LogInterpolate(basename, numPoints, low, high)
 
 End
 
-Function/S R2D_LinearInterpolate(basename, numPoints, low, high)
+Function/S R2D_LinearInterpolate1D(basename, numPoints, low, high)
 	string basename		// basename of target waves
 	variable numPoints		// number of points in new wave
 	variable low		// lowest value of x axis (qmin)
