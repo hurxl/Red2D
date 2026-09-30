@@ -88,6 +88,7 @@ Menu "Red2D"
 			"-"
 			"Convert Coordinates of 2D Images", R2D_2DImageConverterPanel()
 			"Create Panorama Image (SAXSpoint)", R2D_SAXSpoint_create_panorama_images()
+			"Resample QxQy Images", R2D_LinearBinQxQy_Dialog()
 			"-"
 			"Rebuild 2D from 1D profiles", R2D_rebuild2D_panel()
 			"-"
