@@ -77,7 +77,7 @@ Function R2D_CreStdFitPanel()
 	/// Check if panel exist
 	DoWindow Fit_Q_Standards
 	If(V_flag == 0)
-		NewPanel/K=1/N=Fit_Q_Standards/W=(400, 300, 630, 850)
+		NewPanel/K=1/N=Fit_Q_Standards/W=(400, 300, 630, 900)
 	Else
 		DoWindow/F Fit_Q_Standards
 	Endif
@@ -103,6 +103,7 @@ Function R2D_CreStdFitPanel()
 	Button button1 title="Fit Rings",size={150,23},pos={40,420},proc=ButtonProcRingFit
 	Button button2 title="Refresh",size={150,23},pos={40,460},proc=ButtonProcRefreshRingFit
 	Button button3 title="Quick Beam Center",size={150,23},pos={40,500},proc=ButtonProcQuickBeamCenter
+	Button button4 title="Quick Get Bkg",size={150,23},pos={40,540},proc=ButtonProcQuickGetBkg
 	
 	PopupMenu popup1 title="Mask", pos={15,310}, fSize=13, bodyWidth=165, value=R2D_GetMaskList_simple(), proc=Update_Mask_FitStd
 	// R2D_GetMaskList_simple is located in the Circular Average Proc.
@@ -247,6 +248,21 @@ Function ButtonProcQuickBeamCenter(ba) : ButtonControl
 	endswitch
 	return 0
 End
+
+Function ButtonProcQuickGetBkg(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+	switch( ba.eventCode )
+		case 2: // mouse up
+
+			GetBkg()
+
+			break
+		case -1: // control being killed
+			break
+	endswitch
+	return 0
+End
+
 
 Function Update_Mask_FitStd(pa) : PopupMenuControl
 	STRUCT WMPopupAction &pa
@@ -623,6 +639,44 @@ Static Function GetPointsOnRings()
 	Endif
 	
 	SetdataFolder saveDFR
+
+End
+
+Static Function GetBkg()
+	/// Check if in the image folder.
+	If(R2D_Error_ImagesExist() == -1)
+		Abort
+	Endif
+	
+	/// Get top image, which should be Std
+	String TopImageName = ImageNameList("IntensityImage", ";")
+	TopImageName = StringFromList(0, TopImageName)
+	TopImageName = ReplaceString("'", TopImageName, "") // delete 'name' from the name. Otherwise igor does not function.
+	Wave TopImage = $TopImageName
+	
+	// Get mask wave
+	String/G :Red2DPackage:U_MaskName_FitStd
+	SVAR MaskName_FitStd = :Red2DPackage:U_MaskName_FitStd
+	wave/Z mask_wave = $(":Red2DPackage:Mask:"+ MaskName_FitStd)
+	if(!WaveExists(mask_wave))
+		Duplicate/O/FREE $TopImageName, mask_wave
+		MultiThread mask_wave = 0	// if mask wave does not exist, make a dummy mask wave. This simplify the latter codes.
+	endif
+	
+	/// Get global variables I need, then create waves in Red2Dpackage
+	DFREF saveDFR = GetDataFolderDFR()
+
+	Variable/G :Red2Dpackage:U_BKnoise
+	NVAR bkg = :Red2Dpackage:U_BKnoise
+	
+	/// Preparation for scan peaks
+	Duplicate/O/FREE TopImage, refTopImage
+	Multithread refTopImage[][] = mask_wave[p][q] == 1 ? NaN : TopImage[p][q] // apply mask to ref image wave
+	WaveStats refTopImage
+	
+	bkg = V_avg + 5*V_sdev
+	
+	Print "Estiamted bkg:", bkg
 
 End
 
