@@ -92,8 +92,8 @@ Menu "Red2D"
 			"-"
 			"Rebuild 2D from 1D profiles", R2D_rebuild2D_panel()
 			"-"
-			"Convert 32bit integer images to single float (-1 to NaN)", R2D_negative2NaN()
-			"Convert NaN to 1E-30", R2D_NaN2en30()
+			"Convert negative to NaN", R2D_negative2NaN()
+			"Convert negative to zero", R2D_negative2zero()
 		End
 		
 		"-"

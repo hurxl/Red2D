@@ -1038,7 +1038,6 @@ End
 //End
 
 
-
 // *** MISC
 Function/S R2D_GetImageFolderPath()
 

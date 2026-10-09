@@ -69,7 +69,7 @@ Function R2D_negative2zero()
 		Multithread refwave[][] = refwave[p][q] < 0 ? 0 : refwave[p][q]	
 	Endfor
 	
-	Print "Success. Images in current datafolder were converted to datatype single float. Pixels with -1 was replaced with NaN."
+	Print "Success. Pixels with negative values were converted to zero."
 	
 End
 
@@ -86,7 +86,7 @@ Function R2D_negative2NaN()
 		Multithread refwave[][] = refwave[p][q] < 0 ? NaN : refwave[p][q]	
 	Endfor
 	
-	Print "Success. Images in current datafolder were converted to datatype single float. Pixels with -1 was replaced with NaN."
+	Print "Success. Pixels wiht negative values were converted to NaN."
 	
 End
 
