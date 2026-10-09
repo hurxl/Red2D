@@ -41,20 +41,22 @@ Function R2D_FindHotPixels(threshold)
 End
 
 // This function makes the panel space (NaN) black. NaN shows white color.
-Function R2D_NaN2en30()
-	
-	R2D_CreateImageList(1)  // create a imagelist of current datafolder, sort by name. 1 for name, 2 for date_created.
-	Wave/T ImageList = :Red2DPackage:ImageList
-	Variable numOfImages = DimSize(ImageList,0)
-	
-	variable i
-	For(i = 0; i < numOfImages; i++)
-		wave refwave = $ImageList[i]
-		Redimension/S refwave  // change 32bit signed integer to signed single float
-		Multithread refwave[][] = numtype(refwave[p][q]) == 2 ? 1e-30 : refwave[p][q]
-	Endfor
-	
-End
+//Function R2D_NaN2en30()
+//	
+//	R2D_CreateImageList(1)  // create a imagelist of current datafolder, sort by name. 1 for name, 2 for date_created.
+//	Wave/T ImageList = :Red2DPackage:ImageList
+//	Variable numOfImages = DimSize(ImageList,0)
+//	
+//	variable i
+//	For(i = 0; i < numOfImages; i++)
+//		wave refwave = $ImageList[i]
+//		Redimension/S refwave  // change 32bit signed integer to signed single float
+//		Multithread refwave[][] = numtype(refwave[p][q]) == 2 ? 1e-30 : refwave[p][q]
+//	Endfor
+//	
+//	Print "Success. Pixels with negative values were converted to zero."
+//	
+//End
 
 Function R2D_negative2zero()
 	
