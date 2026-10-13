@@ -20,14 +20,18 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 		Else  // if folderPath is provided
 			NewPath/O R2D_PCImageFolder, folderPath  // load preset path from "folderPath" without showing a dialog
 		Endif
+		If(V_flag != 0)	// [NEW 2026-10-13] user cancelled the dialog. Without this, the previously selected folder was loaded.
+			Print "User cancelled"
+			return filePaths
+		Endif
 		PathInfo R2D_PCImageFolder
 		R2D_PCImageFolder_str = S_path
-		
+
 		// get the list of all file paths in the selected folder
 		string filenames = IndexedFile(R2D_PCImageFolder, -1, extension)
 		if (strlen(filenames) == 0)
-			Print "User cancelled"
-			return filePaths		// Will be empty if user canceled
+			Print "No " + extension + " files in the selected folder"	// [NEW 2026-10-13]
+			return filePaths		// empty list
 		endif
 		filePaths = R2D_PCImageFolder_str+ replaceString(";", removeEnding(filenames), ";"+R2D_PCImageFolder_str) // change finemae to filepath
 		
@@ -72,8 +76,6 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 		Else  // if folderPath is provided
 			NewPath/O R2D_PCImageFolder, folderPath  // load preset path from "folderPath" without showing a dialog
 		Endif
-//		PathInfo R2D_PCImageFolder
-//		R2D_PCImageFolder_str = S_path
 
 		If(V_flag != 0)	// user cancelled the dialog
 			Print "User cancelled"
@@ -146,7 +148,7 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 
 End
 
-// *** Load one image for specific extension
+// *** Load one image at a time
 // load tiff
 // [NEW 2026-10-13] All tiff loading goes through this function (also called by ImageLoadSubFolders).
 // [NEW 2026-10-13] Returns 1 if the image was loaded, 0 if skipped (image exists and overwrite == 0) or loading failed.
@@ -216,6 +218,7 @@ Static Function LoadEDF(filepath, overwrite)
 	open/R refNum as filepath
 	header = "" // initialize header
 	FReadLine/N=4096/T="}" refNum, header	// 512 bits or 4096 bytes is the maximum header length of edf.
+	Close refNum	// [NEW 2026-10-13] close the file after reading the header
 	variable apparent_tag_num = ItemsInList(header)	// get apparent number of tags
 	header = RemoveListItem(apparent_tag_num-1, header)	// remove the last apparent tag
 	header = ReplaceString("{\n", header, "")	// delete the begining mark of header
@@ -306,6 +309,7 @@ Static Function LoadTEXTImage(filepath, overwrite)
 			header += buffer
 			j++
 		while(j<100)  // 100 is set to avoid loading all lines.
+		Close refNum	// [NEW 2026-10-13] close the file after reading the header
 		Note/K ImageWave, header
 		
 		Print fileName
@@ -358,7 +362,8 @@ Static Function Load_SANSU_MainPSD_binary(filepath, overwrite)
 		Open/R refNum as filepath
 		header = "" // initialize header
 		FReadLine/N=(headerSize) refNum, header
-	
+		Close refNum	// [NEW 2026-10-13] close the file after reading the header
+
 		Note/K ImageWave, header
 		
 		Print fileName
@@ -408,6 +413,7 @@ Static Function Load_SANSU_PMT_binary(filepath, overwrite)
 		Open/R refNum as filepath
 		header = "" // initialize header
 		FReadLine/N=(headerSize) refNum, header
+		Close refNum	// [NEW 2026-10-13] close the file after reading the header
 		header = ReplaceString("      ", header, "\r")
 		header = ReplaceString("     ", header, "\r")
 		header = ReplaceString("    ", header, "\r")
@@ -442,26 +448,13 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
     variable add 			// Add files (1) or not (0)
     
     variable folderIndex, fileIndex
-//    Wave/T ImageList = :Red2DPackage:ImageList	// [UNUSED 2026-10-13] LoadTIFF checks existing images
-//    SVAR NewImageList = :Red2DPackage:U_NewImageList
-    
-    // Build a prefix (a number of tabs to indicate the folder level by indentation)
-    folderIndex = 0
-    do
-        if (folderIndex >= level)
-            break
-        endif
-        folderIndex += 1
-    while(1)	// This would loop forever until "break" actives.
     
     string folderPath
     PathInfo $pathName              // Sets S_path
     folderPath = S_path
     
-//    string header	// [UNUSED 2026-10-13] LoadTIFF writes the header
-//    string file_path	// [UNUSED 2026-10-13] LoadTIFF writes the header
-
     fileIndex = 0
+    variable numAdded = 0	// [NEW 2026-10-13] number of images added in this folder. Used instead of fileIndex, which also counts files that failed to load.
     do
         string fileName
         string refname
@@ -474,7 +467,7 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
 
 			//////////////////////////
 			///A block for adding images///
-			if(add == 1 && fileIndex > 0)  // change names of the added waves. fileindex > 0 is used to avoid NaN error.
+			if(add == 1 && numAdded > 0)  // [NEW 2026-10-13] change names of the added waves, only if at least one image was added.
 				// Sort wave names and get the first name in alphabet order.
 				refname = StringFromList(0, SortList(LoadedWaveList))
         			
@@ -487,7 +480,7 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
 
 				Duplicate/O/D Added, $refname  // save the combined wave as refname
 				KillWaves/Z Added  // delete the original combined wave
-				Print num2Str(fileIndex) + " files were added and saved as " + refname
+				Print num2Str(numAdded) + " files were added and saved as " + refname	// [NEW 2026-10-13]
    	  		endif
 			////////////////////////
         		
@@ -496,33 +489,13 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
 
 		/// Load images
 		string ImageName = R2D_CleanupName(fileName) // Remove extension and unnecessary characters
-		// [REPLACED 2026-10-13] by LoadTIFF below, so subfolder loading uses the same loading, existence check, and header as LoadTIFF.
-//		If(overwrite == 0) // skip existing
-//			FindValue/TEXT=ImageName ImageList  // check if the target image already existing in igor
-//			If(V_value == -1)  // if the target image has not been loaded
-//				ImageLoad/T=tiff/Q/P=$pathName/N=$ImageName fileName  // load a image
-//				Print fileName
-//				NewImageList = AddListItem(ImageName, NewImageList)
-//			Else
-//				fileName =""  // make the file name empty to skip the following process.
-//			Endif
-//		Else // overwrite
-//			ImageLoad/T=tiff/Q/O/P=$pathName/N=$ImageName fileName  // load a image
-//			Print fileName
-//		Endif
 		variable loaded  // [NEW 2026-10-13]
 		loaded = LoadTIFF(folderPath + fileName, overwrite)  // [NEW 2026-10-13] path is the full path of this folder (from PathInfo above). Returns 1 if loaded.
-//		If(loaded && overwrite == 0)  // [NEW 2026-10-13] same as the old NewImageList line above
-//			NewImageList = AddListItem(ImageName, NewImageList)
-//		Endif
 
-
-//		If(strlen(filename) > 0)  // if filename is not empty	// [REPLACED 2026-10-13]
 		If(loaded)  // [NEW 2026-10-13] if the image was loaded
-		
 			// Add waves from the same subfolder.
 			If(add == 1)
-				If(fileIndex == 0)	// make the first loaded wave as the reference wave to add
+				If(numAdded == 0)	// [NEW 2026-10-13] make the first loaded wave as the reference wave to add
 					Duplicate/O/D $ImageName, Added
 					LoadedWaveList = ""
 					LoadedWaveList = AddListItem(ImageName, LoadedWaveList)
@@ -533,6 +506,7 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
 					KillWaves/Z Toadd
 					LoadedWaveList = AddListItem(ImageName, LoadedWaveList)
 				Endif
+				numAdded += 1	// [NEW 2026-10-13]
 			Endif
 		Endif
 			
@@ -548,16 +522,10 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
 			if (strlen(subFolderPath) == 0)
 			    break                           // No more folders
 			endif
-//			path = IndexedDir($pathName, folderIndex, 1)	// (NameOfParentSymbolicPath, index of subfolder, bitwise parameter:0, i.e.1 = full path)
-//			if (strlen(path) == 0)
-//			    break                           // No more folders
-//			endif
 			
 			string subFolderPathName = "tempPrintFoldersPath_" + num2istr(level+1)
 			
 			// Now we get the path to the new parent folder
-//			string subFolderPath
-//			subFolderPath = path
 			
 			NewPath/Q/O $subFolderPathName, subFolderPath
 			ImageLoadSubFolders(subFolderPathName, extension, recurse, level+1, overwrite, add)
