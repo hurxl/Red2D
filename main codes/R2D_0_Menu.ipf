@@ -8,6 +8,7 @@ Menu "Red2D"
 		"Load Selected TIFF Images", R2D_LoadImages(".tif", "files", 1)	// files: load selected files, 1: overwrite enabled
 		"Load All TIFF Images in Folder", R2D_LoadImages(".tif", "folder", 1)	// folder: load all files in the selected folder, 1: overwrite enabled
 		"Load TIFF Recursively", R2D_LoadImages(".tif", "recursive", 1)	// recursive: load all files recursively, 1: overwrite enabled
+		"Load TIFF Recursively into Data Folders", R2D_LoadImages(".tif", "recursive_df", 1)	// [NEW 2026-10-13] recursive_df: same as recursive, but each subfolder goes to a data folder with the same name
 		"-"
 		"Load a SAXSpoint h5z file",  R2D_Load_SAXSpoint_h5z()	// h5z file: load h5z file of AntonPaar SAXSpoint
 		"-"

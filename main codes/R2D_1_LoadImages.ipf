@@ -12,7 +12,9 @@ static Constant kSANSU_PMTSize = 256	// sans-u .sdat: data is 256 x 256
 // *** Load images common part
 Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 	string extension	// tif, edf, asc, txt, dat, mdat, sdat 2026-10-13
-	string mode			// "folder", "files", "recursive" 2026-10-13
+	string mode			// "folder", "files", "recursive", "recursive_df" 2026-10-13
+						// [NEW 2026-10-13] "recursive_df": same as "recursive", but each subfolder is loaded into a data folder with the same name.
+						// Images in the selected folder are loaded into the current data folder. Nested subfolders become nested data folders.
 	variable overwrite	// 0 false, 1 true
 	string folderPath	// ":" separated path to the folder. if provided, do not show a dialog.
 	
@@ -27,8 +29,12 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 		return filePaths
 	endif
 
+	// [NEW 2026-10-13] moved here from the "folder" branch below, and added toDataFolders
+	variable toDataFolders = (cmpstr(mode, "recursive_df") == 0)	// [NEW 2026-10-13] 1: load each subfolder into its own data folder
+	variable recurse = (cmpstr(mode, "recursive") == 0 || toDataFolders)	// [NEW 2026-10-13] 0: only the selected folder ("folder"), 1: also all subfolders ("recursive", "recursive_df")
+
 	// Get file path list.	The codes differs based on "mode", "extension", and "folderPath".
-	if(cmpstr(mode, "folder") == 0 || cmpstr(mode, "recursive") == 0)	// [NEW 2026-10-13] "folder" and "recursive" modes share this code. Both use LoadImagesInFolder.
+	if(cmpstr(mode, "folder") == 0 || recurse)	// [NEW 2026-10-13] "folder" and "recursive" modes share this code. Both use LoadImagesInFolder.
 		// create a symbolic path of the image folder in the pc
 		If(ParamIsDefault(folderPath))	// if folderPath is not provided
 			NewPath/O/M="Select a folder" R2D_PCImageFolder  // create a new folderPath, user dialog
@@ -40,9 +46,7 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 			return filePaths
 		Endif
 
-		// [NEW 2026-10-13] moved from the old "recursive" branch below
-		variable recurse = (cmpstr(mode, "recursive") == 0)	// [NEW 2026-10-13] 0: only the selected folder ("folder"), 1: also all subfolders ("recursive")
-		numLoaded = LoadImagesInFolder("R2D_PCImageFolder", extension, recurse, 0, overwrite, 0)	// [NEW 2026-10-13] arguments: (path, extension, recurse, level, overwrite, add)
+		numLoaded = LoadImagesInFolder("R2D_PCImageFolder", extension, recurse, 0, overwrite, 0, toDataFolders)	// [NEW 2026-10-13] arguments: (path, extension, recurse, level, overwrite, add, toDataFolders)
 
 		PathInfo/S R2D_PCImageFolder  // set default symbolic path to main folder.
 
@@ -386,13 +390,14 @@ End
 // Load all images with "extension" in one folder, and also in all its subfolders if recurse = 1.
 // Each file is loaded with LoadOneImage. Returns the number of loaded images.
 // Based on a script from the Igor forum.
-Static Function LoadImagesInFolder(pathName, extension, recurse, level, overwrite, add)
+Static Function LoadImagesInFolder(pathName, extension, recurse, level, overwrite, add, toDataFolders)
 	string pathName	// name of the Igor symbolic path of the folder (created with NewPath)
 	string extension	// file name extension, e.g. ".tif"
 	variable recurse	// 1: also load all subfolders, 0: this folder only
 	variable level	// recursion level. Pass 0. Used to give each level its own temporary symbolic path.
 	variable overwrite	// 1: overwrite existing images, 0: skip them
 	variable add	// 1: sum the images of each folder into one image, 0: keep each image
+	variable toDataFolders	// [NEW 2026-10-13] 1: load each subfolder into a data folder with the same name, 0: load everything into the current data folder
 
 	variable folderIndex, fileIndex
 	variable numLoaded = 0	// number of images loaded in this folder and its subfolders. Returned.
@@ -457,6 +462,11 @@ Static Function LoadImagesInFolder(pathName, extension, recurse, level, overwrit
 		Print num2Str(numAdded) + " files were added and saved as " + refname
 	endif
 
+	// [NEW 2026-10-13] Image list of each data folder made by toDataFolders. The image list of the top data folder is made by R2D_LoadImages.
+	if(toDataFolders && level > 0 && numLoaded > 0)	// numLoaded counts only this folder here, the subfolders are loaded below
+		R2D_CreateImageList(1)	// 1: name order
+	endif
+
 	// Load each subfolder, if recurse = 1
 	if (recurse)
 		folderIndex = 0
@@ -469,8 +479,25 @@ Static Function LoadImagesInFolder(pathName, extension, recurse, level, overwrit
 
 			string subFolderPathName = "R2D_tempFolderPath_" + num2istr(level+1)	// each recursion level has its own temporary symbolic path
 			NewPath/Q/O $subFolderPathName, subFolderPath
-			numLoaded += LoadImagesInFolder(subFolderPathName, extension, recurse, level+1, overwrite, add)
+
+			// [NEW 2026-10-13] toDataFolders: move into a data folder with the subfolder name. It is created in the current data folder, so nested subfolders become nested data folders.
+			DFREF parentDFR = GetDataFolderDFR()
+			if(toDataFolders)
+				string dfName = CleanupName(IndexedDir($pathName, folderIndex, 0), 0)	// subfolder name with strict name rules, same as the image names, e.g. "2026-10-13" -> "X2026_10_13"
+				NewDataFolder/O/S $dfName
+			endif
+			DFREF subDFR = GetDataFolderDFR()
+
+			numLoaded += LoadImagesInFolder(subFolderPathName, extension, recurse, level+1, overwrite, add, toDataFolders)
 			KillPath/Z $subFolderPathName
+
+			// [NEW 2026-10-13] go back to the parent data folder. Remove the new data folder if nothing was loaded in it or its subfolders.
+			if(toDataFolders)
+				SetDataFolder parentDFR
+				if(CountObjectsDFR(subDFR, 1) + CountObjectsDFR(subDFR, 2) + CountObjectsDFR(subDFR, 3) + CountObjectsDFR(subDFR, 4) == 0)	// no waves, variables, strings, or data folders
+					KillDataFolder/Z subDFR
+				endif
+			endif
 
 			folderIndex += 1
 		while(1)
@@ -487,7 +514,7 @@ Function R2D_LoadAllTIFF_addSubfolders()
 	If(V_flag == 0)
 		Print "Loading images..."
 	//	ImageLoadSubFolders("R2D_PCImageFolder", ".tif", 1, 0, 1, 1)  // add files	// [REPLACED 2026-10-13] renamed
-		LoadImagesInFolder("R2D_PCImageFolder", ".tif", 1, 0, 1, 1)	// [NEW 2026-10-13] add files. arguments: (path, extension, recurse, level, overwrite, add)
+		LoadImagesInFolder("R2D_PCImageFolder", ".tif", 1, 0, 1, 1, 0)	// [NEW 2026-10-13] add files. arguments: (path, extension, recurse, level, overwrite, add, toDataFolders)
 		Print "Completed"
 	Else
 		Print "User canceled"
@@ -498,4 +525,27 @@ Function R2D_LoadAllTIFF_addSubfolders()
 	
 	PathInfo/S R2D_PCImageFolder  // set default path to main folder.
 
+End
+
+// *** Organize Images to folders by their name
+Function R2D_SortImagesByBeamSizeAndSDD()
+	
+	R2D_CreateImageList(1)	// create an imagelist
+	wave/T imagelist = :Red2Dpackage:imagelist
+	variable numOfImages = DimSize(imagelist, 0)
+	
+	variable i
+	string datafoldername
+	string SDD, BeamSize
+	string wname
+	For(i=0; i<numOfImages; i++)
+		wname = imagelist[i]
+		Wave target = $wname
+		BeamSize = StringFromList(0, wname, "_") + StringFromList(1, wname, "_")
+		SDD = StringFromList(5, wname, "_")
+		datafoldername = "BeamSize"+BeamSize+"_SDD"+SDD
+		NewDataFolder/O $datafoldername
+		MoveWave target, $(":"+datafoldername+":")
+	Endfor
+	
 End

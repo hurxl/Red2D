@@ -1080,30 +1080,3 @@ Function R2D_Export2D(WhichName, type)
 //	KillWaves/Z q_A, TwoTheta, I_cm, s_cm
 
 End
-
-
-// *************************
-// *** Organize Images to folders by their name
-// [NEW 2026-10-13] moved from R2D_1_LoadImages.ipf, because it sorts loaded images and does not load anything.
-// *************************
-Function R2D_SortImagesByBeamSizeAndSDD()
-	
-	R2D_CreateImageList(1)	// create an imagelist
-	wave/T imagelist = :Red2Dpackage:imagelist
-	variable numOfImages = DimSize(imagelist, 0)
-	
-	variable i
-	string datafoldername
-	string SDD, BeamSize
-	string wname
-	For(i=0; i<numOfImages; i++)
-		wname = imagelist[i]
-		Wave target = $wname
-		BeamSize = StringFromList(0, wname, "_") + StringFromList(1, wname, "_")
-		SDD = StringFromList(5, wname, "_")
-		datafoldername = "BeamSize"+BeamSize+"_SDD"+SDD
-		NewDataFolder/O $datafoldername
-		MoveWave target, $(":"+datafoldername+":")
-	Endfor
-	
-End
