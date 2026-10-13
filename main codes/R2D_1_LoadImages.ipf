@@ -1,23 +1,19 @@
 #pragma TextEncoding = "UTF-8"
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
-/////////////////////////////////
-// *** LOAD SELECTED IMAGES
-/////////////////////////////////
+// *** Load images common part
 Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
-	string extension	// only supports tiff and edf for now. 2023-04-08
-	string mode			// "folder" or "files"
+	string extension	// tif, edf, asc, txt, dat, mdat, sdat 2026-10-13
+	string mode			// "folder", "files", "recursive" 2026-10-13
 	variable overwrite	// 0 false, 1 true
 	string folderPath	// ":" separated path to the folder. if provided, do not show a dialog.
-
-
-	// Get file path list.
-	// The codes differs based on "mode", "extension", and "folderPath".
+	
+	// prepare common strings and variables
 	string R2D_PCImageFolder_str
 	string filePaths = ""	// initialize file path list
-	
+
+	// Get file path list.	The codes differs based on "mode", "extension", and "folderPath".
 	if(cmpstr(mode, "folder") == 0)	// "folder" mode
-	
 		// create a symbolic path of the image folder in the pc
 		If(ParamIsDefault(folderPath))	// if folderPath is not provided
 			NewPath/O/M="Select a folder" R2D_PCImageFolder  // create a new folderPath, user dialog
@@ -36,7 +32,6 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 		filePaths = R2D_PCImageFolder_str+ replaceString(";", removeEnding(filenames), ";"+R2D_PCImageFolder_str) // change finemae to filepath
 		
 	elseif(cmpstr(mode, "files") == 0)	//"files" mode
-	
 		variable refNum
 		string fileFilters = ""
 		
@@ -71,18 +66,35 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 		endif
 
 	elseif(cmpstr(mode, "recursive") == 0)	// "recursive" mode
-	
 		// create a symbolic path of the image folder in the pc
 		If(ParamIsDefault(folderPath))	// if folderPath is not provided
 			NewPath/O/M="Select a folder" R2D_PCImageFolder  // create a new folderPath, user dialog
 		Else  // if folderPath is provided
 			NewPath/O R2D_PCImageFolder, folderPath  // load preset path from "folderPath" without showing a dialog
 		Endif
-		PathInfo R2D_PCImageFolder
-		R2D_PCImageFolder_str = S_path
+//		PathInfo R2D_PCImageFolder
+//		R2D_PCImageFolder_str = S_path
+
+		If(V_flag != 0)	// user cancelled the dialog
+			Print "User cancelled"
+			return ""
+		Endif
+		ImageLoadSubFolders("R2D_PCImageFolder", extension, 1, 0, overwrite, 0)
+
+		// ImageLoadSubFolders("R2D_PCImageFolder", ".tif", 1, 0, 1, 0)  // overwrite, no add files
+		// Print "All images were loaded. Existing images were overwritten."
+		If(overwrite)
+			Print "All images were loaded. Existing images were overwritten."
+		Else
+			Print "New images were loaded. Existing images were skipped."
+		Endif
+	
+//		R2D_LoadAllTIFF(path = R2D_PCImageFolder_str, overwrite = overwrite)
 		
+		R2D_CreateImageList(1) // create an imagelist with the name order
+		PathInfo/S R2D_PCImageFolder  // set default symbolic path to main folder.
 		
-		R2D_LoadAllTIFF(path = R2D_PCImageFolder_str, overwrite = overwrite)
+		return ""
 			
 	else
 	
@@ -134,7 +146,10 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 
 End
 
+// *** Load one image for specific extension
 // load tiff
+// [NEW 2026-10-13] All tiff loading goes through this function (also called by ImageLoadSubFolders).
+// [NEW 2026-10-13] Returns 1 if the image was loaded, 0 if skipped (image exists and overwrite == 0) or loading failed.
 Static Function LoadTIFF(filepath, overwrite)
 	string filepath
 	variable overwrite
@@ -142,73 +157,45 @@ Static Function LoadTIFF(filepath, overwrite)
 	string filename = parseFilePath(0, filepath, ":", 1, 0) //Get file name string
 	string ImageName = R2D_CleanupName(fileName)	// cleanup image name to fit the igor rule
 	string header
-	
-	// Load the tiff image with overwrite flag
-	If(overwrite == 1) // if overwrite is enabled, 
-//		ImageLoad/T=tiff/Q/O/RAT/N=$ImageName filepath
-		ImageLoad/T=tiff/Q/LTMD/O/N=$ImageName filepath
-	Elseif(overwrite == 0) // if overwrite is disabled
-		SVAR ImageList = :Red2DPackage:U_ImageList
-		string resultStr = ListMatch(ImageList, ImageName) // check if the image is new
-		If(strlen(resultStr) == 0)  // if the image is new, load it.
-			ImageLoad/T=tiff/Q/RAT/N=$ImageName filepath
-		Else	// skip loading and set filename to empty to skip following file adjustment and header loading.
-			fileName =""  
-		Endif
+
+	// [NEW 2026-10-13] Skip existing image. Checks the current data folder directly, so the image list does not need to be refreshed.
+	If(overwrite == 0 && WaveExists($ImageName))
+		return 0
 	Endif
-	
-	// Adjust loaded image
-	If(strlen(filename) > 0)	// if the file is loaded
-		// Modify images
-		wave ImageWave = $ImageName	 // get wave
-		Redimension/S ImageWave	 // change data type to single float. 
-		Multithread ImageWave[][] = ImageWave[p][q] <= -1 ? NaN : ImageWave[p][q] // negative values to NaN; pixels with NaN are automatically masked
-		
-		// Append tag to the wavenote
-		header = "" // initialize header
-		wave/T tiftag = :Tag0:T_Tags // get tag
-		variable tag_size = DimSize(tiftag,0)
-		variable i
-		for(i=0; i<tag_size; i++)
-			string toWrite = ReplaceString("\r", tiftag[i], "")
-			toWrite = ReplaceString("\n", tiftag[i], "")
-			header += toWrite + "\r"
-		endfor
-		
-//		header += FindByKeyInTiffTag("DATETIME", tiftag) + "\r"
-//		header += FindByKeyInTiffTag("ARTIST", tiftag) + "\r"
-//		header += FindByKeyInTiffTag("MODEL", tiftag) + "\r"
-//		header += FindByKeyInTiffTag("SOFTWARE", tiftag) + "\r"
-//		header += FindByKeyInTiffTag("IMAGEDESCRIPTION", tiftag) + "\r"
-////		header += FindByKeyInTiffTag("Sample name", tiftag) + "\r"
-//		header = ReplaceString("\r\n", header, "\r")	// cleanup whitespace
-		Note/K ImageWave, header  // note the wave with the header
+
+	// [NEW 2026-10-13] Load the tiff image and its tags in one read. /LTMD stores the tags in :Tag0:T_Tags and works only with /BIGT=1.
+	ImageLoad/T=tiff/BIGT=1/Q/O/LTMD/N=$ImageName filepath
+	If(V_flag == 0)
+		Print "Failed to load: " + filepath
 		KillDataFolder/Z :Tag0
-		
-		Print fileName
-		
+		return 0
 	Endif
+
+	// Modify image: 32 bit integer to single flaot. pixels with -1 to NaN.
+	wave ImageWave = $ImageName	 // get wave
+	Redimension/S ImageWave	 // change data type to single float. 
+	Multithread ImageWave[][] = ImageWave[p][q] < 0 ? NaN : ImageWave[p][q] // negative values to NaN; pixels with NaN are automatically masked
+	
+	// Append tag to the wavenote
+	header = "" // initialize header
+	wave/T tiftag = :Tag0:T_Tags // get tag
+	variable tag_size = DimSize(tiftag,0)
+	variable i
+	for(i=0; i<tag_size; i++)
+		string toWrite	// [NEW 2026-10-13]
+		sprintf toWrite, "%s", tiftag[i]	// [NEW 2026-10-13] the tag contains null bytes, which can be removed by sprintf
+		toWrite = ReplaceString("\r\n", toWrite, "\r")	// [NEW 2026-10-13] multi-line tags (e.g. IMAGEDESCRIPTION) become separate lines
+		toWrite = ReplaceString("\n", toWrite, "")	// [NEW 2026-10-13] remove unecessary newline
+		header += toWrite + "\r"
+	endfor
+	
+	Note/K ImageWave, header  // note the wave with the header
+	KillDataFolder/Z :Tag0 
+	Print fileName
+
+	return 1	// [NEW 2026-10-13] loaded
 End
 
-// load tiff tag by key
-//Static Function/S FindByKeyInTiffTag(key, tiftag)
-//	string key
-//	wave/T tiftag
-//	
-//	variable rowsInTag = DimSize(tiftag,0)
-//	variable col, row
-//	string buffer = ""
-//
-//	FindValue/TEXT=key tiftag
-//	if(V_value != -1)
-//		col=floor(V_value/rowsInTag)
-//		row=V_value-col*rowsInTag
-//		sprintf buffer, "%s", tiftag[row][%Value]
-//	Endif
-//	
-//	return buffer
-//
-//End
 
 // load edf
 Static Function LoadEDF(filepath, overwrite)
@@ -437,69 +424,7 @@ Static Function Load_SANSU_PMT_binary(filepath, overwrite)
 End
 
 
-
-
-////////////////////////
-// *** ONLY FOR auto process 2023-04-08.
-////////////////////////
-
-/// LOAD IMAGES IN ALL SUBFOLDERS
-Function R2D_LoadAllTIFF([path,overwrite])
-	string path
-	variable overwrite
-	
-	R2D_CreateImageList(2)  // refresh the imagelist. The imagelist is used to check if the target image exists in igor.
-	
-	If(ParamIsDefault(path))	// path not specified
-		NewPath/O R2D_PCImageFolder  // create a new path, user dialog
-	Else  // path specified
-		NewPath/O R2D_PCImageFolder, path  // load preset path from "path"
-	Endif 
-	
-	If(V_flag == 0)
-		Print "Loading images..."
-		If(ParamIsDefault(overwrite) || overwrite == 0)  // if do not overwrite
-			String/G :Red2DPackage:U_NewImageList = "" // a list to store the names of newly loaded files. Not in use 2021-04-15.
-			
-			ImageLoadSubFolders("R2D_PCImageFolder", ".tif", 1, 0, 0, 0)  // no overwrite, no add files
-			
-			Print "New images were loaded. Existing images were skiped."	
-		Else  // if overwrite
-			ImageLoadSubFolders("R2D_PCImageFolder", ".tif", 1, 0, 1, 0)  // overwrite, no add files
-			Print "All images were loaded. Existing images were overwritten."	
-		Endif
-		
-	Else
-		Print "User canceled"
-		Abort	
-	Endif
-	
-	R2D_CreateImageList(1) // create an imagelist (a textwave and a list_string) with the name order
-	
-	PathInfo/S R2D_PCImageFolder  // set default symbolic path to main folder.
-
-End
-
-
-/// LOAD IMAGES IN ALL SUBFOLDERS and add images within the same subfolders
-Function R2D_LoadAllTIFF_addSubfolders()
-	
-	NewPath/O R2D_PCImageFolder
-	If(V_flag == 0)
-		Print "Loading images..."
-		ImageLoadSubFolders("R2D_PCImageFolder", ".tif", 1, 0, 1, 1)  // add files
-		Print "Completed"	
-	Else
-		Print "User canceled"
-		Abort
-	Endif
-	
-	R2D_CreateImageList(2) // create an imagelist with the order date created
-	
-	PathInfo/S R2D_PCImageFolder  // set default path to main folder.
-
-End
-
+// *** Load recursively
 
 // A script from Igor forum. I have modified some parts.
 //  ImageLoadSubFolders(pathName, extension, recurse, level)
@@ -517,8 +442,8 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
     variable add 			// Add files (1) or not (0)
     
     variable folderIndex, fileIndex
-    Wave/T ImageList = :Red2DPackage:ImageList
-    SVAR NewImageList = :Red2DPackage:U_NewImageList
+//    Wave/T ImageList = :Red2DPackage:ImageList	// [UNUSED 2026-10-13] LoadTIFF checks existing images
+//    SVAR NewImageList = :Red2DPackage:U_NewImageList
     
     // Build a prefix (a number of tabs to indicate the folder level by indentation)
     folderIndex = 0
@@ -529,13 +454,13 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
         folderIndex += 1
     while(1)	// This would loop forever until "break" actives.
     
-    string path
+    string folderPath
     PathInfo $pathName              // Sets S_path
-    path = S_path
+    folderPath = S_path
     
-    string header
-    string file_path
-		
+//    string header	// [UNUSED 2026-10-13] LoadTIFF writes the header
+//    string file_path	// [UNUSED 2026-10-13] LoadTIFF writes the header
+
     fileIndex = 0
     do
         string fileName
@@ -548,7 +473,7 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
 		if (strlen(fileName) == 0) // if no more file exists, get out the do-while-loop.
 
 			//////////////////////////
-			///A block for adding iamges///
+			///A block for adding images///
 			if(add == 1 && fileIndex > 0)  // change names of the added waves. fileindex > 0 is used to avoid NaN error.
 				// Sort wave names and get the first name in alphabet order.
 				refname = StringFromList(0, SortList(LoadedWaveList))
@@ -571,30 +496,29 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
 
 		/// Load images
 		string ImageName = R2D_CleanupName(fileName) // Remove extension and unnecessary characters
-		If(overwrite == 0) // skip existing
-			FindValue/TEXT=ImageName ImageList  // check if the target image already existing in igor
-			If(V_value == -1)  // if the target image has not been loaded
-				ImageLoad/T=tiff/Q/P=$pathName/N=$ImageName fileName  // load a image
-				Print fileName
-				NewImageList = AddListItem(ImageName, NewImageList)
-			Else
-				fileName =""  // make the file name empty to skip the following process.
-			Endif
-		Else // overwrite
-			ImageLoad/T=tiff/Q/O/P=$pathName/N=$ImageName fileName  // load a image
-			Print fileName
-		Endif
-			
-			
-		If(strlen(filename) > 0)  // if filename is not empty
-			
-			// Convert 32bit signed integer to single float. This is for the use of NaN.
-  			wave refwave = $ImageName  
-			Redimension/S refwave
-			Multithread refwave[][] = refwave[p][q] <= -1 ? NaN : refwave[p][q]
-			file_path = S_path + S_fileName  // set the file full path
-			header = R2D_GetHeader_TIFF(file_path)  // read the header
-			Note/K refwave, header  // note the wave with the heade
+		// [REPLACED 2026-10-13] by LoadTIFF below, so subfolder loading uses the same loading, existence check, and header as LoadTIFF.
+//		If(overwrite == 0) // skip existing
+//			FindValue/TEXT=ImageName ImageList  // check if the target image already existing in igor
+//			If(V_value == -1)  // if the target image has not been loaded
+//				ImageLoad/T=tiff/Q/P=$pathName/N=$ImageName fileName  // load a image
+//				Print fileName
+//				NewImageList = AddListItem(ImageName, NewImageList)
+//			Else
+//				fileName =""  // make the file name empty to skip the following process.
+//			Endif
+//		Else // overwrite
+//			ImageLoad/T=tiff/Q/O/P=$pathName/N=$ImageName fileName  // load a image
+//			Print fileName
+//		Endif
+		variable loaded  // [NEW 2026-10-13]
+		loaded = LoadTIFF(folderPath + fileName, overwrite)  // [NEW 2026-10-13] path is the full path of this folder (from PathInfo above). Returns 1 if loaded.
+//		If(loaded && overwrite == 0)  // [NEW 2026-10-13] same as the old NewImageList line above
+//			NewImageList = AddListItem(ImageName, NewImageList)
+//		Endif
+
+
+//		If(strlen(filename) > 0)  // if filename is not empty	// [REPLACED 2026-10-13]
+		If(loaded)  // [NEW 2026-10-13] if the image was loaded
 		
 			// Add waves from the same subfolder.
 			If(add == 1)
@@ -616,85 +540,35 @@ Static Function ImageLoadSubFolders(pathName, extension, recurse, level, overwri
     while(1)
 
     
-    if (recurse)                                    // Do we want to go into subfolder?
-        folderIndex = 0
-        do
-            path = IndexedDir($pathName, folderIndex, 1)	// (NameOfParentSymbolicPath, index of subfolder, bitwise parameter:0, i.e.1 = full path)
-            if (strlen(path) == 0)
-                break                           // No more folders
-            endif
-
-            string subFolderPathName = "tempPrintFoldersPath_" + num2istr(level+1)
-            
-            // Now we get the path to the new parent folder
-            string subFolderPath
-            subFolderPath = path
-            
-            NewPath/Q/O $subFolderPathName, subFolderPath
-            ImageLoadSubFolders(subFolderPathName, extension, recurse, level+1, overwrite, add)
-            KillPath/Z $subFolderPathName
-            
-            folderIndex += 1
-        while(1)	// This would loop forever until "break" actives.
-    endif
+	if (recurse)                                   // Do we want to go into subfolder?
+		folderIndex = 0
+		do
+			string subFolderPath
+			subFolderPath = IndexedDir($pathName, folderIndex, 1)	// (NameOfParentSymbolicPath, index of subfolder, bitwise parameter:0, i.e.1 = full path)
+			if (strlen(subFolderPath) == 0)
+			    break                           // No more folders
+			endif
+//			path = IndexedDir($pathName, folderIndex, 1)	// (NameOfParentSymbolicPath, index of subfolder, bitwise parameter:0, i.e.1 = full path)
+//			if (strlen(path) == 0)
+//			    break                           // No more folders
+//			endif
+			
+			string subFolderPathName = "tempPrintFoldersPath_" + num2istr(level+1)
+			
+			// Now we get the path to the new parent folder
+//			string subFolderPath
+//			subFolderPath = path
+			
+			NewPath/Q/O $subFolderPathName, subFolderPath
+			ImageLoadSubFolders(subFolderPathName, extension, recurse, level+1, overwrite, add)
+			KillPath/Z $subFolderPathName
+			
+			folderIndex += 1
+		while(1)	// This would loop forever until "break" actives.
+	endif
     
 End
 
-Function/S R2D_GetHeader_TIFF(path)
-	string path // file path
-//	variable endline  // terminal line for the header, line number starts from zero.
-//	variable mode  // 0 for general text, 1 for tiff (Pilatus), 2 for edf (Xenocs), maybe 3 for Anton Paar, and 4 for Rigaku
-	
-	string buffer
-	variable refNum
-	
-	Open/R refNum as path
-	string header = ""
-	
-	ImageLoad/T=tiff/Q/O/RTIO path
-	wave/T tiftag = :Tag0:T_Tags
-	variable rowsInTag = DimSize(tiftag,0)
-	variable col, row
-	
-	FindValue/TEXT="MODEL" tiftag
-	if(V_value != -1)
-	col=floor(V_value/rowsInTag)
-	row=V_value-col*rowsInTag
-	sprintf buffer, "%s", tiftag[row][%Value]  // the tag contains null bytes, which can be removed by sprintf
-	header += buffer+"\r"
-	Endif
-	
-	FindValue/TEXT="SOFTWARE" tiftag
-	if(V_value != -1)
-	col=floor(V_value/rowsInTag)
-	row=V_value-col*rowsInTag
-	sprintf buffer, "%s", tiftag[row][%Value]
-	header += buffer+"\r"
-	Endif
-	
-	FindValue/TEXT="DATETIME" tiftag
-	if(V_value != -1)
-	col=floor(V_value/rowsInTag)
-	row=V_value-col*rowsInTag
-	sprintf buffer, "%s", tiftag[row][%Value]
-	header += buffer+"\r"
-	
-	Endif
-	
-	FindValue/TEXT="IMAGEDESCRIPTION" tiftag
-	if(V_value != -1)
-	col=floor(V_value/rowsInTag)
-	row=V_value-col*rowsInTag
-	sprintf buffer, "%s", tiftag[row][%Value]
-	header += buffer+"\r"
-	header = ReplaceString("\r\n", header, "\r")
-	Endif
-	
-	KillDataFolder/Z :Tag0
-	
-	return header
-
-End
 
 // *** Organize Images to folders by their name
 Function R2D_SortImagesByBeamSizeAndSDD()
@@ -717,4 +591,23 @@ Function R2D_SortImagesByBeamSizeAndSDD()
 		MoveWave target, $(":"+datafoldername+":")
 	Endfor
 	
+End
+
+// *** LOAD IMAGES IN ALL SUBFOLDERS and add images within the same subfolders
+Function R2D_LoadAllTIFF_addSubfolders()
+	
+	NewPath/O R2D_PCImageFolder
+	If(V_flag == 0)
+		Print "Loading images..."
+		ImageLoadSubFolders("R2D_PCImageFolder", ".tif", 1, 0, 1, 1)  // add files
+		Print "Completed"	
+	Else
+		Print "User canceled"
+		Abort
+	Endif
+	
+	R2D_CreateImageList(2) // create an imagelist with the order date created
+	
+	PathInfo/S R2D_PCImageFolder  // set default path to main folder.
+
 End
