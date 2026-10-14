@@ -407,6 +407,8 @@ Static Function LoadImagesInFolder(pathName, extension, recurse, level, overwrit
 	folderPath = S_path	// full path of this folder
 
 	// Load each file in this folder
+	// [NEW 2026-10-14] Load in name order. 16: case-insensitive, and numbers in names are sorted by value, e.g. "img9" comes before "img10".
+	string fileList = SortList(IndexedFile($pathName, -1, extension), ";", 16)	// -1: list of all files with "extension" in this folder
 	fileIndex = 0
 	variable numAdded = 0	// number of images added in this folder (add mode). Used instead of fileIndex, which also counts files that failed to load.
 	do
@@ -414,7 +416,7 @@ Static Function LoadImagesInFolder(pathName, extension, recurse, level, overwrit
 		string refname
 		string LoadedWaveList
 		Wave/Z Added
-		fileName = IndexedFile($pathName, fileIndex, extension)	// return index-th filename in the specified folder
+		fileName = StringFromList(fileIndex, fileList)	// [NEW 2026-10-14] index-th filename in name order. Was IndexedFile($pathName, fileIndex, extension), which uses the order of the file system.
 		if (strlen(fileName) == 0)	// no more files
 			break
 		endif
@@ -469,13 +471,16 @@ Static Function LoadImagesInFolder(pathName, extension, recurse, level, overwrit
 
 	// Load each subfolder, if recurse = 1
 	if (recurse)
+		// [NEW 2026-10-14] Load subfolders in name order, same as the files above.
+		string folderList = SortList(IndexedDir($pathName, -1, 0), ";", 16)	// -1: list of all subfolder names (not full paths) in this folder
 		folderIndex = 0
 		do
-			string subFolderPath
-			subFolderPath = IndexedDir($pathName, folderIndex, 1)	// full path of the folderIndex-th subfolder
-			if (strlen(subFolderPath) == 0)
+			string subFolderName, subFolderPath
+			subFolderName = StringFromList(folderIndex, folderList)	// [NEW 2026-10-14] folderIndex-th subfolder name in name order. Was IndexedDir($pathName, folderIndex, 1), which uses the order of the file system.
+			if (strlen(subFolderName) == 0)
 				break	// No more folders
 			endif
+			subFolderPath = folderPath + subFolderName	// full path of the subfolder. folderPath ends with ":".
 
 			string subFolderPathName = "R2D_tempFolderPath_" + num2istr(level+1)	// each recursion level has its own temporary symbolic path
 			NewPath/Q/O $subFolderPathName, subFolderPath
@@ -483,7 +488,7 @@ Static Function LoadImagesInFolder(pathName, extension, recurse, level, overwrit
 			// [NEW 2026-10-13] toDataFolders: move into a data folder with the subfolder name. It is created in the current data folder, so nested subfolders become nested data folders.
 			DFREF parentDFR = GetDataFolderDFR()
 			if(toDataFolders)
-				string dfName = CleanupName(IndexedDir($pathName, folderIndex, 0), 0)	// subfolder name with strict name rules, same as the image names, e.g. "2026-10-13" -> "X2026_10_13"
+				string dfName = CleanupName(subFolderName, 0)	// subfolder name with strict name rules, same as the image names, e.g. "2026-10-13" -> "X2026_10_13"
 				NewDataFolder/O/S $dfName
 			endif
 			DFREF subDFR = GetDataFolderDFR()
@@ -507,14 +512,14 @@ Static Function LoadImagesInFolder(pathName, extension, recurse, level, overwrit
 	return numLoaded
 End
 
-// *** LOAD IMAGES IN ALL SUBFOLDERS and add images within the same subfolders
-Function R2D_LoadAllTIFF_addSubfolders()
+// *** Load and add images in each subfolder recursively
+Function R2D_LoadAndAdd_subfolders_recursive(extension)
+	string extension
 	
 	NewPath/O R2D_PCImageFolder
 	If(V_flag == 0)
 		Print "Loading images..."
-	//	ImageLoadSubFolders("R2D_PCImageFolder", ".tif", 1, 0, 1, 1)  // add files	// [REPLACED 2026-10-13] renamed
-		LoadImagesInFolder("R2D_PCImageFolder", ".tif", 1, 0, 1, 1, 0)	// [NEW 2026-10-13] add files. arguments: (path, extension, recurse, level, overwrite, add, toDataFolders)
+		LoadImagesInFolder("R2D_PCImageFolder", extension, 1, 0, 1, 1, 0)	// [NEW 2026-10-13] add files. arguments: (path, extension, recurse, level, overwrite, add, toDataFolders)
 		Print "Completed"
 	Else
 		Print "User canceled"
