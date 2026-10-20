@@ -105,7 +105,7 @@ Static Function LoadOneImage(filepath, extension, overwrite)
 		case ".edf":
 			return LoadEDF(filepath, overwrite)
 		case ".h5z":
-			return R2D_Load_SAXSpoint_h5z(filepath=filepath, overwrite=overwrite)
+			return R2D_Load_SAXSpoint_h5z(filepath)
 		case ".dat":
 		case ".asc":
 		case ".txt":

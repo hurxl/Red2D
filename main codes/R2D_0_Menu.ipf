@@ -6,20 +6,21 @@ Menu "Red2D"
 
 	Submenu "1. Load Images"
 		"Load Selected TIFF Images", R2D_LoadImages(".tif", "files", 1)	// files: load selected files, 1: overwrite enabled
-		"Load All TIFF Images in Folder", R2D_LoadImages(".tif", "folder", 1)	// folder: load all files in the selected folder, 1: overwrite enabled
+		"Load All TIFF Images in a Folder", R2D_LoadImages(".tif", "folder", 1)	// folder: load all files in the selected folder, 1: overwrite enabled
 		"Load TIFF Recursively", R2D_LoadImages(".tif", "recursive", 1)	// recursive: load all files recursively, 1: overwrite enabled
 		"Load TIFF Recursively into Data Folders", R2D_LoadImages(".tif", "recursive_df", 1)	// [NEW 2026-10-13] recursive_df: same as recursive, but each subfolder goes to a data folder with the same name
 		"Load TIFF Recursively and Add per Folders", R2D_LoadAndAdd_subfolders_recursive(".tif")	// [NEW 2026-10-14] Recursively load and add images in each folders.
 		"-"
-		"Load a SAXSpoint h5z file",  R2D_Load_SAXSpoint_h5z()	// h5z file: load h5z file of AntonPaar SAXSpoint
+//		"Load a SAXSpoint h5z file",  R2D_Load_SAXSpoint_h5z()	// h5z file: load h5z file of AntonPaar SAXSpoint
+		"Load Selected h5z file", R2D_LoadImages(".h5z", "files", 1)
+		"Load All h5z files in a Folder", R2D_LoadImages(".h5z", "folder", 1)
 		"-"
-
 		"Load Selected EDF Images", R2D_LoadImages(".edf", "files", 1)	// files: load selected files, 1: overwrite enabled
-		"Load All EDF Images in Folder", R2D_LoadImages(".edf", "folder", 1)	// folder: load all files in selected, 1: overwrite enabled
+		"Load All EDF Images in a Folder", R2D_LoadImages(".edf", "folder", 1)	// folder: load all files in selected, 1: overwrite enabled
 		"-"
-		"Load All Text Images (txt) in Folder", R2D_LoadImages(".txt", "folder", 1)
-		"Load All Text Images (asc) in Folder", R2D_LoadImages(".asc", "folder", 1)
-		"Load All Text Images (dat) in Folder", R2D_LoadImages(".dat", "folder", 1)
+		"Load All Text Images (txt) in a Folder", R2D_LoadImages(".txt", "folder", 1)
+		"Load All Text Images (asc) in a Folder", R2D_LoadImages(".asc", "folder", 1)
+		"Load All Text Images (dat) in a Folder", R2D_LoadImages(".dat", "folder", 1)
 	End
 	
 	"2. Display Images", R2D_Display2D()

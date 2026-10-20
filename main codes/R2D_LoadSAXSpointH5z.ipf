@@ -15,18 +15,18 @@ Function R2D_Load_SAXSpoint_h5z(filepath, overwrite)
 	R2D_cleanuptmpfolder(".h5")
 	
 	// ask user to select a h5z file
-	variable refnum
-	string fileFilters = "Zipped HDF Files (*.h5z):.h5z;"
-	Open/D/R/F=fileFilters/M="Select a zip file" refNum
-	if (strlen(S_fileName) == 0)	// if no files is selected, close this proceddure.
-		Print "User cancelled"
-		return 0
-	else
-		string h5zPath = S_fileName
-	endif
+//	variable refnum
+//	string fileFilters = "Zipped HDF Files (*.h5z):.h5z;"
+//	Open/D/R/F=fileFilters/M="Select a zip file" refNum
+//	if (strlen(S_fileName) == 0)	// if no files is selected, close this proceddure.
+//		Print "User cancelled"
+//		return 0
+//	else
+//		string h5zPath = S_fileName
+//	endif
 	
 	// unzip h5z
-	string first_h5path = R2D_unzipH5zip(h5zPath, IgorUserTmp_pathstr)
+	string first_h5path = R2D_unzipH5zip(filepath, IgorUserTmp_pathstr) // first path typically store the main scattering image. The other path for direct beam image.
 	if (strlen(first_h5path) > 0 )
 		R2D_Load_SAXSpoint_hdf(first_h5path)
 	endif
