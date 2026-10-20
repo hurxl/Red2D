@@ -2,59 +2,11 @@
 #pragma rtGlobals=3				// Use modern global access method and strict wave access
 #pragma DefaultTab={3,20,4}		// Set default tab width in Igor Pro 9 and later
 
-// *** MISC
-
-Function/S R2D_createtmpfolder()
-
-	// Windows or Mac
-	string os = IgorInfo(2)
-
-	// Igor User Folder, and tmp folder
-	PathInfo IgorUserFiles
-	string IgorUserTmp_pathstr = S_path + "tmp"	// path string of Igor User Tmp folder	(igor does not have default tmp folder)
-	
-	// Check if tmp folder already exists. if not, create one.
-	GetFileFolderInfo/Q/Z IgorUserTmp_pathstr
-	string IgorUserTmp_pcpath
-	string cmd
-	If(V_flag == 0)	// tmp folder exists
-		// do nothing
-	else	// tmp folder does not exist
-		PathInfo IgorUserFiles	// get path string of user folder again, result saved in S_path
-		// note: ParseFilePath shows error for non-existing path
-		if(stringmatch(os,"Macintosh"))	// Mac
-			IgorUserTmp_pcpath = ParseFilePath(5, S_path,"/",0,0) + "tmp"	// convert symbolic path to MacOS UNIX path.
-			sprintf cmd, "mkdir -p '%s'", IgorUserTmp_pcpath
-			R2D_ExecuteUnixShellCommand(cmd, 0, 0)
-		elseif(stringmatch(os, "Windows"))	// Windows
-			IgorUserTmp_pcpath = ParseFilePath(5, S_path,"\\",0,0) + "tmp"	// convert symbolic path to Windows path.
-			sprintf cmd, "mkdir '%s'", IgorUserTmp_pcpath
-			R2D_ExecuteWindowsShellCommand(cmd, 0, 0)
-		endif
-	endif
-	
-	return IgorUserTmp_pathstr
-
-End
-
-Function R2D_cleanuptmpfolder(extension)
-	string extension
-
-	// cleanup tmp folder
-	String filelist = IndexedFile(IgorUserTmp, -1, extension) // get file list in tmp folder
-	String file
-	variable i
-	for(i=0; i<itemsInList(filelist); i++)	// delete all files
-		file = StringFromList(i, filelist)
-		deleteFile/Z/P=IgorUserTmp file	
-	endfor
-
-End
-
-
 // *** MAIN
 
-Function/S R2D_Load_SAXSpoint_h5z()
+Function R2D_Load_SAXSpoint_h5z(filepath, overwrite)
+	string filepath
+	variable overwrite
 
 	// create a tmp folder if not exist
 	string IgorUserTmp_pathstr = R2D_createtmpfolder()
@@ -68,7 +20,7 @@ Function/S R2D_Load_SAXSpoint_h5z()
 	Open/D/R/F=fileFilters/M="Select a zip file" refNum
 	if (strlen(S_fileName) == 0)	// if no files is selected, close this proceddure.
 		Print "User cancelled"
-		return ""
+		return 0
 	else
 		string h5zPath = S_fileName
 	endif
@@ -81,23 +33,6 @@ Function/S R2D_Load_SAXSpoint_h5z()
 
 	R2D_cleanuptmpfolder(".h5")
 	
-End
-
-
-Function/S R2D_unzipH5zip(h5zPath, IgorUserTmp_pathstr)
-	string h5zPath
-	string IgorUserTmp_pathstr
-
-	// unzip the h5z
-	UnzipFile/Z/O h5zPath, IgorUserTmp_pathstr
-	if(V_flag == 0) //  the operation succeeds
-		string filepath = IgorUserTmp_pathstr + ":" + IndexedFile(IgorUserTmp, 0, ".h5")
-		print "The h5z is extracted in " + filepath
-		return filepath
-	else
-		print "Unzipping failed."
-		return ""
-	endif
 End
 
 Function R2D_Load_SAXSpoint_hdf(filePath)
@@ -356,6 +291,7 @@ function Red2D_SpliteImageStack()
 
 end
 
+
 Function/S R2D_AddSequentialNumbers(strlist, flag)
 	string strlist
 	variable flag	//	0 to leave _0 as is when there is no _1, 1 to remove this mono _0.
@@ -396,6 +332,73 @@ Function/S R2D_AddSequentialNumbers(strlist, flag)
 	return new_strlist
 	
 End
+
+
+// *** MISC
+
+Function/S R2D_createtmpfolder()
+
+	// Windows or Mac
+	string os = IgorInfo(2)
+
+	// Igor User Folder, and tmp folder
+	PathInfo IgorUserFiles
+	string IgorUserTmp_pathstr = S_path + "tmp"	// path string of Igor User Tmp folder	(igor does not have default tmp folder)
+	
+	// Check if tmp folder already exists. if not, create one.
+	GetFileFolderInfo/Q/Z IgorUserTmp_pathstr
+	string IgorUserTmp_pcpath
+	string cmd
+	If(V_flag == 0)	// tmp folder exists
+		// do nothing
+	else	// tmp folder does not exist
+		PathInfo IgorUserFiles	// get path string of user folder again, result saved in S_path
+		// note: ParseFilePath shows error for non-existing path
+		if(stringmatch(os,"Macintosh"))	// Mac
+			IgorUserTmp_pcpath = ParseFilePath(5, S_path,"/",0,0) + "tmp"	// convert symbolic path to MacOS UNIX path.
+			sprintf cmd, "mkdir -p '%s'", IgorUserTmp_pcpath
+			R2D_ExecuteUnixShellCommand(cmd, 0, 0)
+		elseif(stringmatch(os, "Windows"))	// Windows
+			IgorUserTmp_pcpath = ParseFilePath(5, S_path,"\\",0,0) + "tmp"	// convert symbolic path to Windows path.
+			sprintf cmd, "mkdir '%s'", IgorUserTmp_pcpath
+			R2D_ExecuteWindowsShellCommand(cmd, 0, 0)
+		endif
+	endif
+	
+	return IgorUserTmp_pathstr
+
+End
+
+Function R2D_cleanuptmpfolder(extension)
+	string extension
+
+	// cleanup tmp folder
+	String filelist = IndexedFile(IgorUserTmp, -1, extension) // get file list in tmp folder
+	String file
+	variable i
+	for(i=0; i<itemsInList(filelist); i++)	// delete all files
+		file = StringFromList(i, filelist)
+		deleteFile/Z/P=IgorUserTmp file	
+	endfor
+
+End
+
+Function/S R2D_unzipH5zip(h5zPath, IgorUserTmp_pathstr)
+	string h5zPath
+	string IgorUserTmp_pathstr
+
+	// unzip the h5z
+	UnzipFile/Z/O h5zPath, IgorUserTmp_pathstr
+	if(V_flag == 0) //  the operation succeeds
+		string filepath = IgorUserTmp_pathstr + ":" + IndexedFile(IgorUserTmp, 0, ".h5")
+		print "The h5z is extracted in " + filepath
+		return filepath
+	else
+		print "Unzipping failed."
+		return ""
+	endif
+End
+
 
 Function ISOToIgorSecs(isoStr)
     String isoStr
@@ -456,61 +459,6 @@ Function/S IgorSecsToTimeStamp(secs)
     return TimeStampStr
 End
 
-
-Function R2D_FillDataseetSAXSpoint()
-
-	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet if exists. This func works in 1D and 2D folders.
-	wave/T/Z datasheet = $Datasheet_Path
-	If(!waveExists(datasheet))
-		print "datasheet does not exist. cancel filling."
-		return -1
-	endif
-
-	R2D_FillDataseet_worker("Sample Name", " : ", "\r", "SampleName", "text", Datasheet_Path)
-	R2D_FillDataseet_worker("Measeurment time", " : ", "\r", "Time_s", "number", Datasheet_Path)
-	R2D_FillDataseet_worker("Transmittance", " : ", "\r", "Trans", "number", Datasheet_Path)
-	R2D_FillDataseet_worker("Sample thickness", " : ", "\r", "Thick_cm", "number", Datasheet_Path)
-
-End
-
-Function R2D_FillDataseet_worker(Key, KeySeparator, ListSeparator, DatasheetColName, format, Datasheet_Path)
-	String Key
-	String KeySeparator
-	String ListSeparator
-	String DatasheetColName
-	String format
-	String Datasheet_Path
-	
-//	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet if exists. This func works in 1D and 2D folders.
-	wave/T datasheet = $Datasheet_Path
-	String imagefolder = GetWavesDataFolder(datasheet,1)+":" // get the full path of the datafolder for datasheet
-
-	String imagename
-	String imagepath
-	String target
-	String image_note
-	variable numInDatasheet = Dimsize(Datasheet, 0)
-	variable val
-	variable i
-	For(i=0; i<numInDatasheet; i++)
-		imagename = Datasheet[i][%ImageName]  // get imagename
-		imagepath = imagefolder+imagename  // set image full path. the user may be in the image folder and 1d folder.
-		image_note = note($imagepath)  // get note of the image
-		target = StringByKey(key, image_note, KeySeparator, ListSeparator)  // get sample name in the note
-		if(strlen(target) == 0 || numtype(strlen(target)) == 2)
-			// do nothing
-		else
-			if(stringmatch(format, "number"))	// remove non-numeric characters
-				val = str2num(target)
-				target = num2str(val)
-			endif
-			Datasheet[i][%$DatasheetColName] = target
-		endif
-	Endfor
-
-End
-
-
 // Execute Shell Command
 Function/S R2D_ExecuteUnixShellCommand(uCommand, printCommandInHistory, printResultInHistory) //Execute shell command, e.g. Contin
     String uCommand                         // Unix command to execute
@@ -554,6 +502,66 @@ Function/S R2D_ExecuteWindowsShellCommand(uCommand, printCommandInHistory, print
 	return S_value
 End
 
+
+// *** Fill datasheet
+
+Function R2D_FillDataseetSAXSpoint()
+
+	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet if exists. This func works in 1D and 2D folders.
+	wave/T/Z datasheet = $Datasheet_Path
+	If(!waveExists(datasheet))
+		print "datasheet does not exist. cancel filling."
+		return -1
+	endif
+
+	R2D_FillDataseet_worker("Sample Name", " : ", "\r", "SampleName", "text", Datasheet_Path)
+	R2D_FillDataseet_worker("Measeurment time", " : ", "\r", "Time_s", "number", Datasheet_Path)
+	R2D_FillDataseet_worker("Transmittance", " : ", "\r", "Trans", "number", Datasheet_Path)
+	R2D_FillDataseet_worker("Sample thickness", " : ", "\r", "Thick_cm", "number", Datasheet_Path)
+
+End
+
+
+Function R2D_FillDataseet_worker(Key, KeySeparator, ListSeparator, DatasheetColName, format, Datasheet_Path)
+	String Key
+	String KeySeparator
+	String ListSeparator
+	String DatasheetColName
+	String format
+	String Datasheet_Path
+	
+//	String Datasheet_Path = GetDatasheetPath()  // get path of the datasheet if exists. This func works in 1D and 2D folders.
+	wave/T datasheet = $Datasheet_Path
+	String imagefolder = GetWavesDataFolder(datasheet,1)+":" // get the full path of the datafolder for datasheet
+
+	String imagename
+	String imagepath
+	String target
+	String image_note
+	variable numInDatasheet = Dimsize(Datasheet, 0)
+	variable val
+	variable i
+	For(i=0; i<numInDatasheet; i++)
+		imagename = Datasheet[i][%ImageName]  // get imagename
+		imagepath = imagefolder+imagename  // set image full path. the user may be in the image folder and 1d folder.
+		image_note = note($imagepath)  // get note of the image
+		target = StringByKey(key, image_note, KeySeparator, ListSeparator)  // get sample name in the note
+		if(strlen(target) == 0 || numtype(strlen(target)) == 2)
+			// do nothing
+		else
+			if(stringmatch(format, "number"))	// remove non-numeric characters
+				val = str2num(target)
+				target = num2str(val)
+			endif
+			Datasheet[i][%$DatasheetColName] = target
+		endif
+	Endfor
+
+End
+
+
+
+// *** Additional functions
 
 Function R2D_SAXSpoint_create_panorama_images()
 

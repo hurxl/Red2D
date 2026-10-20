@@ -104,6 +104,8 @@ Static Function LoadOneImage(filepath, extension, overwrite)
 			return LoadTIFF(filepath, overwrite)
 		case ".edf":
 			return LoadEDF(filepath, overwrite)
+		case ".h5z":
+			return R2D_Load_SAXSpoint_h5z(filepath=filepath, overwrite=overwrite)
 		case ".dat":
 		case ".asc":
 		case ".txt":
@@ -129,6 +131,8 @@ Static Function/S GetFileFilter(extension)
 			return "Data Files (*.tif, *.tiff):.tif,.tiff;"
 		case ".edf":	// xenocs
 			return "Data Files (*.edf):.edf;"
+		case ".h5z":	// xenocs
+			return "Data Files (*.h5z):.h5z;"
 		case ".asc":
 			return "Data Files (*.asc):.asc;"
 		case ".txt":
