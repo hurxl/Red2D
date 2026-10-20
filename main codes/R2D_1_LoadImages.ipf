@@ -85,7 +85,7 @@ Function/S R2D_LoadImages(extension, mode, overwrite, [folderPath])
 		Print num2str(numLoaded) + " new images were loaded. Existing images were skipped."
 	Endif
 
-	R2D_CreateImageList(1) // create an imagelist with the name order
+//	R2D_CreateImageList(1) // create an imagelist with the name order [2026-10-20] We may no longer need this.
 
 	return filePaths	// [NEW 2026-10-13] selected file paths in "files" mode, empty in "folder" and "recursive" modes
 End

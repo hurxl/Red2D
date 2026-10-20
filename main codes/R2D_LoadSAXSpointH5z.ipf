@@ -4,9 +4,8 @@
 
 // *** MAIN
 
-Function R2D_Load_SAXSpoint_h5z(filepath, overwrite)
+Function R2D_Load_SAXSpoint_h5z(filepath)
 	string filepath
-	variable overwrite
 
 	// create a tmp folder if not exist
 	string IgorUserTmp_pathstr = R2D_createtmpfolder()
@@ -28,11 +27,12 @@ Function R2D_Load_SAXSpoint_h5z(filepath, overwrite)
 	// unzip h5z
 	string first_h5path = R2D_unzipH5zip(filepath, IgorUserTmp_pathstr) // first path typically store the main scattering image. The other path for direct beam image.
 	if (strlen(first_h5path) > 0 )
-		R2D_Load_SAXSpoint_hdf(first_h5path)
+		variable numOfloaded = R2D_Load_SAXSpoint_hdf(first_h5path)
 	endif
 
 	R2D_cleanuptmpfolder(".h5")
 	
+	return numOfloaded
 End
 
 Function R2D_Load_SAXSpoint_hdf(filePath)
@@ -40,13 +40,13 @@ Function R2D_Load_SAXSpoint_hdf(filePath)
 	print filePath
 	
 	Variable fileID		// HDF5 file ID will be stored here
-	Variable result = 0	// 0 means no error
+//	Variable result = 0	// 0 means no error
 	
 	// Open the HDF5 file
 	HDF5OpenFile /R fileID as filePath
 	if (V_flag != 0)
 		Print "HDF5OpenFile failed"
-		return -1
+		return 0
 	endif
 	
 	// Load the HDF5 dataset
@@ -147,11 +147,12 @@ Function R2D_Load_SAXSpoint_hdf(filePath)
 
 	sample_temperature = sample_temperature - 273.15
 	
-	Red2D_SpliteImageStack()	
+	
 	
 	print "Image loading completed..."
 	
-	return result
+	return Red2D_SpliteImageStack()	
+	
 End
 
 function Red2D_SpliteImageStack()		
@@ -288,6 +289,8 @@ function Red2D_SpliteImageStack()
 	endfor
 	
 	killwaves/Z imagestack
+	
+	return lay
 
 end
 
