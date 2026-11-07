@@ -99,8 +99,8 @@ Function R2D_CreStdFitPanel()
 	SetVariable setvar10 title="Background int",pos={15,285},size={200,25},limits={0,inf,100},fSize=13, value=U_BKnoise, proc=UpdateStdRings
 	CheckBox check0 title="Vscan", fSize=12, pos={50, 345}, variable=:Red2DPackage:U_Vscan, proc=CheckProcVscan
 	CheckBox check1 title="Hscan", fSize=12, pos={130, 345}, variable=:Red2DPackage:U_Hscan, proc=CheckProcHscan
-	Button button0 title="Quick Beam Center",size={150,23},pos={40,380},proc=ButtonProcQuickBeamCenter
-	Button button1 title="Quick Get Bkg",size={150,23},pos={40,420},proc=ButtonProcQuickGetBkg
+	Button button0 title="Find Beam Center",size={150,23},pos={40,380},proc=ButtonProcQuickBeamCenter
+	Button button1 title="Estimate Bkg",size={150,23},pos={40,420},proc=ButtonProcQuickGetBkg
 	Button button2 title="Get Points on Rings",size={150,23},pos={40,460},proc=ButtonProcGetPtOnRings
 	Button button3 title="Fit Rings",size={150,23},pos={40,500},proc=ButtonProcRingFit
 	Button button4 title="Refresh",size={150,23},pos={40,540},proc=ButtonProcRefreshRingFit
@@ -237,7 +237,12 @@ Function ButtonProcQuickBeamCenter(ba) : ButtonControl
 	switch( ba.eventCode )
 		case 2: // mouse up
 
-			R2D_GetBeamCenter_SelectedImage()
+
+			wave w = GetTopImage("IntensityImage")
+			if(!WaveExists(w))
+				return -1
+			endif
+			MaxPixelLoc(w)
 			
 			NVAR margin = :Red2DPackage:U_margin
 			DrawStdRings(margin)
@@ -750,33 +755,17 @@ Function FitStdRings()
 	DoWindow/H
 End
 
+Static Function MaxPixelLoc(WAVE img)
 
-Function R2D_GetBeamCenter_SelectedImage()
-
-	Wave img = GetTopImage("IntensityImage")
-	if(!WaveExists(img))
-		return -1
-	endif
-	Duplicate/FREE img, w
-	
-	Variable thr = GetBkg(w,1.5)
-	thr = numtype(thr) == 0 ? thr : 0
-//	variable thr = 0
-
-	MultiThread w = (w > thr && numtype(w) == 0) ? w : 0
-
-	MatrixOP/FREE m0 = sum(w)
-	MatrixOP/FREE mr = sum(w * indexRows(w))
-	MatrixOP/FREE mc = sum(w * indexCols(w))
+	WaveStats/Q img                      // V_maxRowLoc, V_maxColLoc: scaled location of the ma
 
 	NVAR X0 = :Red2DPackage:U_X0
 	NVAR Y0 = :Red2DPackage:U_Y0
-	
-	X0 = DimOffset(img, 0) + (mr[0] / m0[0]) * DimDelta(img, 0)
-	Y0 = DimOffset(img, 1) + (mc[0] / m0[0]) * DimDelta(img, 1)
-	
-	Printf "Rough Beam Center: x = %g, y = %g\r", X0, Y0
-	
+	X0 = V_maxRowLoc
+	Y0 = V_maxColLoc	
+
+	Printf "MaxPixelLoc (%s): x = %g, y = %g   (Imax = %g)\r", NameOfWave(img), X0, Y0, V_max
+
 End
 
 
