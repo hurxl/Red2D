@@ -655,13 +655,7 @@ Static Function GetBkg()
 	Wave TopImage = $TopImageName
 	
 	// Get mask wave
-	String/G :Red2DPackage:U_MaskName_FitStd
-	SVAR MaskName_FitStd = :Red2DPackage:U_MaskName_FitStd
-	wave/Z mask_wave = $(":Red2DPackage:Mask:"+ MaskName_FitStd)
-	if(!WaveExists(mask_wave))
-		Duplicate/O/FREE $TopImageName, mask_wave
-		MultiThread mask_wave = 0	// if mask wave does not exist, make a dummy mask wave. This simplify the latter codes.
-	endif
+	wave refStd = :Red2DPackage:refStd
 	
 	/// Get global variables I need, then create waves in Red2Dpackage
 	DFREF saveDFR = GetDataFolderDFR()
@@ -670,13 +664,12 @@ Static Function GetBkg()
 	NVAR bkg = :Red2Dpackage:U_BKnoise
 	
 	/// Preparation for scan peaks
-	Duplicate/O/FREE TopImage, refTopImage
-	Multithread refTopImage[][] = mask_wave[p][q] == 1 ? NaN : TopImage[p][q] // apply mask to ref image wave
+	Duplicate/O TopImage, refTopImage
+	Multithread refTopImage[][] = refStd[p][q] == 0 ? NaN : TopImage[p][q] // apply mask to ref image wave
 	WaveStats refTopImage
 	
-	bkg = V_avg + 5*V_sdev
-	
-	Print "Estiamted bkg:", bkg
+	bkg = 5*V_avg	
+	Print "Estiamted bkg ( = 5*avg ):", bkg
 
 End
 
