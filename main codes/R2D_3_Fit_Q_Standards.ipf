@@ -77,7 +77,7 @@ Function R2D_CreStdFitPanel()
 	/// Check if panel exist
 	DoWindow Fit_Q_Standards
 	If(V_flag == 0)
-		NewPanel/K=1/N=Fit_Q_Standards/W=(400, 300, 630, 900)
+		NewPanel/K=1/N=Fit_Q_Standards/W=(400, 300, 630, 890)
 	Else
 		DoWindow/F Fit_Q_Standards
 	Endif
@@ -99,11 +99,11 @@ Function R2D_CreStdFitPanel()
 	SetVariable setvar10 title="Background int",pos={15,285},size={200,25},limits={0,inf,100},fSize=13, value=U_BKnoise, proc=UpdateStdRings
 	CheckBox check0 title="Vscan", fSize=12, pos={50, 345}, variable=:Red2DPackage:U_Vscan, proc=CheckProcVscan
 	CheckBox check1 title="Hscan", fSize=12, pos={130, 345}, variable=:Red2DPackage:U_Hscan, proc=CheckProcHscan
-	Button button0 title="Get Points on Rings",size={150,23},pos={40,380},proc=ButtonProcGetPtOnRings
-	Button button1 title="Fit Rings",size={150,23},pos={40,420},proc=ButtonProcRingFit
-	Button button2 title="Refresh",size={150,23},pos={40,460},proc=ButtonProcRefreshRingFit
-	Button button3 title="Quick Beam Center",size={150,23},pos={40,500},proc=ButtonProcQuickBeamCenter
-	Button button4 title="Quick Get Bkg",size={150,23},pos={40,540},proc=ButtonProcQuickGetBkg
+	Button button0 title="Quick Beam Center",size={150,23},pos={40,380},proc=ButtonProcQuickBeamCenter
+	Button button1 title="Quick Get Bkg",size={150,23},pos={40,420},proc=ButtonProcQuickGetBkg
+	Button button2 title="Get Points on Rings",size={150,23},pos={40,460},proc=ButtonProcGetPtOnRings
+	Button button3 title="Fit Rings",size={150,23},pos={40,500},proc=ButtonProcRingFit
+	Button button4 title="Refresh",size={150,23},pos={40,540},proc=ButtonProcRefreshRingFit
 	
 	PopupMenu popup1 title="Mask", pos={15,310}, fSize=13, bodyWidth=165, value=R2D_GetMaskList_simple(), proc=Update_Mask_FitStd
 	// R2D_GetMaskList_simple is located in the Circular Average Proc.
@@ -253,8 +253,19 @@ Function ButtonProcQuickGetBkg(ba) : ButtonControl
 	STRUCT WMButtonAction &ba
 	switch( ba.eventCode )
 		case 2: // mouse up
+		
+			/// Check if in the image folder.
+			If(R2D_Error_ImagesExist() == -1)
+				Abort
+			Endif
+			
+			/// Get top image, which should be Std
+			Wave w = GetTopImage("IntensityImage")
+			if(!WaveExists(w))
+				return -1
+			endif
 
-			GetBkg()
+			GetBkg(w, 5)	// use 5 times of average intensity as bkg
 
 			break
 		case -1: // control being killed
@@ -362,15 +373,10 @@ Static Function DrawStdRings(margine)
 	Endif
 	
 	/// Get top image, which should be Std
-//	Dowindow/F $(WinName(0,1)) // Activate the top graph window
-	String TopImageName = ImageNameList("IntensityImage", ";")
-	TopImageName = StringFromList(0, TopImageName)
-	TopImageName = ReplaceString("'", TopImageName, "") // delete 'name' from the name. Otherwise igor does not function.
-	if(strlen(TopImageName) == 0)
-		Print "IntensityImage window does not exist."
+	Wave TopImage = GetTopImage("IntensityImage")
+	if(!WaveExists(TopImage))
 		return -1
 	endif
-	Wave TopImage = $TopImageName
 	
 	/// Get global variables I need, then create waves in Red2Dpackage
 	DFREF saveDFR = GetDataFolderDFR()
@@ -481,18 +487,18 @@ Static Function GetPointsOnRings()
 	Endif
 	
 	/// Get top image, which should be Std
-//	Dowindow/F $(WinName(0,1)) // Activate the top graph window
-	String TopImageName = ImageNameList("IntensityImage", ";")
-	TopImageName = StringFromList(0, TopImageName)
-	TopImageName = ReplaceString("'", TopImageName, "") // delete 'name' from the name. Otherwise igor does not function.
-	Wave TopImage = $TopImageName
+	Wave TopImage = GetTopImage("IntensityImage")
+	if(!WaveExists(TopImage))
+		return -1
+	endif
 	
 	// Get mask wave
 	String/G :Red2DPackage:U_MaskName_FitStd
 	SVAR MaskName_FitStd = :Red2DPackage:U_MaskName_FitStd
 	wave/Z mask_wave = $(":Red2DPackage:Mask:"+ MaskName_FitStd)
 	if(!WaveExists(mask_wave))
-		Duplicate/O/FREE $TopImageName, mask_wave
+//		Duplicate/O/FREE $TopImageName, mask_wave
+		Duplicate/O/FREE TopImage, mask_wave
 		MultiThread mask_wave = 0	// if mask wave does not exist, make a dummy mask wave. This simplify the latter codes.
 	endif
 	
@@ -642,34 +648,26 @@ Static Function GetPointsOnRings()
 
 End
 
-Static Function GetBkg()
-	/// Check if in the image folder.
-	If(R2D_Error_ImagesExist() == -1)
-		Abort
-	Endif
-	
-	/// Get top image, which should be Std
-	String TopImageName = ImageNameList("IntensityImage", ";")
-	TopImageName = StringFromList(0, TopImageName)
-	TopImageName = ReplaceString("'", TopImageName, "") // delete 'name' from the name. Otherwise igor does not function.
-	Wave TopImage = $TopImageName
-	
-	// Get mask wave
-	wave refStd = :Red2DPackage:refStd
+Static Function GetBkg(img, mul)
+	wave img
+	variable mul
 	
 	/// Get global variables I need, then create waves in Red2Dpackage
-	DFREF saveDFR = GetDataFolderDFR()
-
 	Variable/G :Red2Dpackage:U_BKnoise
 	NVAR bkg = :Red2Dpackage:U_BKnoise
 	
 	/// Preparation for scan peaks
-	Duplicate/O TopImage, refTopImage
-	Multithread refTopImage[][] = refStd[p][q] == 0 ? NaN : TopImage[p][q] // apply mask to ref image wave
-	WaveStats refTopImage
+	Duplicate/FREE/O img, refimg
+	wave refStd = :Red2DPackage:refStd	// Get ring wave
+	if(WaveExists(refStd))
+		Multithread refimg[][] = refStd[p][q] == 0 ? NaN : img[p][q] // apply mask to ref image wave
+	endif
+	WaveStats/Q refimg
 	
-	bkg = 5*V_avg	
-	Print "Estiamted bkg ( = 5*avg ):", bkg
+	bkg = mul*V_avg	
+	Printf "Estiamted bkg ( = %g*avg ): %g\r", mul, bkg
+	
+	return bkg
 
 End
 
@@ -712,12 +710,10 @@ Function FitStdRings()
 	Endif
 	
 	/// Get top image, which should be Std
-//	Dowindow/F $(WinName(0,1)) // Activate the top graph window
-	String TopImageName = ImageNameList("IntensityImage", ";")
-	TopImageName = StringFromList(0, TopImageName)
-	TopImageName = ReplaceString("'", TopImageName, "") // delete 'name' from the name. Otherwise igor does not function.
-	Wave TopImage = $TopImageName
-	
+	Wave TopImage = GetTopImage("IntensityImage")
+	if(!WaveExists(TopImage))
+		return -1
+	endif
 	/// Get global variables I need, then create waves in Red2Dpackage
 	DFREF saveDFR = GetDataFolderDFR()
 	SetDataFolder Red2DPackage
@@ -757,21 +753,41 @@ End
 
 Function R2D_GetBeamCenter_SelectedImage()
 
-	String TopImageName = ImageNameList("IntensityImage", ";")
-	TopImageName = StringFromList(0, TopImageName)
-	TopImageName = ReplaceString("'", TopImageName, "") // delete 'name' from the name. Otherwise igor does not function.
-	Wave TopImage = $TopImageName
-	ImageStats TopImage
+	Wave img = GetTopImage("IntensityImage")
+	if(!WaveExists(img))
+		return -1
+	endif
+	Duplicate/FREE img, w
 	
+	Variable thr = GetBkg(w,1.5)
+	thr = numtype(thr) == 0 ? thr : 0
+//	variable thr = 0
+
+	MultiThread w = (w > thr && numtype(w) == 0) ? w : 0
+
+	MatrixOP/FREE m0 = sum(w)
+	MatrixOP/FREE mr = sum(w * indexRows(w))
+	MatrixOP/FREE mc = sum(w * indexCols(w))
+
 	NVAR X0 = :Red2DPackage:U_X0
 	NVAR Y0 = :Red2DPackage:U_Y0
 	
-	X0 = V_maxRowLoc
-	Y0 = V_maxColLoc
+	X0 = DimOffset(img, 0) + (mr[0] / m0[0]) * DimDelta(img, 0)
+	Y0 = DimOffset(img, 1) + (mc[0] / m0[0]) * DimDelta(img, 1)
+	
+	Printf "Rough Beam Center: x = %g, y = %g\r", X0, Y0
 	
 End
 
 
+Static Function/WAVE GetTopImage(nameOfImageWindow)
+	string nameOfImageWindow
 
+	String TopImageName = ImageNameList(nameOfImageWindow, ";")
+	TopImageName = StringFromList(0, TopImageName)
+	TopImageName = ReplaceString("'", TopImageName, "") // delete 'name' from the name. Otherwise igor does not function.
+	Wave TopImage = $TopImageName
 
+	return TopImage
 
+End
